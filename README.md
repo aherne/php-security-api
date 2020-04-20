@@ -115,7 +115,7 @@ This tag is required if XML authentication (**form** tag is present and has no *
 
 
 ```xml
-<users>
+<users roles="...">
     <user id="..." username="..." password="..." roles="..."/>
     ...
 </security>
@@ -124,6 +124,7 @@ This tag is required if XML authentication (**form** tag is present and has no *
 Where:
 
 - **users**: (mandatory) holds list of site users, each identified by a **user** tag
+    - *roles*: (mandatory) holds list of roles guests (non-logged in users) belong to, separated by commas
     - **user**: (mandatory) holds information about a single user
         - *id*: (mandatory) holds unique user identifier (eg: 1)
         - *username*: (optional) holds user's username (eg: john_doe). Mandatory for XML authentication!
