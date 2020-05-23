@@ -18,9 +18,7 @@ This API implements common concerns of web security (authentication, authorizati
 It does so using this series of steps:
 
 - **[configuration](#configuration)**: setting up an XML file where web security is configured
-- **[setting request information](#setting-request-information)**: setting request information in a [Lucinda\WebSecurity\Request](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Request.php) instance
-- **[setting oauth2 drivers](#setting-oauth2-drivers)**: (optional) setting oauth2 drivers available for authentication in a list of [Lucinda\WebSecurity\Authentication\OAuth2\Driver](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/OAuth2/Driver.php) instances
-- **[getting results](#getting-results)**: creating a [Lucinda\WebSecurity\Wrapper](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Wrapper.php) instance based on above and use it to get logged in user id, access token (for stateless apps) or csrf token (for form logins)
+- **[execution](#execution)**: creating a [Lucinda\WebSecurity\Wrapper](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Wrapper.php) instance to authenticate & authorize then use it to get logged in user id, access token (for stateless apps) or csrf token (for form logins)
 
 API is fully PSR-4 compliant, only requiring PHP7.1+ interpreter and SimpleXML + OpenSSL extensions. To quickly see how it works, check:
 
