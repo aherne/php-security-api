@@ -182,9 +182,9 @@ Once [configuration](#configuration) is finished, one can finally use this API t
 Both authentication and authorization require following objects to be set beforehand and constructor injected:
 
 - [Lucinda\WebSecurity\Request](#class-request): encapsulating request to be handled
-- [Lucinda\WebSecurity\Authentication\OAuth2\Driver](#class-authentication-oauth2-driver)[]: encapsulating a list of OAuth2 vendors to authenticate with  
+- [Lucinda\WebSecurity\Authentication\OAuth2\Driver](#interface-authentication-oauth2-driver)[]: encapsulating a list of OAuth2 vendors to authenticate with  
 
-If authentication/authorization reached a point where request needs to be redirected, constructor throws a [Lucinda\WebSecurity\SecurityPacket](#securitypacket). It may also throw:
+If authentication/authorization reached a point where request needs to be redirected, constructor throws a [Lucinda\WebSecurity\SecurityPacket](#class-securitypacket). It may also throw:
 
 - [Lucinda\WebSecurity\Authentication\Form\Exception](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/Form/Exception.php): when login form is posted with wrong parameters names
 - [Lucinda\WebSecurity\Authentication\OAuth2\Exception](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/OAuth2/Exception.php): when OAuth2 provider answers with an error to authorization code or access token requests
@@ -327,7 +327,7 @@ $request->setParameters($_POST);
 $request->setAccessToken(isset($_SERVER["HTTP_AUTHORIZATION"]) && stripos($_SERVER["HTTP_AUTHORIZATION"], "Bearer ")===0?trim(substr($_SERVER["HTTP_AUTHORIZATION"], 7)):"");
 ```
 
-### Class Authentication\OAuth2\Driver
+### Interface Authentication OAuth2 Driver
 
 [Lucinda\WebSecurity\Authentication\OAuth2\Driver](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/OAuth2/Driver.php) interface encapsulates an oauth2 vendor to authenticate with and defines following methods:
 
