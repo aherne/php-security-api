@@ -1,6 +1,21 @@
 # Web Security API
 
-This API implements common concerns of web security (authentication, authorization, state persistence, csrf prevention) on OWASP guidelines using this series of steps:
+- [About](#about)
+- [Configuration](#configuration)
+- [Execution](#execution)
+- [Installation](#installation)
+- [Unit Tests](#unit-tests)
+- [Examples](#unit-tests)
+- [Reference Guide](#reference-guide)
+
+
+## About
+
+This API implements common concerns of web security (authentication, authorization, state persistence, csrf prevention) on OWASP guidelines.
+
+![diagram](https://www.lucinda-framework.com/public/images/svg/web-security-api.svg)
+
+It does so using this series of steps:
 
 - **[configuration](#configuration)**: setting up an XML file where web security is configured
 - **[setting request information](#setting-request-information)**: setting request information in a [Lucinda\WebSecurity\Request](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Request.php) instance
@@ -153,52 +168,9 @@ Where:
         - *url*: (mandatory) page relative url (eg: administration)
         - *roles*: (mandatory) holds list of roles page is associated to, separated by commas (eg: USERS, ADMINISTRATORS)
 
-## Setting request information
+## Execution
 
-Both authentication and authorization require knowledge of request to be handled. All of this is encapsulated by a [Lucinda\WebSecurity\Request](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Request.php) instance with following public methods:
-
-| Method | Arguments | Returns | Description |
-| --- | --- | --- | --- |
-| setIpAddress | string $value | void | Sets ip address used by client (eg: value of $_SERVER["REMOTE_ADDR"]) |
-| setContextPath | string $value | void | Sets context path that prefixes page requested by client (eg: prefix of $_SERVER["REQUEST_URI"]) |
-| setUri | string $value | void | Sets page/resource requested by client without trailing slash (eg: suffix of $_SERVER["REQUEST_URI"])  |
-| setMethod | string $value | void | Sets HTTP method used by client in page request (eg: value of $_SERVER["REQUEST_METHOD"]) |
-| setParameters | array $value | void | Sets parameters sent by client as GET/POST along with request (eg: value of $_REQUEST) |
-| setAccessToken | string $value | void | Sets access token detected from client headers for stateless login (eg:  suffix of $_SERVER["HTTP_AUTHORIZATION"]) |
-| getIpAddress | string $value | void | Gets ip address used by client (eg: value of $_SERVER["REMOTE_ADDR"]) |
-| getContextPath | string $value | void | Gets context path that prefixes page requested by client (eg: prefix of $_SERVER["REQUEST_URI"]) |
-| getUri | string $value | void | Gets page/resource requested by client without trailing slash (eg: suffix of $_SERVER["REQUEST_URI"])  |
-| getMethod | string $value | void | Gets HTTP method used by client in page request (eg: value of $_SERVER["REQUEST_METHOD"]) |
-| getParameters | array $value | void | Gets parameters sent by client as GET/POST along with request (eg: value of $_REQUEST) |
-| getAccessToken | string $value | void | Gets access token detected from client headers for stateless login (eg:  Bearer value of $_SERVER["HTTP_AUTHORIZATION"]) |
-
-Usage example:
-
-```php
-$request = new Lucinda\WebSecurity\Request();
-$request->setIpAddress($_SERVER["REMOTE_ADDR"]);
-$request->setUri($_SERVER["REQUEST_URI"]!="/"?substr($_SERVER["REQUEST_URI"],1):"index");
-$request->setMethod($_SERVER["REQUEST_METHOD"]);
-$request->setParameters($_POST);
-$request->setAccessToken(isset($_SERVER["HTTP_AUTHORIZATION"]) && stripos($_SERVER["HTTP_AUTHORIZATION"], "Bearer ")===0?trim(substr($_SERVER["HTTP_AUTHORIZATION"], 7)):"");
-```
-
-## Setting OAuth2 drivers
-
-Authentication by OAuth2 vendors (eg: Facebook) is supported by this API as long as an external source (developer) implements interface [Lucinda\WebSecurity\Authentication\OAuth2\Driver](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/OAuth2/Driver.php) for each vendor that's going to be used. Interface defines following methods:
-
-| Method | Arguments | Returns | Description |
-| --- | --- | --- | --- |
-| getAuthorizationCode | string $state | string | Gets URL to redirect to vendor in order for latter to send back an autorization code |
-| getAccessToken | string $authorizationCode | string | Asks vendor to exchange authorization code with an access token and returns it |
-| getUserInformation | string $accessToken | [Lucinda\WebSecurity\Authentication\OAuth2\UserInformation](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/OAuth2/UserInformation.php) | Uses access token to get logged in user information from vendor |
-| getCallbackUrl | void | string | Gets login route of current OAuth2 provider (eg: login/facebook) |
-| getVendorName | void | string | Gets name of current OAuth2 provider (eg: facebook) |
-
-
-## Getting Results
-
-Once all above information is compiled, one can finally use this API to authenticate and authorize by calling [Lucinda\WebSecurity\Wrapper](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Wrapper.php), which defines following public methods:
+Once [configuration](#configuration) is finished, one can finally use this API to authenticate and authorize by calling [Lucinda\WebSecurity\Wrapper](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Wrapper.php), which defines following public methods:
 
 | Method | Arguments | Returns | Description |
 | --- | --- | --- | --- |
@@ -207,28 +179,21 @@ Once all above information is compiled, one can finally use this API to authenti
 | getCsrfToken | void | string | Gets anti-CSRF token to send as "csrf" POST parameter on form login and "state" GET parameter in oauth2 authorization code requests |
 | getAccessToken | void | string | Gets access token to sign stateless requests with as Bearer HTTP_AUTHORIZATION header (applies if "synchronizer token" or "json web token" persistence is used) |
 
+Both authentication and authorization require following objects to be set beforehand and constructor injected:
+
+- [Lucinda\WebSecurity\Request](#class-request): encapsulating request to be handled
+- [Lucinda\WebSecurity\Authentication\OAuth2\Driver](#class-authentication-oauth2-driver)[]: encapsulating a list of OAuth2 vendors to authenticate with  
+
+If authentication/authorization reached a point where request needs to be redirected, constructor throws a [Lucinda\WebSecurity\SecurityPacket](#securitypacket). It may also throw:
+
+- [Lucinda\WebSecurity\Authentication\Form\Exception](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/Form/Exception.php): when login form is posted with wrong parameters names
+- [Lucinda\WebSecurity\Authentication\OAuth2\Exception](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/OAuth2/Exception.php): when OAuth2 provider answers with an error to authorization code or access token requests
+- [Lucinda\WebSecurity\PersistenceDrivers\Session\HijackException](https://github.com/aherne/php-security-api/blob/v3.0.0/src/PersistenceDrivers/Session/HijackException.php): when user id in session is associated to a different IP address
+- [Lucinda\WebSecurity\Token\EncryptionException](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Token/EncryptionException.php): when token could not be decrypted
+- [Lucinda\WebSecurity\Token\Exception](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Token/Exception.php): when CSRF token is invalid or missing as "csrf" POST param @ form login or "state" GET param @ oauth2 authorization code response 
+- [Lucinda\WebSecurity\ConfigurationException](https://github.com/aherne/php-security-api/blob/v3.0.0/src/ConfigurationException.php): when XML is misconfigured, referenced classes are not found or not fitting expected pattern
 
 ### Handling SecurityPacket
-
-If authentication/authorization reached a point where request needs to be redirected, constructor throws a [Lucinda\WebSecurity\SecurityPacket](https://github.com/aherne/php-security-api/blob/v3.0.0/src/SecurityPacket.php), which defines following methods relevant to developers:
-
-| Method | Arguments | Returns | Description |
-| --- | --- | --- | --- |
-| getAccessToken | void | string | Gets access token to sign stateless requests with as Bearer HTTP_AUTHORIZATION header (applies if "synchronizer token" or "json web token" persistence is used) |
-| getCallback | void | integer/string | Gets URI inside application to redirect to in case of successful/insuccessful authentication or insuccessful authorization |
-| getStatus | void | string | Gets authentication/authorization status code (see below) |
-| getTimePenalty | void | integer | Sets number of seconds client will be banned from authenticating as anti-throttling measure |
-
-Values of *getStatus* describe authentication/authorization outcome and suggest :
-
-- *login_ok*: login was successful and a redirection to logged in homepage is required
-- *login_failed*: login failed and a redirection to login page is required
-- *logout_ok*: logout was successful and a redirection to login page is required
-- *logout_failed*: logout was unsuccessful and a redirection to login page is required
-- *not_found*: route requested by client not known by any access policy
-- *redirect*: redirection to OAuth2 vendor's authorization request page is required
-- *unauthorized*: route requested by client requires authentication, thus redirection to login page is required
-- *forbidden*: route requested by client is forbidden to current logged in user, thus a redirection to logged in homepage is required
 
 Developers of non-stateless applications are supposed to handle this exception with something like:
 
@@ -256,16 +221,8 @@ try {
 	// front end will handle above code and make a redirection
 }
 ```
+
 ### Handling other exceptions
-
-[Lucinda\WebSecurity\Wrapper](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Wrapper.php) may also throw:
-
-- [Lucinda\WebSecurity\Authentication\Form\Exception](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/Form/Exception.php): when login form is posted with wrong parameters names
-- [Lucinda\WebSecurity\Authentication\OAuth2\Exception](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/OAuth2/Exception.php): when OAuth2 provider answers with an error to authorization code or access token requests
-- [Lucinda\WebSecurity\PersistenceDrivers\Session\HijackException](https://github.com/aherne/php-security-api/blob/v3.0.0/src/PersistenceDrivers/Session/HijackException.php): when user id in session is associated to a different IP address
-- [Lucinda\WebSecurity\Token\EncryptionException](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Token/EncryptionException.php): when token could not be decrypted
-- [Lucinda\WebSecurity\Token\Exception](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Token/Exception.php): when CSRF token is invalid or missing as "csrf" POST param @ form login or "state" GET param @ oauth2 authorization code response 
-- [Lucinda\WebSecurity\ConfigurationException](https://github.com/aherne/php-security-api/blob/v3.0.0/src/ConfigurationException.php): when XML is misconfigured, referenced classes are not found or not fitting expected pattern
 
 They can be handled as following:
 
@@ -337,3 +294,69 @@ For tests and examples, check following files/folders in API sources:
 - [unit-tests.xml](https://github.com/aherne/php-security-api/blob/v3.0.0/unit-tests.xml): sets up unit tests
 - [tests](https://github.com/aherne/php-security-api/tree/v3.0.0/tests): unit tests for classes from [src](https://github.com/aherne/php-security-api/tree/v3.0.0/src) folder
 
+## Reference Guide
+
+### Class Request
+
+[Lucinda\WebSecurity\Request](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Request.php) encapsulates information about request necessary for authentication and authorization via following public methods:
+
+| Method | Arguments | Returns | Description |
+| --- | --- | --- | --- |
+| setIpAddress | string $value | void | Sets ip address used by client (eg: value of $_SERVER["REMOTE_ADDR"]) |
+| setContextPath | string $value | void | Sets context path that prefixes page requested by client (eg: prefix of $_SERVER["REQUEST_URI"]) |
+| setUri | string $value | void | Sets page/resource requested by client without trailing slash (eg: suffix of $_SERVER["REQUEST_URI"])  |
+| setMethod | string $value | void | Sets HTTP method used by client in page request (eg: value of $_SERVER["REQUEST_METHOD"]) |
+| setParameters | array $value | void | Sets parameters sent by client as GET/POST along with request (eg: value of $_REQUEST) |
+| setAccessToken | string $value | void | Sets access token detected from client headers for stateless login (eg:  suffix of $_SERVER["HTTP_AUTHORIZATION"]) |
+| getIpAddress | string $value | void | Gets ip address used by client (eg: value of $_SERVER["REMOTE_ADDR"]) |
+| getContextPath | string $value | void | Gets context path that prefixes page requested by client (eg: prefix of $_SERVER["REQUEST_URI"]) |
+| getUri | string $value | void | Gets page/resource requested by client without trailing slash (eg: suffix of $_SERVER["REQUEST_URI"])  |
+| getMethod | string $value | void | Gets HTTP method used by client in page request (eg: value of $_SERVER["REQUEST_METHOD"]) |
+| getParameters | array $value | void | Gets parameters sent by client as GET/POST along with request (eg: value of $_REQUEST) |
+| getAccessToken | string $value | void | Gets access token detected from client headers for stateless login (eg:  Bearer value of $_SERVER["HTTP_AUTHORIZATION"]) |
+
+
+Usage example:
+
+```php
+$request = new Lucinda\WebSecurity\Request();
+$request->setIpAddress($_SERVER["REMOTE_ADDR"]);
+$request->setUri($_SERVER["REQUEST_URI"]!="/"?substr($_SERVER["REQUEST_URI"],1):"index");
+$request->setMethod($_SERVER["REQUEST_METHOD"]);
+$request->setParameters($_POST);
+$request->setAccessToken(isset($_SERVER["HTTP_AUTHORIZATION"]) && stripos($_SERVER["HTTP_AUTHORIZATION"], "Bearer ")===0?trim(substr($_SERVER["HTTP_AUTHORIZATION"], 7)):"");
+```
+
+### Class Authentication\OAuth2\Driver
+
+[Lucinda\WebSecurity\Authentication\OAuth2\Driver](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/OAuth2/Driver.php) interface encapsulates an oauth2 vendor to authenticate with and defines following methods:
+
+| Method | Arguments | Returns | Description |
+| --- | --- | --- | --- |
+| getAuthorizationCode | string $state | string | Gets URL to redirect to vendor in order for latter to send back an autorization code |
+| getAccessToken | string $authorizationCode | string | Asks vendor to exchange authorization code with an access token and returns it |
+| getUserInformation | string $accessToken | [Lucinda\WebSecurity\Authentication\OAuth2\UserInformation](https://github.com/aherne/php-security-api/blob/v3.0.0/src/Authentication/OAuth2/UserInformation.php) | Uses access token to get logged in user information from vendor |
+| getCallbackUrl | void | string | Gets login route of current OAuth2 provider (eg: login/facebook) |
+| getVendorName | void | string | Gets name of current OAuth2 provider (eg: facebook) |
+
+### Class SecurityPacket
+
+[Lucinda\WebSecurity\SecurityPacket](https://github.com/aherne/php-security-api/blob/v3.0.0/src/SecurityPacket.php) class encapsulates an response to an authentication/authorization event that typically requires redirection and defines following methods relevant to developers:
+
+| Method | Arguments | Returns | Description |
+| --- | --- | --- | --- |
+| getAccessToken | void | string | Gets access token to sign stateless requests with as Bearer HTTP_AUTHORIZATION header (applies if "synchronizer token" or "json web token" persistence is used) |
+| getCallback | void | integer/string | Gets URI inside application to redirect to in case of successful/insuccessful authentication or insuccessful authorization |
+| getStatus | void | string | Gets authentication/authorization status code (see below) |
+| getTimePenalty | void | integer | Sets number of seconds client will be banned from authenticating as anti-throttling measure |
+
+Values of *getStatus* describe authentication/authorization outcome:
+
+- *login_ok*: login was successful and a redirection to logged in homepage is required
+- *login_failed*: login failed and a redirection to login page is required
+- *logout_ok*: logout was successful and a redirection to login page is required
+- *logout_failed*: logout was unsuccessful and a redirection to login page is required
+- *not_found*: route requested by client not known by any access policy
+- *redirect*: redirection to OAuth2 vendor's authorization request page is required
+- *unauthorized*: route requested by client requires authentication, thus redirection to login page is required
+- *forbidden*: route requested by client is forbidden to current logged in user, thus a redirection to logged in homepage is required
