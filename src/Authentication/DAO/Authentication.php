@@ -50,7 +50,7 @@ class Authentication
      * @param  boolean $rememberMe Value of remember me option (if any)
      * @return Result Encapsulates result of login attempt.
      */
-    public function login(string $username, string $password, bool $rememberMe=null): Result
+    public function login(string $username, string $password, ?bool $rememberMe=null): Result
     {
         // do no persist into RememberMePersistenceDriver unless "remember me" is active
         if (!$rememberMe) {
