@@ -23,16 +23,16 @@ class CsrfTokenDetectorTest
 
     public function generate()
     {
-        $this->object = new CsrfTokenDetector($this->xml, "127.0.0.1");
-        return new Result(strlen($this->object->generate(0))==180);
+        $object = new CsrfTokenDetector($this->xml, "127.0.0.1");
+        return new Result(strlen($object->generate(0))==180);
     }
 
 
     public function isValid()
     {
         $userID = 0;
-        $this->object = new CsrfTokenDetector($this->xml, "127.0.0.1");
-        $token = $this->object->generate($userID);
-        return new Result($this->object->isValid($token, $userID));
+        $object = new CsrfTokenDetector($this->xml, "127.0.0.1");
+        $token = $object->generate($userID);
+        return new Result($object->isValid($token, $userID));
     }
 }

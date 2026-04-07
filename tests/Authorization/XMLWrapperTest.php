@@ -10,6 +10,7 @@ use Lucinda\WebSecurity\Authorization\XMLWrapper;
 class XMLWrapperTest
 {
     private $xml1;
+    private $xml2;
 
     public function __construct()
     {
