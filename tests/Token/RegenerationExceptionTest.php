@@ -4,10 +4,11 @@ namespace Test\Lucinda\WebSecurity\Token;
 
 use Lucinda\WebSecurity\Token\RegenerationException;
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Strings;
 
 class RegenerationExceptionTest
 {
-    private $object;
+    private RegenerationException $object;
 
     public function __construct()
     {
@@ -17,12 +18,12 @@ class RegenerationExceptionTest
     public function setPayload()
     {
         $this->object->setPayload("asdfgh");
-        return new Result(true);
+        return (new Strings($this->object->getPayload()))->assertEquals("asdfgh");
     }
 
 
     public function getPayload()
     {
-        return new Result($this->object->getPayload()=="asdfgh");
+        return (new Strings($this->object->getPayload()))->assertEquals("asdfgh");
     }
 }

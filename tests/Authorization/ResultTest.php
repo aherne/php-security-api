@@ -2,13 +2,13 @@
 
 namespace Test\Lucinda\WebSecurity\Authorization;
 
+use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\Authorization\Result as AuthorizationResult;
 use Lucinda\WebSecurity\Authorization\ResultStatus;
-use Lucinda\UnitTest\Result;
 
 class ResultTest
 {
-    private $object;
+    private AuthorizationResult $object;
 
     public function __construct()
     {
@@ -17,12 +17,11 @@ class ResultTest
 
     public function getStatus()
     {
-        return new Result($this->object->getStatus()==ResultStatus::FORBIDDEN);
+        return (new Strings($this->object->getStatus()->name))->assertEquals(ResultStatus::FORBIDDEN->name);
     }
-
 
     public function getCallbackURI()
     {
-        return new Result($this->object->getCallbackURI()=="index");
+        return (new Strings($this->object->getCallbackURI()))->assertEquals("index");
     }
 }

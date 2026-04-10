@@ -3,6 +3,7 @@
 namespace Test\Lucinda\WebSecurity\Authentication\Form;
 
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\Authentication\Form\LoginConfiguration;
 
 class LoginConfigurationTest
@@ -39,8 +40,8 @@ class LoginConfigurationTest
     public function getUsername()
     {
         $output = [];
-        $output[] = new Result($this->configuration1->getUsername() == "user", "manual");
-        $output[] = new Result($this->configuration2->getUsername() == "username", "implied");
+        $output[] = (new Strings($this->configuration1->getUsername()))->assertEquals("user", "manual");
+        $output[] = (new Strings($this->configuration2->getUsername()))->assertEquals("username", "implied");
         return $output;
     }
 
@@ -48,8 +49,8 @@ class LoginConfigurationTest
     public function getPassword()
     {
         $output = [];
-        $output[] = new Result($this->configuration1->getPassword() == "pass", "manual");
-        $output[] = new Result($this->configuration2->getPassword() == "password", "implied");
+        $output[] = (new Strings($this->configuration1->getPassword()))->assertEquals("pass", "manual");
+        $output[] = (new Strings($this->configuration2->getPassword()))->assertEquals("password", "implied");
         return $output;
     }
 
@@ -57,8 +58,8 @@ class LoginConfigurationTest
     public function getRememberMe()
     {
         $output = [];
-        $output[] = new Result($this->configuration1->getRememberMe() == "rm", "manual");
-        $output[] = new Result($this->configuration2->getRememberMe() == "remember_me", "implied");
+        $output[] = (new Strings($this->configuration1->getRememberMe()))->assertEquals("rm", "manual");
+        $output[] = (new Strings($this->configuration2->getRememberMe()))->assertEquals("remember_me", "implied");
         return $output;
     }
 
@@ -66,8 +67,8 @@ class LoginConfigurationTest
     public function getSourcePage()
     {
         $output = [];
-        $output[] = new Result($this->configuration1->getSourcePage() == "test", "manual");
-        $output[] = new Result($this->configuration2->getSourcePage() == "", "implied");
+        $output[] = (new Strings($this->configuration1->getSourcePage()))->assertEquals("test", "manual");
+        $output[] = (new Strings($this->configuration2->getSourcePage()))->assertEquals("", "implied");
         return $output;
     }
 
@@ -75,8 +76,8 @@ class LoginConfigurationTest
     public function getDestinationPage()
     {
         $output = [];
-        $output[] = new Result($this->configuration1->getDestinationPage() == "me", "manual");
-        $output[] = new Result($this->configuration2->getDestinationPage() == "", "implied");
+        $output[] = (new Strings($this->configuration1->getDestinationPage()))->assertEquals("me", "manual");
+        $output[] = (new Strings($this->configuration2->getDestinationPage()))->assertEquals("", "implied");
         return $output;
     }
 }

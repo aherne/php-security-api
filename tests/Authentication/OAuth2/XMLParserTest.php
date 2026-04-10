@@ -4,10 +4,11 @@ namespace Test\Lucinda\WebSecurity\Authentication\OAuth2;
 
 use Lucinda\WebSecurity\Authentication\OAuth2\XMLParser;
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Strings;
 
 class XMLParserTest
 {
-    private $parser;
+    private XMLParser $parser;
 
     public function __construct()
     {
@@ -24,18 +25,18 @@ class XMLParserTest
 
     public function getLoginCallback()
     {
-        return new Result($this->parser->getLoginCallback()=="login");
+        return (new Strings($this->parser->getLoginCallback()))->assertEquals("login");
     }
 
 
     public function getLogoutCallback()
     {
-        return new Result($this->parser->getLogoutCallback()=="logout");
+        return (new Strings($this->parser->getLogoutCallback()))->assertEquals("logout");
     }
 
 
     public function getTargetCallback()
     {
-        return new Result($this->parser->getTargetCallback()=="index");
+        return (new Strings($this->parser->getTargetCallback()))->assertEquals("index");
     }
 }

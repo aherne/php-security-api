@@ -2,6 +2,7 @@
 
 namespace Lucinda\WebSecurity\PersistenceDrivers;
 
+use Lucinda\WebSecurity\ConfigurationException;
 use Lucinda\WebSecurity\PersistenceDrivers\Session\PersistenceDriver as SessionPersistenceDriver;
 
 /**
@@ -17,6 +18,7 @@ class SessionWrapper extends PersistenceDriverWrapper
      *
      * @param \SimpleXMLElement $xml       Contents of XML tag that sets up persistence driver.
      * @param string            $ipAddress Detected client IP address
+     * @throws ConfigurationException If same_site flag is invalid
      */
     protected function setDriver(\SimpleXMLElement $xml, string $ipAddress): void
     {
@@ -29,6 +31,9 @@ class SessionWrapper extends PersistenceDriverWrapper
         $securityOptions->setExpirationTime((int) $xml["expiration"]);
         $securityOptions->setIsHttpOnly((bool)((int)$xml["is_http_only"]));
         $securityOptions->setIsSecure((bool)((int)$xml["is_https_only"]));
+        if ($sameSite = (string) $xml["same_site"]) {
+            $securityOptions->setSameSite(CookieSameSiteOptions::from($sameSite));
+        }
 
         $handler = (string) $xml["handler"];
         if ($handler) {

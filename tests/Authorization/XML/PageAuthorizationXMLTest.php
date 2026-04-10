@@ -2,8 +2,8 @@
 
 namespace Test\Lucinda\WebSecurity\Authorization\XML;
 
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\WebSecurity\Authorization\XML\PageAuthorizationXML;
-use Lucinda\UnitTest\Result;
 
 class PageAuthorizationXMLTest
 {
@@ -23,9 +23,9 @@ class PageAuthorizationXMLTest
         );
         $object = new PageAuthorizationXML($xml);
 
-        $results = [];
-        $results[] = new Result($object->getRoles("asdf")==[], "checks route without roles");
-        $results[] = new Result($object->getRoles("login")==["GUEST","USER"], "checks route without roles");
-        return $results;
+        return [
+            (new Arrays($object->getRoles("asdf")))->assertEquals([], "checks route without roles"),
+            (new Arrays($object->getRoles("login")))->assertEquals(["GUEST","USER"], "checks route without roles"),
+        ];
     }
 }

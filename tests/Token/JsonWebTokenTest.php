@@ -6,11 +6,13 @@ use Lucinda\WebSecurity\Token\JsonWebToken;
 use Lucinda\WebSecurity\Token\JsonWebTokenPayload;
 use Lucinda\UnitTest\Result;
 use Lucinda\WebSecurity\Token\SaltGenerator;
+use Lucinda\UnitTest\Validator\Arrays;
+use Lucinda\UnitTest\Validator\Strings;
 
 class JsonWebTokenTest
 {
-    private $object;
-    private $value;
+    private JsonWebToken $object;
+    private ?string $value = null;
 
     public function __construct()
     {
@@ -22,7 +24,7 @@ class JsonWebTokenTest
         $payload = new JsonWebTokenPayload();
         $payload->setApplicationId(123);
         $this->value = $this->object->encode($payload);
-        return new Result($this->value ? true : false);
+        return (new Strings($this->value))->assertNotEmpty();
     }
 
 
@@ -30,6 +32,6 @@ class JsonWebTokenTest
     {
         $payload = new JsonWebTokenPayload();
         $payload->setApplicationId(123);
-        return new Result($this->object->decode($this->value)==$payload ? true : false);
+        return (new Arrays($this->object->decode($this->value)->toArray()))->assertEquals($payload->toArray());
     }
 }

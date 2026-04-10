@@ -2,14 +2,14 @@
 
 namespace Test\Lucinda\WebSecurity\Authorization;
 
+use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\Authorization\DAOWrapper;
-use Lucinda\WebSecurity\Request;
-use Lucinda\UnitTest\Result;
 use Lucinda\WebSecurity\Authorization\ResultStatus;
+use Lucinda\WebSecurity\Request;
 
 class DAOWrapperTest
 {
-    private $xml;
+    private \SimpleXMLElement $xml;
 
     public function __construct()
     {
@@ -24,7 +24,6 @@ class DAOWrapperTest
         );
     }
 
-
     public function getResult()
     {
         $results = [];
@@ -34,23 +33,23 @@ class DAOWrapperTest
 
         $request->setUri("asdf");
         $object = new DAOWrapper($this->xml, $request, null);
-        $results[] = new Result($object->getResult()->getStatus()==ResultStatus::NOT_FOUND, "test path not found");
+        $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::NOT_FOUND->name, "test path not found");
 
         $request->setUri("login");
         $object = new DAOWrapper($this->xml, $request, null);
-        $results[] = new Result($object->getResult()->getStatus()==ResultStatus::OK, "guest allowed to login");
+        $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::OK->name, "guest allowed to login");
 
         $request->setUri("index");
         $object = new DAOWrapper($this->xml, $request, null);
-        $results[] = new Result($object->getResult()->getStatus()==ResultStatus::UNAUTHORIZED, "guest unauthorized to index");
+        $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::UNAUTHORIZED->name, "guest unauthorized to index");
 
         $request->setUri("index");
         $object = new DAOWrapper($this->xml, $request, 1);
-        $results[] = new Result($object->getResult()->getStatus()==ResultStatus::OK, "user allowed to index");
+        $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::OK->name, "user allowed to index");
 
         $request->setUri("administration");
         $object = new DAOWrapper($this->xml, $request, 1);
-        $results[] = new Result($object->getResult()->getStatus()==ResultStatus::FORBIDDEN, "user forbidden to administration");
+        $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::FORBIDDEN->name, "user forbidden to administration");
 
         return $results;
     }

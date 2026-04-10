@@ -2,8 +2,8 @@
 
 namespace Test\Lucinda\WebSecurity\Authorization\XML;
 
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\WebSecurity\Authorization\XML\RolesDetector;
-use Lucinda\UnitTest\Result;
 
 class RolesDetectorTest
 {
@@ -21,14 +21,13 @@ class RolesDetectorTest
 </xml>
 '
         );
-        $results = [];
 
         $object = new RolesDetector($xml, "routes", "route", "id", "asdf");
-        $results[] = new Result($object->getRoles()==[], "checks element without roles");
+        $result1 = (new Arrays($object->getRoles()))->assertEquals([], "checks element without roles");
 
         $object = new RolesDetector($xml, "routes", "route", "id", "login");
-        $results[] = new Result($object->getRoles("login")==["GUEST","USER"], "checks element without roles");
+        $result2 = (new Arrays($object->getRoles("login")))->assertEquals(["GUEST","USER"], "checks element without roles");
 
-        return $results;
+        return [$result1, $result2];
     }
 }

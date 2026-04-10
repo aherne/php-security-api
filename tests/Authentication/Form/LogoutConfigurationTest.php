@@ -3,6 +3,7 @@
 namespace Test\Lucinda\WebSecurity\Authentication\Form;
 
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\Authentication\Form\LogoutConfiguration;
 
 class LogoutConfigurationTest
@@ -39,8 +40,8 @@ class LogoutConfigurationTest
     public function getSourcePage()
     {
         $output = [];
-        $output[] = new Result($this->configuration1->getSourcePage() == "test", "manual");
-        $output[] = new Result($this->configuration2->getSourcePage() == "", "implied");
+        $output[] = (new Strings($this->configuration1->getSourcePage()))->assertEquals("test", "manual");
+        $output[] = (new Strings($this->configuration2->getSourcePage()))->assertEquals("", "implied");
         return $output;
     }
 
@@ -48,8 +49,8 @@ class LogoutConfigurationTest
     public function getDestinationPage()
     {
         $output = [];
-        $output[] = new Result($this->configuration1->getDestinationPage() == "me", "manual");
-        $output[] = new Result($this->configuration2->getDestinationPage() == "", "implied");
+        $output[] = (new Strings($this->configuration1->getDestinationPage()))->assertEquals("me", "manual");
+        $output[] = (new Strings($this->configuration2->getDestinationPage()))->assertEquals("", "implied");
         return $output;
     }
 }

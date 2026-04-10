@@ -5,10 +5,13 @@ namespace Test\Lucinda\WebSecurity\PersistenceDrivers\Token;
 use Lucinda\WebSecurity\PersistenceDrivers\Token\JsonWebTokenPersistenceDriver;
 use Lucinda\WebSecurity\Token\SaltGenerator;
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Booleans;
+use Lucinda\UnitTest\Validator\Integers;
+use Lucinda\UnitTest\Validator\Strings;
 
 class JsonWebTokenPersistenceDriverTest
 {
-    private $object;
+    private JsonWebTokenPersistenceDriver $object;
 
     public function __construct()
     {
@@ -18,31 +21,31 @@ class JsonWebTokenPersistenceDriverTest
     public function save()
     {
         $this->object->save(1);
-        return new Result(true);
+        return (new Integers((int) $this->object->load()))->assertEquals(1);
     }
 
     public function load()
     {
-        return new Result($this->object->load()==1);
+        return (new Integers((int) $this->object->load()))->assertEquals(1);
     }
 
 
     public function clear()
     {
         $this->object->clear();
-        return new Result(!$this->object->load());
+        return (new Booleans($this->object->load() === null))->assertTrue();
     }
 
 
     public function setAccessToken()
     {
         $this->object->setAccessToken("qwerty");
-        return new Result(true);
+        return (new Strings($this->object->getAccessToken()))->assertEquals("qwerty");
     }
 
 
     public function getAccessToken()
     {
-        return new Result($this->object->getAccessToken()=="qwerty");
+        return (new Strings($this->object->getAccessToken()))->assertEquals("qwerty");
     }
 }

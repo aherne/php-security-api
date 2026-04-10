@@ -33,12 +33,10 @@ abstract class FormWrapper extends Wrapper
         $validator = new FormRequestValidator($xml, $request);
 
         // checks if a login action was requested, in which case it forwards object to driver
+        $parameters = $request->getParameters();
         if ($loginRequest = $validator->login()) {
             // check csrf token
-            $parameters = $request->getParameters();
-            if (empty($parameters["csrf"]) || !$csrfTokenDetector->isValid($parameters["csrf"], 0)) {
-                throw new TokenException("CSRF token is invalid or missing!");
-            }
+            $this->checkCSRF($parameters, $csrfTokenDetector);
 
             // performs login, using throttler if defined
             $loginThrottlerHandler = new LoginThrottlerHandler($this->getThrottler($xml, $request, $loginRequest));
@@ -52,7 +50,25 @@ abstract class FormWrapper extends Wrapper
 
         // checks if a logout action was requested, in which case it forwards object to driver
         if ($logoutRequest = $validator->logout()) {
+            // check csrf token
+            $this->checkCSRF($parameters, $csrfTokenDetector);
+
             $this->logout($logoutRequest);
+        }
+    }
+
+    /**
+     * Checks if request came with mandatory csrf token
+     * 
+     * @param array $parameters
+     * @param CsrfTokenDetector $csrfTokenDetector
+     * @throws TokenException
+     * @return void
+     */
+    protected function checkCSRF(array $parameters, CsrfTokenDetector $csrfTokenDetector): void
+    {
+        if (empty($parameters["csrf"]) || !$csrfTokenDetector->isValid($parameters["csrf"], 0)) {
+            throw new TokenException("CSRF token is invalid or missing!");
         }
     }
 

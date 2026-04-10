@@ -9,6 +9,7 @@ class CookieSecurityOptions
 {
     private bool $isHttpOnly = false;
     private bool $isSecure = false;
+    private CookieSameSiteOptions $sameSite = CookieSameSiteOptions::LAX;
     private int $expirationTime = 0;
 
     /**
@@ -69,5 +70,25 @@ class CookieSecurityOptions
     public function isSecure(): bool
     {
         return $this->isSecure;
+    }
+
+    /**
+     * Sets if cookie SameSite options
+     *
+     * @param CookieSameSiteOptions $sameSite
+     */
+    public function setSameSite(CookieSameSiteOptions $sameSite): void
+    {
+        $this->sameSite = $sameSite;
+    }
+
+    /**
+     * Gets if cookie is restricted with SameSite flag
+     *
+     * @return CookieSameSiteOptions
+     */
+    public function getSameSite(): CookieSameSiteOptions
+    {
+        return $this->sameSite;
     }
 }

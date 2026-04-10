@@ -2,27 +2,29 @@
 
 namespace Test\Lucinda\WebSecurity;
 
-use Lucinda\WebSecurity\Token\SaltGenerator;
-use Lucinda\WebSecurity\Request;
-use Lucinda\WebSecurity\Wrapper;
-use Lucinda\WebSecurity\SecurityPacket;
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Booleans;
+use Lucinda\UnitTest\Validator\Integers;
+use Lucinda\UnitTest\Validator\Objects;
+use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\Authentication\OAuth2\Exception as OAuth2Exception;
+use Lucinda\WebSecurity\Request;
+use Lucinda\WebSecurity\SecurityPacket;
+use Lucinda\WebSecurity\Token\SaltGenerator;
+use Lucinda\WebSecurity\Wrapper;
 use Test\Lucinda\WebSecurity\mocks\Authentication\MockOauth2Driver;
 
 class WrapperTest
 {
-    private $xml_dao_dao;
-    private $xml_dao_xml;
-    private $xml_xml_dao;
-    private $xml_xml_xml;
-    private $xml_oauth2_dao;
-    private $xml_oauth2_xml;
+    private \SimpleXMLElement $xml_dao_dao;
+    private \SimpleXMLElement $xml_dao_xml;
+    private \SimpleXMLElement $xml_xml_dao;
+    private \SimpleXMLElement $xml_xml_xml;
+    private \SimpleXMLElement $xml_oauth2_dao;
+    private \SimpleXMLElement $xml_oauth2_xml;
 
     public function __construct()
     {
-        // TODO: test full xmls
-
         $secret = (new SaltGenerator(10))->getSalt();
         $this->xml_dao_dao = \simplexml_load_string(
             '
@@ -159,19 +161,46 @@ class WrapperTest
         );
     }
 
-    public function getUserID()
+    public function getUserID(): array
     {
         $results = [];
 
-        $xmls = ["dao_dao", "dao_xml", "xml_xml", "xml_dao"];
-        foreach ($xmls as $name) {
+        foreach (["dao_dao", "dao_xml", "xml_xml", "xml_dao"] as $name) {
             $results = array_merge($results, $this->testNormal($name));
         }
 
-        $xmls = ["oauth2_dao", "oauth2_xml"];
-        foreach ($xmls as $name) {
+        foreach (["oauth2_dao", "oauth2_xml"] as $name) {
             $results = array_merge($results, $this->testOAuth2($name));
         }
+
+        return $results;
+    }
+
+    public function getCsrfToken(): Result
+    {
+        $wrapper = new Wrapper($this->xml_dao_dao, $this->getRequest("login"));
+        return (new Strings($wrapper->getCsrfToken()))->assertNotEmpty("wrapper generates csrf token");
+    }
+
+    public function getAccessToken(): array
+    {
+        $results = [];
+
+        $wrapper = new Wrapper($this->xml_dao_dao, $this->getRequest("login"));
+        $results[] = (new Booleans($wrapper->getAccessToken() === null))->assertTrue("getAccessToken returns null before login");
+
+        $accessToken = "";
+        try {
+            new Wrapper(
+                $this->xml_dao_dao,
+                $this->getRequest("login", "POST", ["username" => "test", "password" => "me", "csrf" => $wrapper->getCsrfToken()])
+            );
+        } catch (SecurityPacket $packet) {
+            $accessToken = $packet->getAccessToken() ?? "";
+        }
+
+        $wrapper = new Wrapper($this->xml_dao_dao, $this->getRequest("index", "GET", [], $accessToken));
+        $results[] = (new Strings($wrapper->getAccessToken() ?? ""))->assertEquals($accessToken, "getAccessToken returns active token after login");
 
         return $results;
     }
@@ -179,65 +208,60 @@ class WrapperTest
     private function testNormal(string $name): array
     {
         $results = [];
-
         $xml = $this->{"xml_".$name};
-        try {
-            new Wrapper($xml, $this->getRequest("asdf"));
-            $results[] = new Result(false, "path not found: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="not_found", "not found: ".$name);
-        }
+
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("asdf")),
+            "not_found",
+            "unknown route is rejected: ".$name
+        );
 
         $wrapper = new Wrapper($xml, $this->getRequest("login"));
-        $results[] = new Result($wrapper->getUserID()==null, "get login: ".$name);
+        $results[] = (new Booleans($wrapper->getUserID() === null))->assertTrue("guest user id is null on login page: ".$name);
         $csrfToken = $wrapper->getCsrfToken();
 
-        try {
-            new Wrapper($xml, $this->getRequest("login", "POST", ["username"=>"test", "password"=>"me1", "csrf"=>$csrfToken]));
-            $results[] = new Result(false, "login failed: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="login_failed", "login failed: ".$name);
-        }
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("login", "POST", ["username" => "test", "password" => "me1", "csrf" => $csrfToken])),
+            "login_failed",
+            "invalid form credentials fail: ".$name
+        );
 
         $accessToken = "";
         try {
-            new Wrapper($xml, $this->getRequest("login", "POST", ["username"=>"test", "password"=>"me", "csrf"=>$csrfToken]));
-            $results[] = new Result(false, "path not found: ".$name);
+            new Wrapper($xml, $this->getRequest("login", "POST", ["username" => "test", "password" => "me", "csrf" => $csrfToken]));
+            $results[] = (new Booleans(false))->assertTrue("valid form login triggers packet: ".$name);
         } catch (SecurityPacket $packet) {
-            $accessToken = $packet->getAccessToken();
-            $results[] = new Result($packet->getStatus()=="login_ok", "login ok: ".$name);
+            $accessToken = $packet->getAccessToken() ?? "";
+            $results[] = (new Strings($packet->getStatus()))->assertEquals("login_ok", "valid form login succeeds: ".$name);
+            $results[] = (new Strings($accessToken))->assertNotEmpty("valid form login returns access token: ".$name);
         }
 
         $wrapper = new Wrapper($xml, $this->getRequest("index", "GET", [], $accessToken));
-        $results[] = new Result($wrapper->getUserID()==1, "index: ".$name);
+        $results[] = (new Integers((int) $wrapper->getUserID()))->assertEquals(1, "authenticated user reaches index: ".$name);
 
-        try {
-            new Wrapper($xml, $this->getRequest("administration", "GET", [], $accessToken));
-            $results[] = new Result(false, "forbidden: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="forbidden", "forbidden: ".$name);
-        }
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("administration", "GET", [], $accessToken)),
+            "forbidden",
+            "authenticated user is forbidden on administration: ".$name
+        );
 
-        try {
-            $wrapper = new Wrapper($xml, $this->getRequest("logout", "GET", [], $accessToken));
-            $results[] = new Result(false, "logout: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="logout_ok", "logout ok: ".$name);
-        }
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("logout", "GET", ["csrf" => $csrfToken], $accessToken)),
+            "logout_ok",
+            "authenticated logout succeeds: ".$name
+        );
 
-        try {
-            $wrapper = new Wrapper($xml, $this->getRequest("logout"));
-            $results[] = new Result(false, "logout failed: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="logout_failed", "logout failed: ".$name);
-        }
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("logout", "GET", ["csrf" => $csrfToken])),
+            "logout_failed",
+            "logout fails after user is already logged out: ".$name
+        );
 
-        try {
-            $wrapper = new Wrapper($xml, $this->getRequest("index"));
-            $results[] = new Result(false, "unauthorized: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="unauthorized", "unauthorized: ".$name);
-        }
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("index")),
+            "unauthorized",
+            "guest access to index is unauthorized: ".$name
+        );
 
         return $results;
     }
@@ -245,103 +269,82 @@ class WrapperTest
     private function testOAuth2(string $name): array
     {
         $results = [];
-
         $drivers = [new MockOauth2Driver("Facebook")];
-
         $xml = $this->{"xml_".$name};
-        try {
-            new Wrapper($xml, $this->getRequest("asdf"), $drivers);
-            $results[] = new Result(false, "path not found: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="not_found", "not found: ".$name);
-        }
+
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("asdf"), $drivers),
+            "not_found",
+            "unknown route is rejected for oauth2: ".$name
+        );
 
         $wrapper = new Wrapper($xml, $this->getRequest("login"), $drivers);
-        $results[] = new Result($wrapper->getUserID()==null, "get login: ".$name);
+        $results[] = (new Booleans($wrapper->getUserID() === null))->assertTrue("guest user id is null on oauth2 login page: ".$name);
         $csrfToken = $wrapper->getCsrfToken();
 
         try {
-            $wrapper = new Wrapper($xml, $this->getRequest("login/facebook"), $drivers);
-            $results[] = new Result(false, "authorization code: ".$name);
+            new Wrapper($xml, $this->getRequest("login/facebook"), $drivers);
+            $results[] = (new Booleans(false))->assertTrue("oauth2 login redirects for authorization code: ".$name);
         } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="redirect" && $packet->getCallback()=="qwerty", "authorization code: ".$name);
+            $results[] = (new Strings($packet->getStatus()))->assertEquals("redirect", "oauth2 login returns redirect packet: ".$name);
+            $results[] = (new Strings($packet->getCallback()))->assertEquals("qwerty", "oauth2 login returns provider callback: ".$name);
         }
 
         try {
-            $wrapper = new Wrapper($xml, $this->getRequest("login/facebook", "GET", ["error"=>"asdfg"]), $drivers);
-            $results[] = new Result(false, "bad authorization code: ".$name);
-        } catch (OAuth2Exception $e) {
-            $results[] = new Result(true, "bad authorization code: ".$name);
+            new Wrapper($xml, $this->getRequest("login/facebook", "GET", ["error" => "asdfg"]), $drivers);
+            $results[] = (new Booleans(false))->assertTrue("oauth2 provider error throws exception: ".$name);
+        } catch (OAuth2Exception $exception) {
+            $results[] = (new Objects($exception))->assertInstanceOf(OAuth2Exception::class, "oauth2 provider error is surfaced: ".$name);
         }
 
         $accessToken = "";
         try {
-            $wrapper = new Wrapper($xml, $this->getRequest("login/facebook", "GET", ["code"=>"qwerty", "state"=>$csrfToken]), $drivers);
-            $results[] = new Result(false, "access token: ".$name);
+            new Wrapper($xml, $this->getRequest("login/facebook", "GET", ["code" => "qwerty", "state" => $csrfToken]), $drivers);
+            $results[] = (new Booleans(false))->assertTrue("oauth2 callback returns login packet: ".$name);
         } catch (SecurityPacket $packet) {
-            $accessToken = $packet->getAccessToken();
-            $results[] = new Result($packet->getStatus()=="login_ok", "access token: ".$name);
+            $accessToken = $packet->getAccessToken() ?? "";
+            $results[] = (new Strings($packet->getStatus()))->assertEquals("login_ok", "oauth2 callback login succeeds: ".$name);
+            $results[] = (new Strings($accessToken))->assertNotEmpty("oauth2 callback returns access token: ".$name);
         }
 
         $wrapper = new Wrapper($xml, $this->getRequest("index", "GET", [], $accessToken), $drivers);
-        $results[] = new Result($wrapper->getUserID()==1, "index: ".$name);
+        $results[] = (new Integers((int) $wrapper->getUserID()))->assertEquals(1, "oauth2-authenticated user reaches index: ".$name);
 
-        try {
-            new Wrapper($xml, $this->getRequest("administration", "GET", [], $accessToken), $drivers);
-            $results[] = new Result(false, "forbidden: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="forbidden", "forbidden: ".$name);
-        }
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("administration", "GET", [], $accessToken), $drivers),
+            "forbidden",
+            "oauth2-authenticated user is forbidden on administration: ".$name
+        );
 
-        try {
-            $wrapper = new Wrapper($xml, $this->getRequest("logout", "GET", [], $accessToken), $drivers);
-            $results[] = new Result(false, "logout: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="logout_ok", "logout ok: ".$name);
-        }
-        try {
-            $wrapper = new Wrapper($xml, $this->getRequest("logout"), $drivers);
-            $results[] = new Result(false, "logout failed: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="logout_failed", "logout failed: ".$name);
-        }
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("logout", "GET", [], $accessToken), $drivers),
+            "logout_ok",
+            "oauth2 logout succeeds: ".$name
+        );
 
-        try {
-            $wrapper = new Wrapper($xml, $this->getRequest("index"), $drivers);
-            $results[] = new Result(false, "unauthorized: ".$name);
-        } catch (SecurityPacket $packet) {
-            $results[] = new Result($packet->getStatus()=="unauthorized", "unauthorized: ".$name);
-        }
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("logout"), $drivers),
+            "logout_failed",
+            "oauth2 logout fails after session is cleared: ".$name
+        );
+
+        $results[] = $this->assertSecurityPacketStatus(
+            fn() => new Wrapper($xml, $this->getRequest("index"), $drivers),
+            "unauthorized",
+            "guest access to index stays unauthorized after oauth2 logout: ".$name
+        );
 
         return $results;
     }
 
-
-    public function getCsrfToken()
+    private function assertSecurityPacketStatus(callable $callback, string $expectedStatus, string $message): Result
     {
-        $wrapper = new Wrapper($this->xml_dao_dao, $this->getRequest("login"));
-        return new Result($wrapper->getCsrfToken() ? true : false);
-    }
-
-
-    public function getAccessToken()
-    {
-        $results = [];
-
-        $wrapper = new Wrapper($this->xml_dao_dao, $this->getRequest("login"));
-        $results[] = new Result($wrapper->getAccessToken()==null, "not logged in");
-
-        $accessToken = "";
         try {
-            new Wrapper($this->xml_dao_dao, $this->getRequest("login", "POST", ["username"=>"test", "password"=>"me", "csrf"=>$wrapper->getCsrfToken()]));
+            $callback();
+            return (new Booleans(false))->assertTrue($message);
         } catch (SecurityPacket $packet) {
-            $accessToken = $packet->getAccessToken();
+            return (new Strings($packet->getStatus()))->assertEquals($expectedStatus, $message);
         }
-
-        $wrapper = new Wrapper($this->xml_dao_dao, $this->getRequest("index", "GET", [], $accessToken));
-        $results[] = new Result($wrapper->getAccessToken()==$accessToken, "logged in");
-
-        return $results;
     }
 
     private function getRequest(string $uri, string $method="GET", array $parameters=[], string $accessToken=""): Request

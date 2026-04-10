@@ -2,8 +2,8 @@
 
 namespace Test\Lucinda\WebSecurity\Authorization\XML;
 
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\WebSecurity\Authorization\XML\UserAuthorizationXML;
-use Lucinda\UnitTest\Result;
 
 class UserAuthorizationXMLTest
 {
@@ -20,9 +20,9 @@ class UserAuthorizationXMLTest
         );
         $object = new UserAuthorizationXML($xml);
 
-        $results = [];
-        $results[] = new Result($object->getRoles(null)==["GUEST"], "checks user without roles");
-        $results[] = new Result($object->getRoles(1)==["USER"], "checks user without roles");
-        return $results;
+        return [
+            (new Arrays($object->getRoles(null)))->assertEquals(["GUEST"], "checks user without roles"),
+            (new Arrays($object->getRoles(1)))->assertEquals(["USER"], "checks user without roles"),
+        ];
     }
 }

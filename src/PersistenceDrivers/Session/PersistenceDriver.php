@@ -37,6 +37,7 @@ class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\Persi
      */
     public function save(int|string $userID): void
     {
+        session_regenerate_id(true); // OWASP recomments renewing session ID on privilege changes
         $_SESSION[$this->parameterName] = $userID;
         $_SESSION["ip"] = $this->current_ip;
         $_SESSION["time"] = time()+$this->securityOptions->getExpirationTime();
@@ -52,16 +53,19 @@ class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\Persi
     {
         // start session, using security options if requested
         if (session_id() == "") {
+            $cookieParameters = [];
+            $cookieParameters["samesite"] = $this->securityOptions->getSameSite()->value;
             if ($this->securityOptions->isHttpOnly()) {
-                ini_set("session.cookie_httponly", 1);
+                $cookieParameters["httponly"] = true;
             }
             if ($this->securityOptions->isSecure()) {
-                ini_set("session.cookie_secure", 1);
+                $cookieParameters["secure"] = true;
             }
             if ($expirationTime = $this->securityOptions->getExpirationTime()) {
-                ini_set('session.gc_maxlifetime', $expirationTime);
-                session_set_cookie_params($expirationTime);
+                $cookieParameters["lifetime"] = $expirationTime;
+                ini_set("session.gc_maxlifetime", (string) $expirationTime);
             }
+            session_set_cookie_params($cookieParameters);
             session_start();
         }
 

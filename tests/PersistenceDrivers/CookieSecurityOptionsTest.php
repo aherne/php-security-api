@@ -3,6 +3,10 @@
 namespace Test\Lucinda\WebSecurity\PersistenceDrivers;
 
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Booleans;
+use Lucinda\UnitTest\Validator\Integers;
+use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\PersistenceDrivers\CookieSameSiteOptions;
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 
 class CookieSecurityOptionsTest
@@ -17,37 +21,50 @@ class CookieSecurityOptionsTest
     public function setExpirationTime()
     {
         $this->options->setExpirationTime(1);
-        return new Result(true, "tested via getExpirationTime()");
+        return (new Integers($this->options->getExpirationTime()))->assertEquals(1, "tested via getExpirationTime()");
     }
 
     public function getExpirationTime()
     {
-        return new Result($this->options->getExpirationTime()==1);
+        return (new Integers($this->options->getExpirationTime()))->assertEquals(1);
     }
 
 
     public function setIsHttpOnly()
     {
         $this->options->setIsHttpOnly(true);
-        return new Result(true, "tested via isHttpOnly()");
+        return (new Booleans($this->options->isHttpOnly()))->assertTrue("tested via isHttpOnly()");
     }
 
 
     public function isHttpOnly()
     {
-        return new Result($this->options->isHttpOnly());
+        return (new Booleans($this->options->isHttpOnly()))->assertTrue();
     }
 
 
     public function setIsSecure()
     {
         $this->options->setIsSecure(true);
-        return new Result(true, "tested via isSecure()");
+        return (new Booleans($this->options->isSecure()))->assertTrue("tested via isSecure()");
     }
 
 
     public function isSecure()
     {
-        return new Result($this->options->isSecure());
+        return (new Booleans($this->options->isSecure()))->assertTrue();
     }
+    public function setSameSite()
+    {
+        $this->options->setSameSite(CookieSameSiteOptions::STRICT);
+        return (new Strings($this->options->getSameSite()->name))->assertEquals(CookieSameSiteOptions::STRICT->name, "tested via getSameSite()");
+    }
+        
+
+    public function getSameSite()
+    {
+        return (new Strings($this->options->getSameSite()->name))->assertEquals(CookieSameSiteOptions::STRICT->name);
+    }
+        
+
 }

@@ -2,15 +2,15 @@
 
 namespace Test\Lucinda\WebSecurity\Authorization;
 
-use Lucinda\WebSecurity\Request;
-use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\Authorization\ResultStatus;
 use Lucinda\WebSecurity\Authorization\XMLWrapper;
+use Lucinda\WebSecurity\Request;
 
 class XMLWrapperTest
 {
-    private $xml1;
-    private $xml2;
+    private \SimpleXMLElement $xml1;
+    private \SimpleXMLElement $xml2;
 
     public function __construct()
     {
@@ -70,23 +70,23 @@ class XMLWrapperTest
         foreach ($configurations as $description=>$xml) {
             $request->setUri("asdf");
             $object = new XMLWrapper($xml, $request, null);
-            $results[] = new Result($object->getResult()->getStatus()==ResultStatus::NOT_FOUND, "test path not found (".$description.")");
+            $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::NOT_FOUND->name, "test path not found (".$description.")");
 
             $request->setUri("login");
             $object = new XMLWrapper($xml, $request, null);
-            $results[] = new Result($object->getResult()->getStatus()==ResultStatus::OK, "guest allowed to login (".$description.")");
+            $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::OK->name, "guest allowed to login (".$description.")");
 
             $request->setUri("index");
             $object = new XMLWrapper($xml, $request, null);
-            $results[] = new Result($object->getResult()->getStatus()==ResultStatus::UNAUTHORIZED, "guest unauthorized to index (".$description.")");
+            $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::UNAUTHORIZED->name, "guest unauthorized to index (".$description.")");
 
             $request->setUri("index");
             $object = new XMLWrapper($xml, $request, 1);
-            $results[] = new Result($object->getResult()->getStatus()==ResultStatus::OK, "user allowed to index (".$description.")");
+            $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::OK->name, "user allowed to index (".$description.")");
 
             $request->setUri("administration");
             $object = new XMLWrapper($xml, $request, 1);
-            $results[] = new Result($object->getResult()->getStatus()==ResultStatus::FORBIDDEN, "user forbidden to administration (".$description.")");
+            $results[] = (new Strings($object->getResult()->getStatus()->name))->assertEquals(ResultStatus::FORBIDDEN->name, "user forbidden to administration (".$description.")");
         }
 
         return $results;

@@ -4,6 +4,8 @@ namespace Test\Lucinda\WebSecurity\Authentication\XML;
 
 use Lucinda\WebSecurity\Authentication\XML\UserAuthenticationXML;
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Booleans;
+use Lucinda\UnitTest\Validator\Integers;
 
 class UserAuthenticationXMLTest
 {
@@ -20,8 +22,8 @@ class UserAuthenticationXMLTest
         $object = new UserAuthenticationXML($xml);
 
         $results = [];
-        $results[] = new Result($object->login("test", "me1")===null, "tested failed login");
-        $results[] = new Result($object->login("test", "me")==1, "tested successful login");
+        $results[] = (new Booleans($object->login("test", "me1") === null))->assertTrue("tested failed login");
+        $results[] = (new Integers((int) $object->login("test", "me")))->assertEquals(1, "tested successful login");
         return $results;
     }
 }

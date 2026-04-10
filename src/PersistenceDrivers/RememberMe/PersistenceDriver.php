@@ -45,16 +45,7 @@ class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\Persi
     public function save(int|string $userID): void
     {
         $token = $this->token->encode($userID, $this->securityOptions->getExpirationTime());
-        setcookie(
-            $this->parameterName,
-            $token,
-            time()+$this->securityOptions->getExpirationTime(),
-            "/",
-            "",
-            $this->securityOptions->isSecure(),
-            $this->securityOptions->isHttpOnly()
-        );
-        $_COOKIE[$this->parameterName] = $token;
+        $this->registerCookie($token, time()+$this->securityOptions->getExpirationTime());
     }
 
     /**
@@ -73,16 +64,7 @@ class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\Persi
             return $this->token->decode($_COOKIE[$this->parameterName]);
         } catch (\Exception $e) {
             // delete bad cookie
-            setcookie(
-                $this->parameterName,
-                "",
-                time()+$this->securityOptions->getExpirationTime(),
-                "/",
-                "",
-                $this->securityOptions->isSecure(),
-                $this->securityOptions->isHttpOnly()
-            );
-            unset($_COOKIE[$this->parameterName]);
+            $this->registerCookie("", time()-3600);
             // rethrow exception, unless it's token expired
             if ($e instanceof ExpiredException) {
                 return null;
@@ -97,15 +79,34 @@ class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\Persi
      */
     public function clear(): void
     {
+        $this->registerCookie("", time()-3600);
+    }
+
+    /**
+     * Saves cookie header
+     * 
+     * @param string $token
+     * @param int $time
+     * @return void
+     */
+    private function registerCookie(string $token, int $time): void
+    {
         setcookie(
             $this->parameterName,
-            "",
-            time()+$this->securityOptions->getExpirationTime(),
-            "/",
-            "",
-            $this->securityOptions->isSecure(),
-            $this->securityOptions->isHttpOnly()
+            $token,
+            [
+                "expires" => $time,
+                "path" => "/",
+                "domain" => "",
+                "secure" => $this->securityOptions->isSecure(),
+                "httponly" => $this->securityOptions->isHttpOnly(),
+                "samesite" => $this->securityOptions->getSameSite()->value
+            ]
         );
-        unset($_COOKIE[$this->parameterName]);
+        if ($token === "") {
+            unset($_COOKIE[$this->parameterName]);
+        } else {
+            $_COOKIE[$this->parameterName] = $token;
+        }
     }
 }

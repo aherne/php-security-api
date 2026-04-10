@@ -10,6 +10,7 @@ use Lucinda\WebSecurity\PersistenceDrivers\Token\JsonWebTokenPersistenceDriver;
 use Lucinda\WebSecurity\PersistenceDrivers\Token\SynchronizerTokenPersistenceDriver;
 use Lucinda\UnitTest\Result;
 use Lucinda\WebSecurity\Token\SaltGenerator;
+use Lucinda\UnitTest\Validator\Integers;
 
 class UserIdDetectorTest
 {
@@ -22,22 +23,22 @@ class UserIdDetectorTest
         $persistenceDriver = new RememberMePersistenceDriver($salt, "uid", new CookieSecurityOptions());
         $persistenceDriver->save(1);
         $detector = new UserIdDetector([$persistenceDriver]);
-        $results[] = new Result($detector->getUserID()==1, "tested remember me");
+        $results[] = (new Integers((int) $detector->getUserID()))->assertEquals(1, "tested remember me");
 
         $persistenceDriver = new SessionPersistenceDriver("id", new CookieSecurityOptions());
         $persistenceDriver->save(1);
         $detector = new UserIdDetector([$persistenceDriver]);
-        $results[] = new Result($detector->getUserID()==1, "tested session");
+        $results[] = (new Integers((int) $detector->getUserID()))->assertEquals(1, "tested session");
 
         $persistenceDriver = new SynchronizerTokenPersistenceDriver($salt, "127.0.0.1");
         $persistenceDriver->save(1);
         $detector = new UserIdDetector([$persistenceDriver], $persistenceDriver->getAccessToken());
-        $results[] = new Result($detector->getUserID()==1, "tested synchronizer token");
+        $results[] = (new Integers((int) $detector->getUserID()))->assertEquals(1, "tested synchronizer token");
 
         $persistenceDriver = new JsonWebTokenPersistenceDriver($salt);
         $persistenceDriver->save(1);
         $detector = new UserIdDetector([$persistenceDriver], $persistenceDriver->getAccessToken());
-        $results[] = new Result($detector->getUserID()==1, "tested json web token");
+        $results[] = (new Integers((int) $detector->getUserID()))->assertEquals(1, "tested json web token");
 
         return $results;
     }

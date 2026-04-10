@@ -19,7 +19,6 @@ class RememberMeWrapper extends PersistenceDriverWrapper
      *
      * @param  \SimpleXMLElement $xml       Contents of XML tag that sets up persistence driver.
      * @param  string            $ipAddress Detected client IP address
-     * @throws ConfigurationException If resources referenced in XML do not exist or do not extend/implement blueprint.
      */
     protected function setDriver(\SimpleXMLElement $xml, string $ipAddress): void
     {
@@ -38,6 +37,9 @@ class RememberMeWrapper extends PersistenceDriverWrapper
         $securityOptions->setExpirationTime($expirationTime ? $expirationTime : self::DEFAULT_EXPIRATION_TIME);
         $securityOptions->setIsHttpOnly((bool)((int)$xml["is_http_only"]));
         $securityOptions->setIsSecure((bool)((int)$xml["is_https_only"]));
+        if ($sameSite = (string) $xml["same_site"]) {
+            $securityOptions->setSameSite(CookieSameSiteOptions::from($sameSite));
+        }
 
         $this->driver = new RememberMePersistenceDriver(
             $secret,

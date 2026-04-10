@@ -5,11 +5,12 @@ namespace Test\Lucinda\WebSecurity\Token;
 use Lucinda\WebSecurity\Token\Encryption;
 use Lucinda\WebSecurity\Token\SaltGenerator;
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Strings;
 
 class EncryptionTest
 {
-    private $object;
-    private $value;
+    private Encryption $object;
+    private ?string $value = null;
 
     public function __construct()
     {
@@ -19,12 +20,12 @@ class EncryptionTest
     public function encrypt()
     {
         $this->value = $this->object->encrypt("asdfgh");
-        return new Result($this->value ? true : false);
+        return (new Strings($this->value))->assertNotEmpty();
     }
 
 
     public function decrypt()
     {
-        return new Result($this->object->decrypt($this->value)=="asdfgh" ? true : false);
+        return (new Strings($this->object->decrypt($this->value)))->assertEquals("asdfgh");
     }
 }

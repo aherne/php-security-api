@@ -5,10 +5,12 @@ namespace Test\Lucinda\WebSecurity\PersistenceDrivers\Session;
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 use Lucinda\WebSecurity\PersistenceDrivers\Session\PersistenceDriver;
 use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Booleans;
+use Lucinda\UnitTest\Validator\Integers;
 
 class PersistenceDriverTest
 {
-    private $object;
+    private PersistenceDriver $object;
 
     public function __construct()
     {
@@ -26,18 +28,18 @@ class PersistenceDriverTest
     {
         session_start();
         $this->object->save(1);
-        return new Result(true);
+        return (new Integers((int) $this->object->load()))->assertEquals(1);
     }
 
     public function load()
     {
-        return new Result($this->object->load()==1);
+        return (new Integers((int) $this->object->load()))->assertEquals(1);
     }
 
 
     public function clear()
     {
         $this->object->clear();
-        return new Result(!$this->object->load());
+        return (new Booleans($this->object->load() === null))->assertTrue();
     }
 }
