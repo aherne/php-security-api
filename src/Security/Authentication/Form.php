@@ -13,7 +13,6 @@ use Lucinda\WebSecurity\Configuration\Authentication\Form\Login as LoginPolicy;
 use Lucinda\WebSecurity\Configuration\Authentication\Form\Logout as LogoutPolicy;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 
-// TODO: remember me should be handled externally
 final class Form extends Generic
 {
     private FormAuthentication $dao;

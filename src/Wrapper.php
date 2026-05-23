@@ -13,7 +13,9 @@ use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
 use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
 use Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver;
 use Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\PersistenceDriver as TokenPersistenceDriver;
+use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver as RememberMePersistenceDriver;
 use Lucinda\WebSecurity\Security\Authentication;
+use Lucinda\WebSecurity\Configuration\Authentication\Form as FormAuthentication;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus as AuthenticationStatus;
 use Lucinda\WebSecurity\Security\Authorization;
 use Lucinda\WebSecurity\Security\Authorization\ResultStatus as AuthorizationStatus;
@@ -73,19 +75,19 @@ final class Wrapper
 
     private function execute(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
     {
-        if ($outcome = $this->multiFactorAuthentication()) {
+        if ($outcome = $this->authentication()) {
             return $outcome;
         }
 
-        if ($outcome = $this->authentication()) {
+        if ($outcome = $this->multiFactorAuthentication()) {
             return $outcome;
         }
 
         if ($outcome = $this->authorization()) {
             return $outcome;
         }
-
-        return $this->fallback();
+        
+        return null;
     }
 
     private function multiFactorAuthentication(): MultiFactorPacket|ThrottlingPacket|null
@@ -168,20 +170,12 @@ final class Wrapper
         return null;
     }
 
-    private function fallback(): ?SecurityPacket
-    {
-        if (!$this->userID) {
-            return null;
-        }
-
-        $packet = new SecurityPacket(AuthorizationStatus::OK);
-        $packet->setUserID($this->userID);
-        return $packet;
-    }
-
     private function login(): void
     {
         foreach ($this->persistenceDrivers as $persistenceDriver) {
+            if ($persistenceDriver instanceof RememberMePersistenceDriver && !$this->isRememberMeTicked()) {
+                continue; // do not save to remember me persistence driver unless remember me was ticked
+            }
             $persistenceDriver->save($this->userID);
         }
     }
@@ -216,5 +210,21 @@ final class Wrapper
             }
         }
         return null;
+    }
+
+    private function isRememberMeTicked(): bool
+    {
+        if ($this->request->getMethod()!== "POST") {
+            return false;
+        }
+
+        $rememberMeParam = "";
+        foreach ($this->configuration->getAuthentication()->getMethods() as $method) {
+            if ($method instanceof FormAuthentication) {
+                $rememberMeParam = $method->getLoginPolicy()->getParameterRememberMe();
+            }
+        }
+
+        return $rememberMeParam && !empty($this->request->getParameters()[$rememberMeParam]);
     }
 }
