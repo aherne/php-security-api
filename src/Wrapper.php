@@ -6,6 +6,7 @@ use Lucinda\WebSecurity\Configuration as SecurityConfiguration;
 use Lucinda\WebSecurity\DAO\LoginThrottler;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Detectors\PersistenceDrivers as PersistenceDriversDetector;
+use Lucinda\WebSecurity\Detectors\RememberMeTicked;
 use Lucinda\WebSecurity\Detectors\UserId;
 use Lucinda\WebSecurity\Packets\MultiFactor as MultiFactorPacket;
 use Lucinda\WebSecurity\Packets\Packet;
@@ -15,7 +16,6 @@ use Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver;
 use Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\PersistenceDriver as TokenPersistenceDriver;
 use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver as RememberMePersistenceDriver;
 use Lucinda\WebSecurity\Security\Authentication;
-use Lucinda\WebSecurity\Configuration\Authentication\Form as FormAuthentication;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus as AuthenticationStatus;
 use Lucinda\WebSecurity\Security\Authorization;
 use Lucinda\WebSecurity\Security\Authorization\ResultStatus as AuthorizationStatus;
@@ -90,25 +90,6 @@ final class Wrapper
         return null;
     }
 
-    private function multiFactorAuthentication(): MultiFactorPacket|ThrottlingPacket|null
-    {
-        $configuration = $this->configuration->getMultiFactorAuthentication();
-        if ($configuration === null || $this->userID === null) {
-            return null;
-        }
-
-        $validator = new MultiFactorAuthentication($configuration, $this->request, $this->userID);
-        $outcome = $validator->getOutcome();
-        if (!$outcome) {
-            return null;
-        }
-
-        if ($outcome instanceof MultiFactorPacket && in_array($outcome->getStatus(), [MultiFactorAuthenticationStatus::SUCCEEDED, MultiFactorAuthenticationStatus::NOT_REQUIRED])) {
-            $this->login();
-        }
-        return $outcome;
-    }
-
     private function authentication(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
     {
         $validator = new Authentication(
@@ -148,6 +129,25 @@ final class Wrapper
         return $outcome;
     }
 
+    private function multiFactorAuthentication(): MultiFactorPacket|ThrottlingPacket|null
+    {
+        $configuration = $this->configuration->getMultiFactorAuthentication();
+        if ($configuration === null || $this->userID === null) {
+            return null;
+        }
+
+        $validator = new MultiFactorAuthentication($configuration, $this->request, $this->userID);
+        $outcome = $validator->getOutcome();
+        if (!$outcome) {
+            return null;
+        }
+
+        if ($outcome instanceof MultiFactorPacket && in_array($outcome->getStatus(), [MultiFactorAuthenticationStatus::SUCCEEDED, MultiFactorAuthenticationStatus::NOT_REQUIRED])) {
+            $this->login();
+        }
+        return $outcome;
+    }
+
     private function authorization(): ?SecurityPacket
     {
         $validator = new Authorization(
@@ -172,9 +172,10 @@ final class Wrapper
 
     private function login(): void
     {
+        $object = new RememberMeTicked($this->configuration, $this->request);
         foreach ($this->persistenceDrivers as $persistenceDriver) {
-            if ($persistenceDriver instanceof RememberMePersistenceDriver && !$this->isRememberMeTicked()) {
-                continue; // do not save to remember me persistence driver unless remember me was ticked
+            if ($persistenceDriver instanceof RememberMePersistenceDriver && $object->getTicked()) {
+                continue; // do not save to remember me persistence driver unless remember me was actually ticked
             }
             $persistenceDriver->save($this->userID);
         }
@@ -210,21 +211,5 @@ final class Wrapper
             }
         }
         return null;
-    }
-
-    private function isRememberMeTicked(): bool
-    {
-        if ($this->request->getMethod()!== "POST") {
-            return false;
-        }
-
-        $rememberMeParam = "";
-        foreach ($this->configuration->getAuthentication()->getMethods() as $method) {
-            if ($method instanceof FormAuthentication) {
-                $rememberMeParam = $method->getLoginPolicy()->getParameterRememberMe();
-            }
-        }
-
-        return $rememberMeParam && !empty($this->request->getParameters()[$rememberMeParam]);
     }
 }
