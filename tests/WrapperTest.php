@@ -358,4 +358,9 @@ class WrapperTest
         $request->setAccessToken($accessToken);
         return $request;
     }
+    public function validate()
+    {
+    }
+        
+
 }

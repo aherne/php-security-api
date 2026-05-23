@@ -95,8 +95,8 @@ The wrapper expects a root XML document that contains a `<security>` element.
             <form
                 dao="App\Security\UserAuthenticationDAO"
                 throttler="App\Security\LoginThrottler">
-                <login page="login" target="index"/>
-                <logout page="logout" target="login"/>
+                <login page="login" target_success="index" target_failure="login"/>
+                <logout page="logout" target_success="login" target_failure="error"/>
             </form>
         </authentication>
         <authorization>
@@ -164,8 +164,8 @@ Use `<form>` for username/password login.
 
 Optional child tags:
 
-- `<login page="login" target="index" parameter_username="username" parameter_password="password" parameter_rememberMe="remember_me" />`
-- `<logout page="logout" target="login" />`
+- `<login page="login" target_success="index" target_failure="login" parameter_username="username" parameter_password="password" parameter_remember_me="remember_me" />`
+- `<logout page="logout" target_success="login" target_failure="error" />`
 
 Parameter defaults:
 

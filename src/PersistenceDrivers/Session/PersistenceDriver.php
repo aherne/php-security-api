@@ -7,7 +7,7 @@ use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 /**
  * Encapsulates a driver that persists unique user identifier into sessions.
  */
-class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver
+final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver
 {
     private string $current_ip;
     private string $parameterName;

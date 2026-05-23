@@ -18,7 +18,7 @@ class LoginConfigurationTest
 <security>
     <authentication>
         <form>
-            <login parameter_username="user" parameter_password="pass"   parameter_rememberMe="rm" page="test" target="me"/>  
+            <login parameter_username="user" parameter_password="pass" parameter_remember_me="rm" page="test" target_success="me" target_failure="login"/>  
         </form>
     </authentication>
 </security>'

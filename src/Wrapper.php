@@ -2,135 +2,212 @@
 
 namespace Lucinda\WebSecurity;
 
+use Lucinda\WebSecurity\Configuration as SecurityConfiguration;
+use Lucinda\WebSecurity\DAO\LoginThrottler;
+use Lucinda\WebSecurity\Detectors\CsrfToken;
+use Lucinda\WebSecurity\Detectors\PersistenceDrivers as PersistenceDriversDetector;
+use Lucinda\WebSecurity\Detectors\UserId;
+use Lucinda\WebSecurity\Packets\MultiFactor as MultiFactorPacket;
+use Lucinda\WebSecurity\Packets\Packet;
+use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
+use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
 use Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver;
-use Lucinda\WebSecurity\PersistenceDrivers\Token\PersistenceDriver as TokenPersistenceDriver;
-use Lucinda\WebSecurity\Authentication\OAuth2\Driver as OAuth2Driver;
+use Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\PersistenceDriver as TokenPersistenceDriver;
+use Lucinda\WebSecurity\Security\Authentication;
+use Lucinda\WebSecurity\Security\Authentication\ResultStatus as AuthenticationStatus;
+use Lucinda\WebSecurity\Security\Authorization;
+use Lucinda\WebSecurity\Security\Authorization\ResultStatus as AuthorizationStatus;
+use Lucinda\WebSecurity\Security\MultiFactorAuthentication;
+use Lucinda\WebSecurity\Security\MultiFactorAuthentication\ResultStatus as MultiFactorAuthenticationStatus;
 
 /**
  * Authenticates and authorizes based on contents of XML tag 'security'
  */
-class Wrapper
+final class Wrapper
 {
     /**
      * @var PersistenceDriver[]
      */
     private array $persistenceDrivers = [];
-    private string|int|null $userID;
-    private CsrfTokenDetector $csrfToken;
+    private string|int|null $userID = null;
+    private Request $request;
+    private SecurityConfiguration $configuration;
+    private ?LoginThrottler $loginThrottler;
+    private array $oauth2Drivers;
+    private ?\SimpleXMLElement $routes = null;
+    private CsrfToken $csrfToken;
+    private ?Packet $outcome = null;
 
     /**
      * Performs class logic by delegating to specialized methods
      *
      * @param  \SimpleXMLElement $xml
      * @param  Request           $request
-     * @param  OAuth2Driver[]    $oauth2Drivers
-     * @throws ConfigurationException
+     * @param  Oauth2Service[]   $oauth2Drivers
+     * @param  ?LoginThrottler   $loginThrottler
+     * @param ?\SimpleXMLElement $routes
      */
-    public function __construct(\SimpleXMLElement $xml, Request $request, array $oauth2Drivers = [])
+    public function __construct(
+        \SimpleXMLElement $xml,
+        Request $request,
+        array $oauth2Drivers = [],
+        ?LoginThrottler $loginThrottler = null,
+        ?\SimpleXMLElement $routes = null
+        )
     {
-        // detects relevant data
-        $xml = $xml->security;
-        if (empty($xml)) {
-            throw new ConfigurationException("XML tag 'security' is missing");
+        $this->request = $request;
+        $this->configuration = new SecurityConfiguration($xml);
+        $this->loginThrottler = $loginThrottler;
+        $this->oauth2Drivers = $oauth2Drivers;
+        $this->routes = $routes;
+
+        $pdd = new PersistenceDriversDetector($this->configuration->getPersistence(), $request->getIpAddress());
+        $this->persistenceDrivers = $pdd->getPersistenceDrivers();
+
+        $udd = new UserId($this->persistenceDrivers, $request->getAccessToken());
+        $this->userID = $udd->getUserID();
+
+        $this->csrfToken = new CsrfToken($this->configuration->getCsrf(), $request->getIpAddress());
+        $this->outcome = $this->execute();
+    }
+
+    private function execute(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+    {
+        if ($outcome = $this->multiFactorAuthentication()) {
+            return $outcome;
         }
 
-        // applies web security on request
-        $this->setPersistenceDrivers($xml, $request);
-        $this->setUserID($request);
-        $this->setCsrfToken($xml, $request);
+        if ($outcome = $this->authentication()) {
+            return $outcome;
+        }
 
-        $this->authenticate($xml, $request, $oauth2Drivers);
-        $this->authorize($xml, $request);
+        if ($outcome = $this->authorization()) {
+            return $outcome;
+        }
+
+        return $this->fallback();
     }
 
-    /**
-     * Sets drivers where authenticated user unique identifier is persisted based on contents of XML tag 'persistence'
-     *
-     * @param  \SimpleXMLElement $mainXML
-     * @param  Request           $request
-     * @throws ConfigurationException
-     */
-    private function setPersistenceDrivers(\SimpleXMLElement $mainXML, Request $request): void
+    private function multiFactorAuthentication(): MultiFactorPacket|ThrottlingPacket|null
     {
-        $pdd = new PersistenceDriversDetector($mainXML, $request->getIpAddress());
-        $this->persistenceDrivers = $pdd->getPersistenceDrivers();
+        $configuration = $this->configuration->getMultiFactorAuthentication();
+        if ($configuration === null || $this->userID === null) {
+            return null;
+        }
+
+        $validator = new MultiFactorAuthentication($configuration, $this->request, $this->userID);
+        $outcome = $validator->getOutcome();
+        if (!$outcome) {
+            return null;
+        }
+
+        if ($outcome instanceof MultiFactorPacket && in_array($outcome->getStatus(), [MultiFactorAuthenticationStatus::SUCCEEDED, MultiFactorAuthenticationStatus::NOT_REQUIRED])) {
+            $this->login();
+        }
+        return $outcome;
     }
 
-    /**
-     * Sets authenticated user unique identifier based on drivers where it was persisted into
-     *
-     * @param Request $request
-     */
-    private function setUserID(Request $request): void
+    private function authentication(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
     {
-        $udd = new UserIdDetector($this->persistenceDrivers, $request->getAccessToken());
-        $this->userID = $udd->getUserID();
+        $validator = new Authentication(
+            $this->configuration->getAuthentication(),
+            $this->request,
+            $this->userID,
+            $this->loginThrottler,
+            $this->csrfToken,
+            $this->oauth2Drivers
+            );
+        $outcome = $validator->getOutcome();
+        if (!$outcome) {
+            return null;
+        }
+
+        if ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::PASSWORD_VERIFIED) {
+            $this->userID = $outcome->getUserID();
+
+            $multiFactorConfiguration = $this->configuration->getMultiFactorAuthentication();
+            if ($multiFactorConfiguration === null) {
+                $outcome->setStatus(AuthenticationStatus::LOGIN_OK);
+                $this->login();
+            } else {
+                $validator = new MultiFactorAuthentication($multiFactorConfiguration, $this->request, $this->userID);
+                if ($mfaOutcome = $validator->getOutcome()) {
+                    return $mfaOutcome;
+                }
+            }
+        } elseif ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::LOGIN_OK) {
+            $this->userID = $outcome->getUserID();
+            $this->login();
+        } elseif ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::LOGOUT_OK) {
+            $this->userID = null;
+            $this->logout();
+        }
+
+        return $outcome;
     }
 
-    /**
-     * Gets class where anti-csrf token is generated and verified
-     *
-     * @param  \SimpleXMLElement $mainXML
-     * @param  Request           $request
-     * @throws ConfigurationException
-     */
-    private function setCsrfToken(\SimpleXMLElement $mainXML, Request $request): void
+    private function authorization(): ?SecurityPacket
     {
-        $this->csrfToken = new CsrfTokenDetector($mainXML, $request->getIpAddress());
+        $validator = new Authorization(
+            $this->configuration->getAuthorization(),
+            $this->request,
+            $this->userID,
+            !empty($this->routes->routes) ? $this->routes : null
+            );
+        if ($outcome = $validator->getOutcome()) {
+            if ($outcome->getStatus() == AuthorizationStatus::OK) {
+                return null;
+            }
+
+            $callback = $outcome->getCallbackURI();
+            if ($callback) {
+                $callback = $this->request->getContextPath()."/".$callback;
+            }
+            return new SecurityPacket($outcome->getStatus(), $callback ?: null);
+        }
+        return null;
     }
 
-    /**
-     * Performs user authentication based on mechanism chosen by developmer in XML (eg: from database via login form,
-     * from an oauth2 provider, etc)
-     *
-     * @param  \SimpleXMLElement $mainXML
-     * @param  Request           $request
-     * @param  OAuth2Driver[]    $oauth2Drivers
-     * @throws \Exception
-     */
-    private function authenticate(\SimpleXMLElement $mainXML, Request $request, array $oauth2Drivers): void
+    private function fallback(): ?SecurityPacket
     {
-        new Authentication($mainXML, $request, $this->csrfToken, $this->persistenceDrivers, $oauth2Drivers);
+        if (!$this->userID) {
+            return null;
+        }
+
+        $packet = new SecurityPacket(AuthorizationStatus::OK);
+        $packet->setUserID($this->userID);
+        return $packet;
     }
 
-    /**
-     * Performs request authorization based on mechanism chosen by developmer in XML (eg: from database)
-     *
-     * @param  \SimpleXMLElement $mainXML
-     * @param  Request           $request
-     * @throws \Exception
-     */
-    private function authorize(\SimpleXMLElement $mainXML, Request $request): void
+    private function login(): void
     {
-        new Authorization($mainXML, $request, $this->userID);
+        foreach ($this->persistenceDrivers as $persistenceDriver) {
+            $persistenceDriver->save($this->userID);
+        }
     }
 
-    /**
-     * Gets detected logged in unique user identifier
-     *
-     * @return int|string|null
-     */
+    private function logout(): void
+    {
+        foreach ($this->persistenceDrivers as $persistenceDriver) {
+            $persistenceDriver->clear();
+        }
+    }
+
+    public function getOutcome(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+    {
+        return $this->outcome;
+    }
+
     public function getUserID(): int|string|null
     {
         return $this->userID;
     }
 
-    /**
-     * Gets a new anti-csrf token to use as value of input 'csrf' in login form
-     *
-     * @return string
-     * @throws Token\EncryptionException
-     */
     public function getCsrfToken(): string
     {
         return $this->csrfToken->generate($this->userID);
     }
 
-    /**
-     * Gets access token for stateless apps
-     *
-     * @return string|NULL
-     */
     public function getAccessToken(): ?string
     {
         foreach ($this->persistenceDrivers as $driver) {

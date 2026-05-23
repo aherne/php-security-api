@@ -5,7 +5,7 @@ namespace Lucinda\WebSecurity;
 /**
  * Encapsulates user request information
  */
-class Request
+final class Request
 {
     private string $uri;
     private string $contextPath;

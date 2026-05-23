@@ -10,7 +10,7 @@ use Lucinda\WebSecurity\Token\ExpiredException;
 /**
  * Encapsulates a driver that persists unique user identifier into a crypted "remember me" cookie variable.
  */
-class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver
+final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver
 {
     private SynchronizerToken $token;
 

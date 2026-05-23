@@ -5,7 +5,7 @@ namespace Lucinda\WebSecurity\PersistenceDrivers;
 /**
  * Configures cookies security and duration
  */
-class CookieSecurityOptions
+final class CookieSecurityOptions
 {
     private bool $isHttpOnly = false;
     private bool $isSecure = false;

@@ -18,7 +18,7 @@ class LogoutConfigurationTest
 <security>
     <authentication>
         <form>
-            <logout page="test" target="me"/>  
+            <logout page="test" target_success="me" target_failure="error"/>  
         </form>
     </authentication>
 </security>'
