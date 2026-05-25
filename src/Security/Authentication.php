@@ -13,10 +13,23 @@ use Lucinda\WebSecurity\DAO\LoginThrottler;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Security\Exception as SecurityException;
 
+/**
+ * Encapsulates Authentication logic.
+ */
 final class Authentication
 {
     private SecurityPacket|ThrottlingPacket|null $outcome = null;
 
+    /**
+     * Sets up object state.
+     *
+     * @param ConfigurationAuthentication $configuration
+     * @param Request $request
+     * @param int|string|null $userID
+     * @param ?LoginThrottler $loginThrottler
+     * @param ?CsrfToken $csrfTokenDetector
+     * @param array $oauth2Drivers
+     */
     public function __construct(
         ConfigurationAuthentication $configuration,
         Request $request,
@@ -40,6 +53,15 @@ final class Authentication
         }
     }
 
+    /**
+     * Authenticate by form.
+     *
+     * @param ConfigurationAuthenticationForm $configuration
+     * @param Request $request
+     * @param int|string|null $userID
+     * @param ?LoginThrottler $loginThrottler
+     * @param ?CsrfToken $csrfTokenDetector
+     */
     private function authenticateByForm(
         ConfigurationAuthenticationForm $configuration,
         Request $request,
@@ -56,6 +78,14 @@ final class Authentication
         return $authenticator->getOutcome();
     }
 
+    /**
+     * Authenticate by OAuth2.
+     *
+     * @param ConfigurationAuthenticationOauth2 $configuration
+     * @param Request $request
+     * @param int|string|null $userID
+     * @param array $oauth2Drivers
+     */
     private function authenticateByOauth2(
         ConfigurationAuthenticationOauth2 $configuration,
         Request $request,
@@ -71,6 +101,11 @@ final class Authentication
         return $authenticator->getOutcome();
     }
 
+    /**
+     * Gets outcome.
+     *
+     * @return SecurityPacket|ThrottlingPacket|null
+     */
     public function getOutcome(): SecurityPacket|ThrottlingPacket|null
     {
         return $this->outcome;

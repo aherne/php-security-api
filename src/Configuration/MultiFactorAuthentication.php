@@ -5,6 +5,9 @@ namespace Lucinda\WebSecurity\Configuration;
 use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication\Totp;
 use Lucinda\WebSecurity\DAO\MultiFactorAuthentication as MultiFactorAuthenticationDAO;
 
+/**
+ * Encapsulates MultiFactorAuthentication logic.
+ */
 final class MultiFactorAuthentication
 {
     private string $dao;
@@ -15,6 +18,11 @@ final class MultiFactorAuthentication
     private string $throttledRoute;
     private Totp $method;
 
+    /**
+     * Sets up object state.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     public function __construct(\SimpleXMLElement $xml)
     {
         $subXML = $xml->multi_factor_authentication;
@@ -31,6 +39,11 @@ final class MultiFactorAuthentication
         $this->setMethod($subXML);
     }
 
+    /**
+     * Sets DAO.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setDAO(\SimpleXMLElement $xml): void
     {
         $daoClass = (string) $xml["dao"];
@@ -43,11 +56,21 @@ final class MultiFactorAuthentication
         $this->dao = $daoClass;
     }
 
+    /**
+     * Gets DAO.
+     *
+     * @return string
+     */
     public function getDAO(): string
     {
         return $this->dao;
     }
 
+    /**
+     * Sets challenge route.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setChallengeRoute(\SimpleXMLElement $xml): void
     {
         if (empty($xml["challenge_route"])) {
@@ -56,11 +79,21 @@ final class MultiFactorAuthentication
         $this->challengeRoute = (string) $xml["challenge_route"];
     }
 
+    /**
+     * Gets challenge route.
+     *
+     * @return string
+     */
     public function getChallengeRoute(): string
     {
         return $this->challengeRoute;
     }
 
+    /**
+     * Sets setup route.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setSetupRoute(\SimpleXMLElement $xml): void
     {
         if (empty($xml["setup_route"])) {
@@ -69,11 +102,21 @@ final class MultiFactorAuthentication
         $this->setupRoute = (string) $xml["setup_route"];
     }
 
+    /**
+     * Gets setup route.
+     *
+     * @return string
+     */
     public function getSetupRoute(): string
     {
         return $this->setupRoute;
     }
 
+    /**
+     * Sets success route.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setSuccessRoute(\SimpleXMLElement $xml): void
     {
         if (empty($xml["success_route"])) {
@@ -82,11 +125,21 @@ final class MultiFactorAuthentication
         $this->successRoute = (string) $xml["success_route"];
     }
 
+    /**
+     * Gets success route.
+     *
+     * @return string
+     */
     public function getSuccessRoute(): string
     {
         return $this->successRoute;
     }
 
+    /**
+     * Sets failure route.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setFailureRoute(\SimpleXMLElement $xml): void
     {
         if (empty($xml["failure_route"])) {
@@ -95,11 +148,21 @@ final class MultiFactorAuthentication
         $this->failureRoute = (string) $xml["failure_route"];
     }
 
+    /**
+     * Gets failure route.
+     *
+     * @return string
+     */
     public function getFailureRoute(): string
     {
         return $this->failureRoute;
     }
 
+    /**
+     * Sets throttled route.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setThrottledRoute(\SimpleXMLElement $xml): void
     {
         if (empty($xml["throttled_route"])) {
@@ -108,11 +171,21 @@ final class MultiFactorAuthentication
         $this->throttledRoute = (string) $xml["throttled_route"];
     }
 
+    /**
+     * Gets throttled route.
+     *
+     * @return string
+     */
     public function getThrottledRoute(): string
     {
         return $this->throttledRoute;
     }
 
+    /**
+     * Sets method.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setMethod(\SimpleXMLElement $xml): void
     {
         if (empty($xml->totp)) {
@@ -121,6 +194,11 @@ final class MultiFactorAuthentication
         $this->method = new Totp($xml->totp);
     }
 
+    /**
+     * Gets method.
+     *
+     * @return Totp
+     */
     public function getMethod(): Totp
     {
         return $this->method;

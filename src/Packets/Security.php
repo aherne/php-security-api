@@ -13,6 +13,12 @@ final class Security extends Packet
     private AuthenticationResultStatus|AuthorizationResultStatus|null $status = null;
     private ?string $accessToken = null;
 
+    /**
+     * Sets up object state.
+     *
+     * @param AuthenticationResultStatus|AuthorizationResultStatus $status
+     * @param ?string $callback
+     */
     public function __construct(AuthenticationResultStatus|AuthorizationResultStatus $status, ?string $callback = null)
     {
         $this->setStatus($status);

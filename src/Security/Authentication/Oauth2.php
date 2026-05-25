@@ -11,10 +11,21 @@ use Lucinda\WebSecurity\Security\Authentication\ResultStatus;
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2 as Oauth2Configuration;
 use Lucinda\WebSecurity\Oauth2Service;
 
+/**
+ * Encapsulates OAuth2 logic.
+ */
 final class Oauth2 extends Generic
 {
     private Oauth2Authentication $dao;
 
+    /**
+     * Sets up object state.
+     *
+     * @param Configuration $configuration
+     * @param Request $request
+     * @param int|string|null $userID
+     * @param array $oauth2Drivers
+     */
     public function __construct(
         Configuration $configuration,
         Request $request,
@@ -47,6 +58,14 @@ final class Oauth2 extends Generic
         }
     }
 
+    /**
+     * Processes login.
+     *
+     * @param Oauth2Configuration $configuration
+     * @param string $vendor
+     * @param Oauth2Service $service
+     * @return SecurityPacket|null
+     */
     private function login(Oauth2Configuration $configuration, string $vendor, Oauth2Service $service): SecurityPacket|null
     {
         if ($this->userID !== null) { // already logged in
@@ -76,6 +95,12 @@ final class Oauth2 extends Generic
         }
     }
 
+    /**
+     * Processes logout.
+     *
+     * @param Oauth2Configuration $configuration
+     * @return SecurityPacket
+     */
     private function logout(Oauth2Configuration $configuration): SecurityPacket
     {
         if ($this->userID === null) { // already logged out

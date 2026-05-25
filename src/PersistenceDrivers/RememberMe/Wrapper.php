@@ -13,6 +13,12 @@ use Lucinda\WebSecurity\PersistenceDrivers\Wrapper as AbstractWrapper;
  */
 final class Wrapper extends AbstractWrapper
 {
+    /**
+     * Sets up object state.
+     *
+     * @param Configuration $configuration
+     * @param string $ipAddress
+     */
     public function __construct(Configuration $configuration, string $ipAddress)
     {
         $this->setDriver($configuration, $ipAddress);

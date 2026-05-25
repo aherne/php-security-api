@@ -35,6 +35,9 @@ final class Wrapper
     private Request $request;
     private SecurityConfiguration $configuration;
     private ?LoginThrottler $loginThrottler;
+    /**
+     * @var array<string,Oauth2Service>
+     */
     private array $oauth2Drivers;
     private ?\SimpleXMLElement $routes = null;
     private CsrfToken $csrfToken;
@@ -73,6 +76,11 @@ final class Wrapper
         $this->outcome = $this->execute();
     }
 
+    /**
+     * Executes the configured security workflow.
+     *
+     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+     */
     private function execute(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
     {
         if ($outcome = $this->authentication()) {
@@ -90,6 +98,11 @@ final class Wrapper
         return null;
     }
 
+    /**
+     * Runs authentication.
+     *
+     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+     */
     private function authentication(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
     {
         $validator = new Authentication(
@@ -129,6 +142,11 @@ final class Wrapper
         return $outcome;
     }
 
+    /**
+     * Runs multi-factor authentication.
+     *
+     * @return MultiFactorPacket|ThrottlingPacket|null
+     */
     private function multiFactorAuthentication(): MultiFactorPacket|ThrottlingPacket|null
     {
         $configuration = $this->configuration->getMultiFactorAuthentication();
@@ -148,6 +166,11 @@ final class Wrapper
         return $outcome;
     }
 
+    /**
+     * Runs authorization.
+     *
+     * @return ?SecurityPacket
+     */
     private function authorization(): ?SecurityPacket
     {
         $validator = new Authorization(
@@ -170,6 +193,10 @@ final class Wrapper
         return null;
     }
 
+    /**
+     * Processes login.
+     *
+     */
     private function login(): void
     {
         $object = new RememberMeTicked($this->configuration, $this->request);
@@ -181,6 +208,10 @@ final class Wrapper
         }
     }
 
+    /**
+     * Processes logout.
+     *
+     */
     private function logout(): void
     {
         foreach ($this->persistenceDrivers as $persistenceDriver) {
@@ -188,21 +219,41 @@ final class Wrapper
         }
     }
 
+    /**
+     * Gets outcome.
+     *
+     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+     */
     public function getOutcome(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
     {
         return $this->outcome;
     }
 
+    /**
+     * Gets user ID.
+     *
+     * @return int|string|null
+     */
     public function getUserID(): int|string|null
     {
         return $this->userID;
     }
 
+    /**
+     * Gets CSRF token.
+     *
+     * @return string
+     */
     public function getCsrfToken(): string
     {
         return $this->csrfToken->generate($this->userID);
     }
 
+    /**
+     * Gets access token.
+     *
+     * @return ?string
+     */
     public function getAccessToken(): ?string
     {
         foreach ($this->persistenceDrivers as $driver) {

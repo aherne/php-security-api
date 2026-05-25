@@ -9,6 +9,9 @@ use Lucinda\WebSecurity\Packets\MultiFactor as MultiFactorPacket;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Security\MultiFactorAuthentication\Totp\GoogleAuthenticator;
 
+/**
+ * Encapsulates Totp logic.
+ */
 final class Totp extends Generic
 {
     private Configuration $configuration;
@@ -16,6 +19,13 @@ final class Totp extends Generic
     private MultiFactorAuthenticationDAO $dao;
     private GoogleAuthenticator $googleAuthenticator;
 
+    /**
+     * Sets up object state.
+     *
+     * @param Configuration $configuration
+     * @param Request $request
+     * @param int|string $userID
+     */
     public function __construct(Configuration $configuration, Request $request, int|string $userID)
     {
         $this->configuration = $configuration;
@@ -29,6 +39,13 @@ final class Totp extends Generic
         $this->outcome = $this->execute();
     }
 
+    /**
+     * Normalize request.
+     *
+     * @param Request $request
+     * @param TotpConfiguration $configuration
+     * @return Request
+     */
     private function normalizeRequest(Request $request, TotpConfiguration $configuration): Request
     {
         $codeParameter = $configuration->getCodeParameter();
@@ -47,6 +64,11 @@ final class Totp extends Generic
         return $request;
     }
 
+    /**
+     * Executes the configured security workflow.
+     *
+     * @return MultiFactorPacket|null
+     */
     private function execute(): MultiFactorPacket|null
     {
         if (!$this->dao->isRequired($this->userID)) {
@@ -72,6 +94,11 @@ final class Totp extends Generic
         return $this->compose(ResultStatus::REQUIRED, $this->configuration->getChallengeRoute());
     }
 
+    /**
+     * Sets up.
+     *
+     * @return MultiFactorPacket
+     */
     private function setup(): MultiFactorPacket
     {
         $secret = $this->dao->getSetupSecret($this->userID);
@@ -95,6 +122,11 @@ final class Totp extends Generic
         return $this->compose(ResultStatus::FAILED, $this->configuration->getFailureRoute());
     }
 
+    /**
+     * Challenge.
+     *
+     * @return MultiFactorPacket
+     */
     private function challenge(): MultiFactorPacket
     {
         $secret = $this->dao->getSecret($this->userID);
@@ -115,6 +147,12 @@ final class Totp extends Generic
         return $this->compose(ResultStatus::FAILED, $this->configuration->getFailureRoute());
     }
 
+    /**
+     * Sets up required.
+     *
+     * @param ?string $secret
+     * @return MultiFactorPacket
+     */
     private function setupRequired(?string $secret = null): MultiFactorPacket
     {
         if ($secret === null) {
@@ -139,6 +177,11 @@ final class Totp extends Generic
         return $packet;
     }
 
+    /**
+     * Gets code.
+     *
+     * @return ?string
+     */
     private function getCode(): ?string
     {
         $parameters = $this->request->getParameters();

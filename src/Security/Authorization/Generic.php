@@ -2,6 +2,9 @@
 
 namespace Lucinda\WebSecurity\Security\Authorization;
 
+/**
+ * Encapsulates Generic logic.
+ */
 class Generic
 {
     private Result $result;

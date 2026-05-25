@@ -2,6 +2,9 @@
 
 namespace Lucinda\WebSecurity\Security\MultiFactorAuthentication;
 
+/**
+ * Defines ResultStatus values.
+ */
 enum ResultStatus: int
 {
     case NOT_REQUIRED = 1;

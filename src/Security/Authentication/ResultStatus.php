@@ -9,7 +9,7 @@ namespace Lucinda\WebSecurity\Security\Authentication;
  * - LOGIN_THROTTLED: login was throttled (too many failure attempts)
  * - LOGOUT_OK: logout was successful
  * - LOGOUT_FAILED: logout was unsuccessful (eg: user wasn't logged in)
- * - DEFERRED: login was deferred to a third party provider (eg: oauth2)
+ * - DEFERRED: login was deferred to a third party provider (eg: OAuth2)
  */
 enum ResultStatus: int
 {

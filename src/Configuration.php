@@ -9,6 +9,9 @@ use Lucinda\WebSecurity\Configuration\Persistence;
 use Lucinda\WebSecurity\Configuration\Authorization;
 use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication;
 
+/**
+ * Encapsulates web security configuration.
+ */
 final class Configuration
 {
     private Persistence $persistence;
@@ -17,6 +20,11 @@ final class Configuration
     private Authorization $authorization;
     private ?MultiFactorAuthentication $multiFactorAuthentication = null;
 
+    /**
+     * Sets up object state.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     public function __construct(\SimpleXMLElement $xml)
     {
         if (empty($xml->security)) {
@@ -32,26 +40,51 @@ final class Configuration
         }
     }
 
+    /**
+     * Gets persistence.
+     *
+     * @return Persistence
+     */
     public function getPersistence(): Persistence
     {
         return $this->persistence;
     }
 
+    /**
+     * Gets CSRF.
+     *
+     * @return Csrf
+     */
     public function getCsrf(): Csrf
     {
         return $this->csrf;
     }
 
+    /**
+     * Gets authentication.
+     *
+     * @return Authentication
+     */
     public function getAuthentication(): Authentication
     {
         return $this->authentication;
     }
 
+    /**
+     * Gets authorization.
+     *
+     * @return Authorization
+     */
     public function getAuthorization(): Authorization
     {
         return $this->authorization;
     }
 
+    /**
+     * Gets multi-factor authentication.
+     *
+     * @return ?MultiFactorAuthentication
+     */
     public function getMultiFactorAuthentication(): ?MultiFactorAuthentication
     {
         return $this->multiFactorAuthentication;

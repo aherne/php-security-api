@@ -6,10 +6,18 @@ use Lucinda\WebSecurity\Configuration\Persistence\RememberMe as RememberMePersis
 use Lucinda\WebSecurity\Configuration\Persistence\Session as SessionPersistence;
 use Lucinda\WebSecurity\Configuration\Persistence\SynchronizerToken as SynchronizedTokenPersistence;
 
+/**
+ * Encapsulates Persistence logic.
+ */
 final class Persistence
 {
     private array $drivers;
 
+    /**
+     * Sets up object state.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     public function __construct(\SimpleXMLElement $xml)
     {
         $subXML = $xml->persistence;
@@ -20,6 +28,11 @@ final class Persistence
         $this->setDrivers($subXML);
     }
 
+    /**
+     * Sets drivers.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setDrivers(\SimpleXMLElement $xml): void
     {
         if (!empty($xml->session)) {
@@ -40,6 +53,11 @@ final class Persistence
         }
     }
 
+    /**
+     * Gets drivers.
+     *
+     * @return array
+     */
     public function getDrivers(): array
     {
         return $this->drivers;

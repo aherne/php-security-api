@@ -2,10 +2,19 @@
 
 namespace Lucinda\WebSecurity\Security\MultiFactorAuthentication\Totp;
 
+/**
+ * Encapsulates GoogleAuthenticator logic.
+ */
 final class GoogleAuthenticator
 {
     private const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
+    /**
+     * Generate secret.
+     *
+     * @param int $length
+     * @return string
+     */
     public function generateSecret(int $length = 20): string
     {
         $bytes = random_bytes($length);
@@ -24,6 +33,16 @@ final class GoogleAuthenticator
         return $secret;
     }
 
+    /**
+     * Gets provisioning URI.
+     *
+     * @param string $issuer
+     * @param string $accountName
+     * @param string $secret
+     * @param int $period
+     * @param int $digits
+     * @return string
+     */
     public function getProvisioningURI(
         string $issuer,
         string $accountName,
@@ -46,6 +65,16 @@ final class GoogleAuthenticator
         );
     }
 
+    /**
+     * Verify.
+     *
+     * @param string $secret
+     * @param string $code
+     * @param int $period
+     * @param int $digits
+     * @param int $window
+     * @return bool
+     */
     public function verify(string $secret, string $code, int $period, int $digits, int $window): bool
     {
         if (!preg_match('/^\d{'.$digits.'}$/', $code)) {
@@ -61,6 +90,14 @@ final class GoogleAuthenticator
         return false;
     }
 
+    /**
+     * Generate code.
+     *
+     * @param string $secret
+     * @param int $counter
+     * @param int $digits
+     * @return string
+     */
     private function generateCode(string $secret, int $counter, int $digits): string
     {
         $key = $this->decodeBase32($secret);
@@ -76,6 +113,12 @@ final class GoogleAuthenticator
         return str_pad((string) ($value % (10 ** $digits)), $digits, "0", STR_PAD_LEFT);
     }
 
+    /**
+     * Decode base32.
+     *
+     * @param string $secret
+     * @return string
+     */
     private function decodeBase32(string $secret): string
     {
         $secret = strtoupper($secret);

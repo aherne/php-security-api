@@ -5,10 +5,18 @@ namespace Lucinda\WebSecurity\Configuration;
 use Lucinda\WebSecurity\Configuration\Authorization\ByDAO;
 use Lucinda\WebSecurity\Configuration\Authorization\ByXML;
 
+/**
+ * Encapsulates Authorization logic.
+ */
 final class Authorization
 {
     private array $methods = [];
 
+    /**
+     * Sets up object state.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     public function __construct(\SimpleXMLElement $xml)
     {
         $subXML = $xml->authorization;
@@ -19,6 +27,11 @@ final class Authorization
         $this->setMethods($subXML);
     }
 
+    /**
+     * Sets methods.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setMethods(\SimpleXMLElement $xml): void
     {
         if (!empty($xml->by_dao)) {
@@ -32,6 +45,11 @@ final class Authorization
         }
     }
 
+    /**
+     * Gets methods.
+     *
+     * @return array
+     */
     public function getMethods(): array
     {
         return $this->methods;

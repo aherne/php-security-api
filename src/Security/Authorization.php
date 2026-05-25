@@ -10,10 +10,21 @@ use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Security\Authorization\Result;
 use Lucinda\WebSecurity\Security\Exception as SecurityException;
 
+/**
+ * Encapsulates Authorization logic.
+ */
 final class Authorization
 {
     private Result|null $outcome = null;
 
+    /**
+     * Sets up object state.
+     *
+     * @param ConfigurationAuthorization $configuration
+     * @param Request $request
+     * @param int|string|null $userID
+     * @param ?\SimpleXMLElement $routes
+     */
     public function __construct(
         ConfigurationAuthorization $configuration,
         Request $request,
@@ -35,6 +46,13 @@ final class Authorization
         }
     }
 
+    /**
+     * Authenticate by DAO.
+     *
+     * @param ConfigurationAuthorizationByDAO $configuration
+     * @param Request $request
+     * @param int|string|null $userID
+     */
     private function authenticateByDAO(
         ConfigurationAuthorizationByDAO $configuration,
         Request $request,
@@ -45,6 +63,14 @@ final class Authorization
         return $authenticator->getResult();
     }
 
+    /**
+     * Authenticate by x m l.
+     *
+     * @param ConfigurationAuthorizationByXML $configuration
+     * @param Request $request
+     * @param int|string|null $userID
+     * @param ?\SimpleXMLElement $routes
+     */
     private function authenticateByXML(
         ConfigurationAuthorizationByXML $configuration,
         Request $request,
@@ -60,6 +86,11 @@ final class Authorization
         return $authenticator->getResult();
     }
 
+    /**
+     * Gets outcome.
+     *
+     * @return Result|null
+     */
     public function getOutcome(): Result|null
     {
         return $this->outcome;

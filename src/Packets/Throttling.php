@@ -13,6 +13,11 @@ final class Throttling extends Packet
     private MultifactorResultStatus|AuthenticationResultStatus $status;
     private ?int $timePenalty = null;
 
+    /**
+     * Sets up object state.
+     *
+     * @param MultifactorResultStatus|AuthenticationResultStatus $status
+     */
     public function __construct(MultifactorResultStatus|AuthenticationResultStatus $status)
     {
         $this->setStatus($status);

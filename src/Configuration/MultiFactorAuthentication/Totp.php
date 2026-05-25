@@ -4,6 +4,9 @@ namespace Lucinda\WebSecurity\Configuration\MultiFactorAuthentication;
 
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 
+/**
+ * Encapsulates Totp logic.
+ */
 final class Totp
 {
     public const DEFAULT_CODE_PARAMETER = "code";
@@ -17,6 +20,11 @@ final class Totp
     private int $digits;
     private int $window;
 
+    /**
+     * Sets up object state.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     public function __construct(\SimpleXMLElement $xml)
     {
         $this->setIssuer($xml);
@@ -26,6 +34,11 @@ final class Totp
         $this->setWindow($xml);
     }
 
+    /**
+     * Sets issuer.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setIssuer(\SimpleXMLElement $xml): void
     {
         if (empty($xml["issuer"])) {
@@ -34,21 +47,41 @@ final class Totp
         $this->issuer = (string) $xml["issuer"];
     }
 
+    /**
+     * Gets issuer.
+     *
+     * @return string
+     */
     public function getIssuer(): string
     {
         return $this->issuer;
     }
 
+    /**
+     * Sets code parameter.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setCodeParameter(\SimpleXMLElement $xml): void
     {
         $this->codeParameter = !empty($xml["code_param"])?(string) $xml["code_param"]:self::DEFAULT_CODE_PARAMETER;
     }
 
+    /**
+     * Gets code parameter.
+     *
+     * @return string
+     */
     public function getCodeParameter(): string
     {
         return $this->codeParameter;
     }
 
+    /**
+     * Sets period.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setPeriod(\SimpleXMLElement $xml): void
     {
         $this->period = !empty($xml["period"])?(int) $xml["period"]:self::DEFAULT_PERIOD;
@@ -57,11 +90,21 @@ final class Totp
         }
     }
 
+    /**
+     * Gets period.
+     *
+     * @return int
+     */
     public function getPeriod(): int
     {
         return $this->period;
     }
 
+    /**
+     * Sets digits.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setDigits(\SimpleXMLElement $xml): void
     {
         $this->digits = !empty($xml["digits"])?(int) $xml["digits"]:self::DEFAULT_DIGITS;
@@ -70,11 +113,21 @@ final class Totp
         }
     }
 
+    /**
+     * Gets digits.
+     *
+     * @return int
+     */
     public function getDigits(): int
     {
         return $this->digits;
     }
 
+    /**
+     * Sets window.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setWindow(\SimpleXMLElement $xml): void
     {
         $this->window = isset($xml["window"])?(int) $xml["window"]:self::DEFAULT_WINDOW;
@@ -83,6 +136,11 @@ final class Totp
         }
     }
 
+    /**
+     * Gets window.
+     *
+     * @return int
+     */
     public function getWindow(): int
     {
         return $this->window;

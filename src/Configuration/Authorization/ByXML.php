@@ -5,12 +5,20 @@ namespace Lucinda\WebSecurity\Configuration\Authorization;
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 use Lucinda\WebSecurity\DAO\UserRoles;
 
+/**
+ * Encapsulates ByXML logic.
+ */
 final class ByXML
 {
     private string $callbackLoggedIn;
     private string $callbackLoggedOut;
     private string $rolesDAO;
 
+    /**
+     * Sets up object state.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     public function __construct(\SimpleXMLElement $xml)
     {
         $this->setRolesDAO($xml);
@@ -18,6 +26,11 @@ final class ByXML
         $this->setCallbackLoggedOut($xml);
     }
 
+    /**
+     * Sets roles DAO.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setRolesDAO(\SimpleXMLElement $xml): void
     {
         $daoClass = (string) $xml["roles_dao"];
@@ -30,11 +43,21 @@ final class ByXML
         $this->rolesDAO = $daoClass;
     }
 
+    /**
+     * Gets roles DAO.
+     *
+     * @return string
+     */
     public function getRolesDAO(): string
     {
         return $this->rolesDAO;
     }
 
+    /**
+     * Sets callback logged in.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setCallbackLoggedIn(\SimpleXMLElement $xml): void
     {
         if (empty($xml["logged_in_callback"])) {
@@ -43,11 +66,21 @@ final class ByXML
         $this->callbackLoggedIn = (string) $xml["logged_in_callback"];
     }
 
+    /**
+     * Gets callback logged in.
+     *
+     * @return string
+     */
     public function getCallbackLoggedIn(): string
     {
         return $this->callbackLoggedIn;
     }
 
+    /**
+     * Sets callback logged out.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setCallbackLoggedOut(\SimpleXMLElement $xml): void
     {
         if (empty($xml["logged_out_callback"])) {
@@ -56,6 +89,11 @@ final class ByXML
         $this->callbackLoggedOut = (string) $xml["logged_out_callback"];
     }
 
+    /**
+     * Gets callback logged out.
+     *
+     * @return string
+     */
     public function getCallbackLoggedOut(): string
     {
         return $this->callbackLoggedOut;

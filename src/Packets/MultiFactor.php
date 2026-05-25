@@ -33,21 +33,41 @@ final class MultiFactor extends Packet
         return $this->status;
     }
 
+    /**
+     * Sets secret.
+     *
+     * @param string $secret
+     */
     public function setSecret(string $secret): void
     {
         $this->secret = $secret;
     }
 
+    /**
+     * Gets secret.
+     *
+     * @return ?string
+     */
     public function getSecret(): ?string
     {
         return $this->secret;
     }
 
+    /**
+     * Sets provisioning URI.
+     *
+     * @param string $provisioningURI
+     */
     public function setProvisioningURI(string $provisioningURI): void
     {
         $this->provisioningURI = $provisioningURI;
     }
 
+    /**
+     * Gets provisioning URI.
+     *
+     * @return ?string
+     */
     public function getProvisioningURI(): ?string
     {
         return $this->provisioningURI;

@@ -7,12 +7,20 @@ use Lucinda\WebSecurity\Configuration\Authentication\Form\Logout;
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 use Lucinda\WebSecurity\DAO\FormAuthentication;
 
+/**
+ * Encapsulates Form logic.
+ */
 final class Form
 {
     private string $dao;
     private Login $loginPolicy;
     private Logout $logoutPolicy;
 
+    /**
+     * Sets up object state.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     public function __construct(\SimpleXMLElement $xml)
     {
         $this->setDAO($xml);
@@ -20,6 +28,11 @@ final class Form
         $this->setLogoutPolicy($xml);
     }
 
+    /**
+     * Sets DAO.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setDAO(\SimpleXMLElement $xml): void
     {
         $daoClass = (string) $xml["dao"];
@@ -32,11 +45,21 @@ final class Form
         $this->dao = $daoClass;
     }
 
+    /**
+     * Gets DAO.
+     *
+     * @return string
+     */
     public function getDAO(): string
     {
         return $this->dao;
     }
 
+    /**
+     * Sets login policy.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setLoginPolicy(\SimpleXMLElement $xml): void
     {
         if (empty($xml->login)) {
@@ -45,11 +68,21 @@ final class Form
         $this->loginPolicy = new Login($xml->login);
     }
 
+    /**
+     * Gets login policy.
+     *
+     * @return Login
+     */
     public function getLoginPolicy(): Login
     {
         return $this->loginPolicy;
     }
 
+    /**
+     * Sets logout policy.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setLogoutPolicy(\SimpleXMLElement $xml): void
     {
         if (empty($xml->logout)) {
@@ -58,6 +91,11 @@ final class Form
         $this->logoutPolicy = new Logout($xml->logout);
     }
 
+    /**
+     * Gets logout policy.
+     *
+     * @return Logout
+     */
     public function getLogoutPolicy(): Logout
     {
         return $this->logoutPolicy;

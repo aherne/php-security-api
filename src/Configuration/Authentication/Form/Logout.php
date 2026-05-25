@@ -4,12 +4,20 @@ namespace Lucinda\WebSecurity\Configuration\Authentication\Form;
 
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 
+/**
+ * Encapsulates Logout logic.
+ */
 final class Logout
 {
     private string $pageSource;
     private string $targetSuccess;
     private string $targetFailure;
     
+    /**
+     * Sets up object state.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     public function __construct(\SimpleXMLElement $xml)
     {
         $this->setPageSource($xml);
@@ -17,6 +25,11 @@ final class Logout
         $this->setTargetFailure($xml);
     }
 
+    /**
+     * Sets page source.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setPageSource(\SimpleXMLElement $xml): void
     {
         if (empty($xml["page"])) {
@@ -25,11 +38,21 @@ final class Logout
         $this->pageSource = (string) $xml["page"];
     }
 
+    /**
+     * Gets page source.
+     *
+     * @return string
+     */
     public function getPageSource(): string
     {
         return $this->pageSource;
     }
 
+    /**
+     * Sets target success.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setTargetSuccess(\SimpleXMLElement $xml): void
     {
         if (empty($xml["target_success"])) {
@@ -38,11 +61,21 @@ final class Logout
         $this->targetSuccess = (string) $xml["target_success"];
     }
 
+    /**
+     * Gets target success.
+     *
+     * @return string
+     */
     public function getTargetSuccess(): string
     {
         return $this->targetSuccess;
     }
 
+    /**
+     * Sets target failure.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setTargetFailure(\SimpleXMLElement $xml): void
     {
         if (empty($xml["target_failure"])) {
@@ -51,6 +84,11 @@ final class Logout
         $this->targetFailure = (string) $xml["target_failure"];
     }
 
+    /**
+     * Gets target failure.
+     *
+     * @return string
+     */
     public function getTargetFailure(): string
     {
         return $this->targetFailure;

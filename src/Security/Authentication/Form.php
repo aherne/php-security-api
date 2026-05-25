@@ -13,10 +13,22 @@ use Lucinda\WebSecurity\Configuration\Authentication\Form\Login as LoginPolicy;
 use Lucinda\WebSecurity\Configuration\Authentication\Form\Logout as LogoutPolicy;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 
+/**
+ * Encapsulates Form logic.
+ */
 final class Form extends Generic
 {
     private FormAuthentication $dao;
 
+    /**
+     * Sets up object state.
+     *
+     * @param Configuration $configuration
+     * @param Request $request
+     * @param LoginThrottler $throttler
+     * @param CsrfToken $csrfTokenDetector
+     * @param int|string|null $userID
+     */
     public function __construct(
         Configuration $configuration,
         Request $request,
@@ -42,6 +54,14 @@ final class Form extends Generic
         }
     }
 
+    /**
+     * Processes login.
+     *
+     * @param LoginPolicy $configuration
+     * @param CsrfToken $csrfTokenDetector
+     * @param LoginThrottler $throttler
+     * @return SecurityPacket|ThrottlingPacket|null
+     */
     private function login(LoginPolicy $configuration, CsrfToken $csrfTokenDetector, LoginThrottler $throttler): SecurityPacket|ThrottlingPacket|null
     {
         if ($this->userID !== null) { // already logged in
@@ -88,6 +108,12 @@ final class Form extends Generic
         return null;
     }
 
+    /**
+     * Processes logout.
+     *
+     * @param LogoutPolicy $configuration
+     * @return SecurityPacket
+     */
     private function logout(LogoutPolicy $configuration): SecurityPacket
     {
         if ($this->userID === null) { // already logged out

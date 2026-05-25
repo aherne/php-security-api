@@ -5,10 +5,18 @@ namespace Lucinda\WebSecurity\Configuration;
 use Lucinda\WebSecurity\Configuration\Authentication\Form;
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2;
 
+/**
+ * Encapsulates Authentication logic.
+ */
 final class Authentication
 {
     private array $methods = [];
 
+    /**
+     * Sets up object state.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     public function __construct(\SimpleXMLElement $xml)
     {
         $subXML = $xml->authentication;
@@ -19,6 +27,11 @@ final class Authentication
         $this->setMethods($subXML);
     }
 
+    /**
+     * Sets methods.
+     *
+     * @param \SimpleXMLElement $xml
+     */
     private function setMethods(\SimpleXMLElement $xml): void
     {
         if (!empty($xml->form)) {
@@ -32,6 +45,11 @@ final class Authentication
         }
     }
 
+    /**
+     * Gets methods.
+     *
+     * @return array
+     */
     public function getMethods(): array
     {
         return $this->methods;
