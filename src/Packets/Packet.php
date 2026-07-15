@@ -33,9 +33,9 @@ abstract class Packet
     /**
      * Sets path to redirect to.
      *
-     * @param string $callback
+     * @param ?string $callback
      */
-    public function setCallback(string $callback): void
+    public function setCallback(?string $callback): void
     {
         $this->callback = $callback;
     }

@@ -20,10 +20,10 @@ final class Persistence
      */
     public function __construct(\SimpleXMLElement $xml)
     {
-        $subXML = $xml->persistence;
-        if (empty($subXML)) {
+        if (!isset($xml->persistence)) {
             throw new Exception("Tag 'persistence', child of 'security' is required!");
         }
+        $subXML = $xml->persistence;
 
         $this->setDrivers($subXML);
     }
@@ -35,15 +35,15 @@ final class Persistence
      */
     private function setDrivers(\SimpleXMLElement $xml): void
     {
-        if (!empty($xml->session)) {
+        if (isset($xml->session)) {
             $this->drivers[] = new SessionPersistence($xml->session);
         }
 
-        if (!empty($xml->remember_me)) {
+        if (isset($xml->remember_me)) {
             $this->drivers[] = new RememberMePersistence($xml->remember_me);
         }
 
-        if (!empty($xml->synchronizer_token)) {
+        if (isset($xml->synchronizer_token)) {
             $this->drivers[] = new SynchronizedTokenPersistence($xml->synchronizer_token);
         }
 

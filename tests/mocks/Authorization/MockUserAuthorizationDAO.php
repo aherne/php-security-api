@@ -2,12 +2,12 @@
 
 namespace Test\Lucinda\WebSecurity\mocks\Authorization;
 
-use Lucinda\WebSecurity\Authorization\DAO\PageAuthorizationDAO;
-use Lucinda\WebSecurity\Authorization\DAO\UserAuthorizationDAO;
+use Lucinda\WebSecurity\DAO\PageAuthorization;
+use Lucinda\WebSecurity\DAO\UserAuthorization;
 
-class MockUserAuthorizationDAO extends UserAuthorizationDAO
+class MockUserAuthorizationDAO extends UserAuthorization
 {
-    public function isAllowed(PageAuthorizationDAO $page, string $httpRequestMethod): bool
+    public function isAllowed(PageAuthorization $page, string $httpRequestMethod): bool
     {
         if ($page->isPublic()) {
             return true;

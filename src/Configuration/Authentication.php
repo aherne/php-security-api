@@ -19,10 +19,10 @@ final class Authentication
      */
     public function __construct(\SimpleXMLElement $xml)
     {
-        $subXML = $xml->authentication;
-        if (empty($subXML)) {
+        if (!isset($xml->authentication)) {
             throw new Exception("Tag 'authentication', child of 'security' is required!");
         }
+        $subXML = $xml->authentication;
 
         $this->setMethods($subXML);
     }
@@ -34,10 +34,10 @@ final class Authentication
      */
     private function setMethods(\SimpleXMLElement $xml): void
     {
-        if (!empty($xml->form)) {
+        if (isset($xml->form)) {
             $this->methods[] = new Form($xml->form);
         }
-        if (!empty($xml->oauth2)) {
+        if (isset($xml->oauth2)) {
             $this->methods[] = new Oauth2($xml->oauth2);
         }
         if (empty($this->methods)) {

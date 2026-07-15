@@ -2,9 +2,9 @@
 
 namespace Test\Lucinda\WebSecurity\mocks\Authorization;
 
-use Lucinda\WebSecurity\Authorization\DAO\PageAuthorizationDAO;
+use Lucinda\WebSecurity\DAO\PageAuthorization;
 
-class MockPageAuthorizationDAO extends PageAuthorizationDAO
+class MockPageAuthorizationDAO extends PageAuthorization
 {
     protected function detectID(string $pageURL): ?int
     {

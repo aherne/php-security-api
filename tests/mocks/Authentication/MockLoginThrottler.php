@@ -2,33 +2,20 @@
 
 namespace Test\Lucinda\WebSecurity\mocks\Authentication;
 
-use Lucinda\WebSecurity\Authentication\Form\LoginThrottler;
+use Lucinda\WebSecurity\DAO\LoginThrottler;
 
-class MockLoginThrottler extends LoginThrottler
+class MockLoginThrottler implements LoginThrottler
 {
-    private $attempts = [];
+    private array $attempts = [];
 
-    protected function setCurrentStatus(): void
+    public function penalize(string $userName, string $ipAddress): void
     {
-        $this->attempts[$this->userName] = 0;
+        $key = $userName."@".$ipAddress;
+        $this->attempts[$key] = ($this->attempts[$key] ?? 0) + 1;
     }
 
-    public function getTimePenalty(): int
+    public function isStopped(string $userName, string $ipAddress): bool
     {
-        return (isset($this->attempts[$this->userName]) ? pow($this->attempts[$this->userName], 2) : 0);
+        return ($this->attempts[$userName."@".$ipAddress] ?? 0) >= 3;
     }
-
-    public function setFailure(): void
-    {
-        if (isset($this->attempts[$this->userName])) {
-            $this->attempts[$this->userName]++;
-        } else {
-            $this->attempts[$this->userName]=1;
-        }
-    }
-
-    public function setSuccess(): void
-    {
-        $this->attempts[$this->userName] = 0;
-    }
-};
+}

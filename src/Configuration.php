@@ -35,7 +35,7 @@ final class Configuration
         $this->csrf = new Csrf($mainXML);
         $this->authentication = new Authentication($mainXML);
         $this->authorization = new Authorization($mainXML);
-        if (!empty($mainXML->multi_factor_authentication)) {
+        if (isset($mainXML->multi_factor_authentication)) {
             $this->multiFactorAuthentication = new MultiFactorAuthentication($mainXML);
         }
     }

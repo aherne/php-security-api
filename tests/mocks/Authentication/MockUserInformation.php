@@ -2,7 +2,7 @@
 
 namespace Test\Lucinda\WebSecurity\mocks\Authentication;
 
-use Lucinda\WebSecurity\Authentication\OAuth2\UserInformation;
+use Lucinda\WebSecurity\DAO\Oauth2\UserInformation;
 
 class MockUserInformation implements UserInformation
 {

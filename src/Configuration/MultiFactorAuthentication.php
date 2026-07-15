@@ -25,10 +25,10 @@ final class MultiFactorAuthentication
      */
     public function __construct(\SimpleXMLElement $xml)
     {
-        $subXML = $xml->multi_factor_authentication;
-        if (empty($subXML)) {
+        if (!isset($xml->multi_factor_authentication)) {
             throw new Exception("Tag 'multi_factor_authentication', child of 'security' is required!");
         }
+        $subXML = $xml->multi_factor_authentication;
 
         $this->setDAO($subXML);
         $this->setChallengeRoute($subXML);
@@ -188,7 +188,7 @@ final class MultiFactorAuthentication
      */
     private function setMethod(\SimpleXMLElement $xml): void
     {
-        if (empty($xml->totp)) {
+        if (!isset($xml->totp)) {
             throw new Exception("Child tag 'totp' must be set for tag 'multi_factor_authentication'");
         }
         $this->method = new Totp($xml->totp);

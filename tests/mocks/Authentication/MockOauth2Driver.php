@@ -2,10 +2,10 @@
 
 namespace Test\Lucinda\WebSecurity\mocks\Authentication;
 
-use Lucinda\WebSecurity\Authentication\OAuth2\Driver;
-use Lucinda\WebSecurity\Authentication\OAuth2\UserInformation;
+use Lucinda\WebSecurity\Oauth2Service;
+use Lucinda\WebSecurity\DAO\Oauth2\UserInformation;
 
-class MockOauth2Driver implements Driver
+class MockOauth2Driver implements Oauth2Service
 {
     private $vendorName;
 
@@ -15,17 +15,12 @@ class MockOauth2Driver implements Driver
     }
 
 
-    public function getUserInformation(string $accessToken): UserInformation
+    public function getUserInfo(string $accessToken): UserInformation
     {
         return new MockUserInformation(["id"=>123456, "name"=>"John Doe", "email"=>"john@doe.com"]);
     }
 
-    public function getCallbackUrl(): string
-    {
-        return "login/facebook";
-    }
-
-    public function getAuthorizationCode(string $scope): string
+    public function getAuthorizationCodeEndpoint(): string
     {
         return "qwerty";
     }
@@ -35,8 +30,4 @@ class MockOauth2Driver implements Driver
         return "asdfgh";
     }
 
-    public function getVendorName(): string
-    {
-        return $this->vendorName;
-    }
 }

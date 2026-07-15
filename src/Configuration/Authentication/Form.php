@@ -62,7 +62,7 @@ final class Form
      */
     private function setLoginPolicy(\SimpleXMLElement $xml): void
     {
-        if (empty($xml->login)) {
+        if (!isset($xml->login)) {
             throw new ConfigurationException("Child tag 'login' must be set for tag 'form'");
         }
         $this->loginPolicy = new Login($xml->login);
@@ -85,7 +85,7 @@ final class Form
      */
     private function setLogoutPolicy(\SimpleXMLElement $xml): void
     {
-        if (empty($xml->logout)) {
+        if (!isset($xml->logout)) {
             throw new ConfigurationException("Child tag 'logout' must be set for tag 'form'");
         }
         $this->logoutPolicy = new Logout($xml->logout);

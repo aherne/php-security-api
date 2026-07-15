@@ -18,10 +18,10 @@ final class Csrf
      */
     public function __construct(\SimpleXMLElement $xml)
     {
-        $subXML = $xml->csrf;
-        if (empty($subXML)) {
+        if (!isset($xml->csrf)) {
             throw new Exception("Tag 'csrf', child of 'security' is required!");
         }
+        $subXML = $xml->csrf;
 
         $this->setSecret($subXML);
         $this->setExpirationTime($subXML);

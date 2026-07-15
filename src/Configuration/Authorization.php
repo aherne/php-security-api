@@ -19,10 +19,10 @@ final class Authorization
      */
     public function __construct(\SimpleXMLElement $xml)
     {
-        $subXML = $xml->authorization;
-        if (empty($subXML)) {
+        if (!isset($xml->authorization)) {
             throw new Exception("Tag 'authorization', child of 'security' is required!");
         }
+        $subXML = $xml->authorization;
 
         $this->setMethods($subXML);
     }
@@ -34,10 +34,10 @@ final class Authorization
      */
     private function setMethods(\SimpleXMLElement $xml): void
     {
-        if (!empty($xml->by_dao)) {
+        if (isset($xml->by_dao)) {
             $this->methods[] = new ByDAO($xml->by_dao);
         }
-        if (!empty($xml->by_route)) {
+        if (isset($xml->by_route)) {
             $this->methods[] = new ByXML($xml->by_route);
         }
         if (empty($this->methods)) {

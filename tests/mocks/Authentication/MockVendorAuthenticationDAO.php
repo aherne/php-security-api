@@ -2,11 +2,11 @@
 
 namespace Test\Lucinda\WebSecurity\mocks\Authentication;
 
-use Lucinda\WebSecurity\Authentication\OAuth2\UserInformation;
-use Lucinda\WebSecurity\Authentication\OAuth2\VendorAuthenticationDAO;
-use Lucinda\WebSecurity\Authorization\UserRoles;
+use Lucinda\WebSecurity\DAO\Oauth2\UserInformation;
+use Lucinda\WebSecurity\DAO\Oauth2Authentication;
+use Lucinda\WebSecurity\DAO\UserRoles;
 
-class MockVendorAuthenticationDAO implements VendorAuthenticationDAO, UserRoles
+class MockVendorAuthenticationDAO implements Oauth2Authentication, UserRoles
 {
     private $accounts = [];
 
@@ -22,16 +22,17 @@ class MockVendorAuthenticationDAO implements VendorAuthenticationDAO, UserRoles
         return 1;
     }
 
-    public function logout($userID): void
+    public function logout(int|string $userID): bool
     {
         if (isset($this->accounts[$userID])) {
             foreach ($this->accounts[$userID] as $vendorName=>$info) {
                 $this->accounts[$userID][$vendorName]["access_token"] = "";
             }
         }
+        return true;
     }
 
-    public function getRoles($userID): array
+    public function getRoles(int|string|null $userID): array
     {
         if ($userID) {
             return ["USER"];
