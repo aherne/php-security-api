@@ -6,6 +6,7 @@ use Lucinda\WebSecurity\Configuration\Authentication\Form\Login;
 use Lucinda\WebSecurity\Configuration\Authentication\Form\Logout;
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 use Lucinda\WebSecurity\DAO\FormAuthentication;
+use Lucinda\WebSecurity\DAO\Throttler\FormLogin as FormLoginThrottler;
 
 /**
  * Encapsulates Form logic.
@@ -13,6 +14,7 @@ use Lucinda\WebSecurity\DAO\FormAuthentication;
 final class Form
 {
     private string $dao;
+    private string $throttler;
     private Login $loginPolicy;
     private Logout $logoutPolicy;
 
@@ -24,6 +26,7 @@ final class Form
     public function __construct(\SimpleXMLElement $xml)
     {
         $this->setDAO($xml);
+        $this->setThrottler($xml);
         $this->setLoginPolicy($xml);
         $this->setLogoutPolicy($xml);
     }
@@ -53,6 +56,33 @@ final class Form
     public function getDAO(): string
     {
         return $this->dao;
+    }
+
+    /**
+     * Sets throttler DAO.
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    private function setThrottler(\SimpleXMLElement $xml): void
+    {
+        $daoClass = (string) $xml["throttler"];
+        if (empty($daoClass)) {
+            throw new ConfigurationException("Attribute 'throttler' must be set for tag 'form'");
+        }
+        if (!is_subclass_of($daoClass, FormLoginThrottler::class)) {
+            throw new ConfigurationException("Throttler DAO must be instance of ".FormLoginThrottler::class);
+        }
+        $this->throttler = $daoClass;
+    }
+
+    /**
+     * Gets throttler DAO.
+     *
+     * @return string
+     */
+    public function getThrottler(): string
+    {
+        return $this->throttler;
     }
 
     /**

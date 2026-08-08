@@ -3,7 +3,6 @@
 namespace Lucinda\WebSecurity;
 
 use Lucinda\WebSecurity\Configuration as SecurityConfiguration;
-use Lucinda\WebSecurity\DAO\LoginThrottler;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Detectors\PersistenceDrivers as PersistenceDriversDetector;
 use Lucinda\WebSecurity\Detectors\RememberMeTicked;
@@ -34,7 +33,6 @@ final class Wrapper
     private string|int|null $userID = null;
     private Request $request;
     private SecurityConfiguration $configuration;
-    private ?LoginThrottler $loginThrottler;
     /**
      * @var array<string,Oauth2Service>
      */
@@ -49,20 +47,17 @@ final class Wrapper
      * @param  \SimpleXMLElement $xml
      * @param  Request           $request
      * @param  Oauth2Service[]   $oauth2Drivers
-     * @param  ?LoginThrottler   $loginThrottler
      * @param ?\SimpleXMLElement $routes
      */
     public function __construct(
         \SimpleXMLElement $xml,
         Request $request,
         array $oauth2Drivers = [],
-        ?LoginThrottler $loginThrottler = null,
         ?\SimpleXMLElement $routes = null
         )
     {
         $this->request = $request;
         $this->configuration = new SecurityConfiguration($xml);
-        $this->loginThrottler = $loginThrottler;
         $this->oauth2Drivers = $oauth2Drivers;
         $this->routes = $routes;
 
@@ -109,7 +104,6 @@ final class Wrapper
             $this->configuration->getAuthentication(),
             $this->request,
             $this->userID,
-            $this->loginThrottler,
             $this->csrfToken,
             $this->oauth2Drivers
             );
@@ -126,10 +120,7 @@ final class Wrapper
                 $outcome->setStatus(AuthenticationStatus::LOGIN_OK);
                 $this->login();
             } else {
-                $validator = new MultiFactorAuthentication($multiFactorConfiguration, $this->request, $this->userID);
-                if ($mfaOutcome = $validator->getOutcome()) {
-                    return $mfaOutcome;
-                }
+                return null; // let next MFA stage handle it
             }
         } elseif ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::LOGIN_OK) {
             $this->userID = $outcome->getUserID();

@@ -2,7 +2,7 @@
 
 namespace Lucinda\WebSecurity\Security\Authentication;
 
-use Lucinda\WebSecurity\DAO\LoginThrottler;
+use Lucinda\WebSecurity\DAO\Throttler\FormLogin as FormLoginThrottler;
 use Lucinda\WebSecurity\DAO\FormAuthentication;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus;
 use Lucinda\WebSecurity\Configuration\Authentication\Form as Configuration;
@@ -25,14 +25,12 @@ final class Form extends Generic
      *
      * @param Configuration $configuration
      * @param Request $request
-     * @param LoginThrottler $throttler
      * @param CsrfToken $csrfTokenDetector
      * @param int|string|null $userID
      */
     public function __construct(
         Configuration $configuration,
         Request $request,
-        LoginThrottler $throttler,
         CsrfToken $csrfTokenDetector,
         int|string|null $userID
         )
@@ -43,14 +41,22 @@ final class Form extends Generic
         $daoClass = $configuration->getDAO();
         $this->dao = new $daoClass();
 
+        $throttlerClass = $configuration->getThrottler();
+
         $loginPolicy = $configuration->getLoginPolicy();
         if ($request->getUri() === $loginPolicy->getPageSource()) {
-            $this->outcome = $this->login($loginPolicy, $csrfTokenDetector, $throttler);
+            $this->outcome = $this->login(
+                $loginPolicy,
+                $csrfTokenDetector,
+                new $throttlerClass()
+                );
         }
 
         $logoutPolicy = $configuration->getLogoutPolicy();
         if ($request->getUri() === $logoutPolicy->getPageSource()) {
-            $this->outcome = $this->logout($logoutPolicy);
+            $this->outcome = $this->logout(
+                $logoutPolicy
+                );
         }
     }
 
@@ -59,10 +65,10 @@ final class Form extends Generic
      *
      * @param LoginPolicy $configuration
      * @param CsrfToken $csrfTokenDetector
-     * @param LoginThrottler $throttler
+     * @param FormLoginThrottler $throttler
      * @return SecurityPacket|ThrottlingPacket|null
      */
-    private function login(LoginPolicy $configuration, CsrfToken $csrfTokenDetector, LoginThrottler $throttler): SecurityPacket|ThrottlingPacket|null
+    private function login(LoginPolicy $configuration, CsrfToken $csrfTokenDetector, FormLoginThrottler $throttler): SecurityPacket|ThrottlingPacket|null
     {
         if ($this->userID !== null) { // already logged in
             return new SecurityPacket(
@@ -85,7 +91,7 @@ final class Form extends Generic
             // check csrf
             if (
                 !$csrfTokenDetector->isValid($parameters[$csrfParameter], 0) || 
-                $throttler->isStopped($parameters[$usernameParameter], $this->request->getIpAddress())
+                $throttler->isThrottled($parameters[$usernameParameter], $this->request->getIpAddress())
                 ) { // penalize for attempting to bypass csrf or issue wrong one again
                 $throttler->penalize($parameters[$usernameParameter], $this->request->getIpAddress());
                 $packet = new ThrottlingPacket(ResultStatus::LOGIN_THROTTLED);

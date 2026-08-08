@@ -9,7 +9,6 @@ use Lucinda\WebSecurity\Security\Authentication\Oauth2 as AuthenticatorOauth2;
 use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
 use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
 use Lucinda\WebSecurity\Request;
-use Lucinda\WebSecurity\DAO\LoginThrottler;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Security\Exception as SecurityException;
 
@@ -26,7 +25,6 @@ final class Authentication
      * @param ConfigurationAuthentication $configuration
      * @param Request $request
      * @param int|string|null $userID
-     * @param ?LoginThrottler $loginThrottler
      * @param ?CsrfToken $csrfTokenDetector
      * @param array $oauth2Drivers
      */
@@ -34,7 +32,6 @@ final class Authentication
         ConfigurationAuthentication $configuration,
         Request $request,
         int|string|null $userID,
-        ?LoginThrottler $loginThrottler = null,
         ?CsrfToken $csrfTokenDetector = null,
         array $oauth2Drivers = []
         )
@@ -46,7 +43,7 @@ final class Authentication
             }
 
             if ($subConfiguration instanceof ConfigurationAuthenticationForm) {
-                $this->outcome = $this->authenticateByForm($subConfiguration, $request, $userID, $loginThrottler, $csrfTokenDetector);
+                $this->outcome = $this->authenticateByForm($subConfiguration, $request, $userID, $csrfTokenDetector);
             } else {
                 $this->outcome = $this->authenticateByOauth2($subConfiguration, $request, $userID, $oauth2Drivers);
             }
@@ -59,22 +56,20 @@ final class Authentication
      * @param ConfigurationAuthenticationForm $configuration
      * @param Request $request
      * @param int|string|null $userID
-     * @param ?LoginThrottler $loginThrottler
      * @param ?CsrfToken $csrfTokenDetector
      */
     private function authenticateByForm(
         ConfigurationAuthenticationForm $configuration,
         Request $request,
         int|string|null $userID,
-        ?LoginThrottler $loginThrottler = null,
         ?CsrfToken $csrfTokenDetector = null,
         )
     {
-        if ($loginThrottler === null || $csrfTokenDetector === null) {
-            throw new SecurityException("Login throttler and csrf token detector are mandatory for form login!");
+        if ($csrfTokenDetector === null) {
+            throw new SecurityException("Csrf token detector is mandatory for form login!");
         }    
 
-        $authenticator = new AuthenticatorForm($configuration, $request, $loginThrottler, $csrfTokenDetector, $userID);
+        $authenticator = new AuthenticatorForm($configuration, $request, $csrfTokenDetector, $userID);
         return $authenticator->getOutcome();
     }
 

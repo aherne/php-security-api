@@ -27,4 +27,9 @@ class FormTest
     {
         return (new Objects($this->subject()->getLogoutPolicy()))->assertInstanceOf(Form\Logout::class);
     }
+    public function getThrottler()
+    {
+    }
+        
+
 }

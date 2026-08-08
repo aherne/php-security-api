@@ -4,6 +4,7 @@ namespace Lucinda\WebSecurity\Configuration;
 
 use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication\Totp;
 use Lucinda\WebSecurity\DAO\MultiFactorAuthentication as MultiFactorAuthenticationDAO;
+use Lucinda\WebSecurity\DAO\Throttler\MultiFactorAuthentication as MFALoginThrottler;
 
 /**
  * Encapsulates MultiFactorAuthentication logic.
@@ -11,6 +12,7 @@ use Lucinda\WebSecurity\DAO\MultiFactorAuthentication as MultiFactorAuthenticati
 final class MultiFactorAuthentication
 {
     private string $dao;
+    private string $throttler;
     private string $challengeRoute;
     private string $setupRoute;
     private string $successRoute;
@@ -31,6 +33,7 @@ final class MultiFactorAuthentication
         $subXML = $xml->multi_factor_authentication;
 
         $this->setDAO($subXML);
+        $this->setThrottler($subXML);
         $this->setChallengeRoute($subXML);
         $this->setSetupRoute($subXML);
         $this->setSuccessRoute($subXML);
@@ -64,6 +67,33 @@ final class MultiFactorAuthentication
     public function getDAO(): string
     {
         return $this->dao;
+    }
+
+    /**
+     * Sets throttler DAO.
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    private function setThrottler(\SimpleXMLElement $xml): void
+    {
+        $daoClass = (string) $xml["throttler"];
+        if (empty($daoClass)) {
+            throw new Exception("Attribute 'throttler' must be set for tag 'multi_factor_authentication'");
+        }
+        if (!is_subclass_of($daoClass, MFALoginThrottler::class)) {
+            throw new Exception("Throttler DAO must be instance of ".MFALoginThrottler::class);
+        }
+        $this->throttler = $daoClass;
+    }
+
+    /**
+     * Gets throttler DAO.
+     *
+     * @return string
+     */
+    public function getThrottler(): string
+    {
+        return $this->throttler;
     }
 
     /**

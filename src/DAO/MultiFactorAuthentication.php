@@ -55,17 +55,4 @@ interface MultiFactorAuthentication
      * @param int|string $userID
      */
     public function clearSetupSecret(int|string $userID): void;
-    /**
-     * Records a failed multi-factor attempt.
-     *
-     * @param int|string $userID
-     */
-    public function penalize(int|string $userID): void;
-    /**
-     * Checks whether multi-factor authentication is throttled.
-     *
-     * @param int|string $userID
-     * @return bool
-     */
-    public function isThrottled(int|string $userID): bool;
 }

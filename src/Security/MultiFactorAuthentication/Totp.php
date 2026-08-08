@@ -5,6 +5,7 @@ namespace Lucinda\WebSecurity\Security\MultiFactorAuthentication;
 use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication as Configuration;
 use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication\Totp as TotpConfiguration;
 use Lucinda\WebSecurity\DAO\MultiFactorAuthentication as MultiFactorAuthenticationDAO;
+use Lucinda\WebSecurity\DAO\Throttler\MultiFactorAuthentication as MultiFactorAuthenticationThrottler;
 use Lucinda\WebSecurity\Packets\MultiFactor as MultiFactorPacket;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Security\MultiFactorAuthentication\Totp\GoogleAuthenticator;
@@ -17,6 +18,7 @@ final class Totp extends Generic
     private Configuration $configuration;
     private TotpConfiguration $method;
     private MultiFactorAuthenticationDAO $dao;
+    private MultiFactorAuthenticationThrottler $throttler;
     private GoogleAuthenticator $googleAuthenticator;
 
     /**
@@ -36,6 +38,10 @@ final class Totp extends Generic
 
         $daoClass = $configuration->getDAO();
         $this->dao = new $daoClass();
+
+        $throttlerClass = $configuration->getThrottler();
+        $this->throttler = new $throttlerClass();
+
         $this->outcome = $this->execute();
     }
 
@@ -75,7 +81,7 @@ final class Totp extends Generic
             return $this->compose(ResultStatus::NOT_REQUIRED, $this->configuration->getSuccessRoute());
         }
 
-        if ($this->dao->isThrottled($this->userID)) {
+        if ($this->throttler->isThrottled($this->userID)) {
             return $this->compose(ResultStatus::THROTTLED, $this->configuration->getThrottledRoute());
         }
 
@@ -118,7 +124,7 @@ final class Totp extends Generic
             return $this->compose(ResultStatus::SUCCEEDED, $this->configuration->getSuccessRoute());
         }
 
-        $this->dao->penalize($this->userID);
+        $this->throttler->penalize($this->userID);
         return $this->compose(ResultStatus::FAILED, $this->configuration->getFailureRoute());
     }
 
@@ -143,7 +149,7 @@ final class Totp extends Generic
             return $this->compose(ResultStatus::SUCCEEDED, $this->configuration->getSuccessRoute());
         }
 
-        $this->dao->penalize($this->userID);
+        $this->throttler->penalize($this->userID);
         return $this->compose(ResultStatus::FAILED, $this->configuration->getFailureRoute());
     }
 

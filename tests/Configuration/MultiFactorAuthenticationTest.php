@@ -47,5 +47,9 @@ class MultiFactorAuthenticationTest
     {
         return (new Objects($this->subject()->getMethod()))->assertInstanceOf(MultiFactorAuthentication\Totp::class);
     }
-}
+    public function getThrottler()
+    {
+    }
+        
 
+}
