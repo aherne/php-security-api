@@ -12,6 +12,7 @@ final class MultiFactor extends Packet
     private MultifactorResultStatus|null $status = null;
     private ?string $secret = null;
     private ?string $provisioningURI = null;
+    private ?int $validUntil = null;
 
     /**
      * Sets redirection reason.
@@ -71,5 +72,15 @@ final class MultiFactor extends Packet
     public function getProvisioningURI(): ?string
     {
         return $this->provisioningURI;
+    }
+
+    public function setValidUntil(int $validUntil): void
+    {
+        $this->validUntil = $validUntil;
+    }
+
+    public function getValidUntil(): ?int
+    {
+        return $this->validUntil;
     }
 }

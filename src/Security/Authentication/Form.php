@@ -102,7 +102,7 @@ final class Form extends Generic
             // attempt login
             $outcome = $this->dao->login($parameters[$usernameParameter], $parameters[$passwordParameter]);
             if ($outcome !== null) {
-                $packet = new SecurityPacket(ResultStatus::PASSWORD_VERIFIED, $this->getCallback($configuration->getTargetSuccess()));
+                $packet = new SecurityPacket(ResultStatus::IDENTITY_VERIFIED, $this->getCallback($configuration->getTargetSuccess()));
                 $packet->setUserID($outcome);
                 return $packet;
             } else { // penalize for failing login

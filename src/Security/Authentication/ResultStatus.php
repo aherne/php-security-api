@@ -13,7 +13,7 @@ namespace Lucinda\WebSecurity\Security\Authentication;
  */
 enum ResultStatus: int
 {
-    case PASSWORD_VERIFIED = 7;
+    case IDENTITY_VERIFIED = 7;
     case LOGIN_OK = 1;
     case LOGIN_FAILED = 2;
     case LOGIN_THROTTLED = 6;

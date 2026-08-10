@@ -2,15 +2,16 @@
 
 namespace Lucinda\WebSecurity\Detectors;
 
+use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver;
 use Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\PersistenceDriver as TokenPersistenceDriver;
 
 /**
  * Detects logged in unique user identifier from persistence drivers.
  */
-final class UserId
+final class UserInfo
 {
-    private int|string|null $userID;
+    private ?LoggedInUserInfo $userInfo;
 
     /**
      * Sets logged in user id based on persistence drivers
@@ -20,34 +21,34 @@ final class UserId
      */
     public function __construct(array $persistenceDrivers, string $accessToken="")
     {
-        $this->setUserID($persistenceDrivers, $accessToken);
+        $this->setUserInfo($persistenceDrivers, $accessToken);
     }
 
     /**
-     * Saves detected unique user identifier from persistence drivers.
+     * Saves detected logged in user info from persistence drivers.
      *
      * @param PersistenceDriver[] $persistenceDrivers List of persistence drivers to detect from.
      */
-    private function setUserID(array $persistenceDrivers, string $accessToken): void
+    private function setUserInfo(array $persistenceDrivers, string $accessToken): void
     {
         foreach ($persistenceDrivers as $persistenceDriver) {
             if ($accessToken && $persistenceDriver instanceof TokenPersistenceDriver) {
                 $persistenceDriver->setAccessToken($accessToken);
             }
-            $this->userID = $persistenceDriver->load();
-            if ($this->userID) {
-                break;
+            $this->userInfo = $persistenceDriver->load();
+            if ($this->userInfo !== null) {
+                return; // already found (no point moving forward)
             }
         }
     }
 
     /**
-     * Gets detected unique user identifier
+     * Gets detected logged in user info
      *
-     * @return int|string|null
+     * @return ?LoggedInUserInfo
      */
-    public function getUserID(): int|string|null
+    public function getUserInfo(): ?LoggedInUserInfo
     {
-        return $this->userID;
+        return $this->userInfo;
     }
 }

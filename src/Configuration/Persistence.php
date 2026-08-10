@@ -39,14 +39,14 @@ final class Persistence
             $this->drivers[] = new SessionPersistence($xml->session);
         }
 
-        if (isset($xml->remember_me)) {
-            $this->drivers[] = new RememberMePersistence($xml->remember_me);
-        }
-
         if (isset($xml->synchronizer_token)) {
             $this->drivers[] = new SynchronizedTokenPersistence($xml->synchronizer_token);
         }
 
+        // remember me can be enabled only if session/synchronizer_token already activated
+        if (isset($xml->remember_me) && (isset($xml->session) || isset($xml->synchronizer_token))) {
+            $this->drivers[] = new RememberMePersistence($xml->remember_me);
+        }
         
         if (empty($this->drivers)) {
             throw new Exception("Tag 'persistence' must have at least one working subtag!");

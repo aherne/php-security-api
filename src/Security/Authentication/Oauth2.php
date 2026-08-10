@@ -86,7 +86,7 @@ final class Oauth2 extends Generic
             $userInformation = $service->getUserInfo($accessToken);
             $outcome = $this->dao->login($userInformation, $vendor, $accessToken);
             if ($outcome !== null) {
-                $packet = new SecurityPacket(ResultStatus::LOGIN_OK, $this->getCallback($configuration->getTargetLoginSuccess()));
+                $packet = new SecurityPacket(ResultStatus::IDENTITY_VERIFIED, $this->getCallback($configuration->getTargetLoginSuccess()));
                 $packet->setUserID($outcome);
                 return $packet;
             } else {

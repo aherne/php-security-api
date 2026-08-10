@@ -3,6 +3,7 @@
 namespace Lucinda\WebSecurity\PersistenceDrivers\Session;
 
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
+use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 
 /**
  * Encapsulates a driver that persists unique user identifier into sessions.
@@ -33,12 +34,12 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     /**
      * Saves user's unique identifier into driver (eg: on login).
      *
-     * @param int|string $userID Unique user identifier (usually an int)
+     * @param LoggedInUserInfo $authentication Encapsulated persistent authentication
      */
-    public function save(int|string $userID): void
+    public function save(LoggedInUserInfo $authentication): void
     {
         session_regenerate_id(true); // OWASP recomments renewing session ID on privilege changes
-        $_SESSION[$this->parameterName] = $userID;
+        $_SESSION[$this->parameterName] = serialize($authentication);
         $_SESSION["ip"] = $this->current_ip;
         $_SESSION["time"] = time()+$this->securityOptions->getExpirationTime();
     }
@@ -46,10 +47,10 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     /**
      * Loads logged in user's unique identifier from driver.
      *
-     * @return int|string|null Unique user identifier (usually an int) or NULL if none exists.
+     * @return ?LoggedInUserInfo Unique user identifier (usually an int) or NULL if none exists.
      * @throws HijackException
      */
-    public function load(): int|string|null
+    public function load(): ?LoggedInUserInfo
     {
         // start session, using security options if requested
         if (session_id() == "") {
@@ -91,7 +92,7 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
         // update last time
         $_SESSION["time"] = time()+$this->securityOptions->getExpirationTime();
 
-        return $_SESSION[$this->parameterName];
+        return unserialize($_SESSION[$this->parameterName]);
     }
 
     /**

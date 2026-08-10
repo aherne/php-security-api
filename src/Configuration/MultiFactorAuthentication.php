@@ -13,6 +13,7 @@ final class MultiFactorAuthentication
 {
     private string $dao;
     private string $throttler;
+    private int $expiration;
     private string $challengeRoute;
     private string $setupRoute;
     private string $successRoute;
@@ -34,6 +35,7 @@ final class MultiFactorAuthentication
 
         $this->setDAO($subXML);
         $this->setThrottler($subXML);
+        $this->setExpiration($subXML);
         $this->setChallengeRoute($subXML);
         $this->setSetupRoute($subXML);
         $this->setSuccessRoute($subXML);
@@ -94,6 +96,33 @@ final class MultiFactorAuthentication
     public function getThrottler(): string
     {
         return $this->throttler;
+    }
+
+    /**
+     * Sets time (in seconds) for which MFA will be considered fresh
+     * 
+     * @param \SimpleXMLElement $xml
+     */
+    private function setExpiration(\SimpleXMLElement $xml): void
+    {
+        if (empty($xml["expiration"])) {
+            throw new Exception("Attribute 'expiration' must be set for tag 'multi_factor_authentication'");
+        }
+        $expiration = (string) $xml["expiration"];
+        if (filter_var($expiration, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+            throw new Exception("Attribute 'expiration' must be a positive integer for tag 'multi_factor_authentication'");
+        }
+        $this->expiration = (int) $expiration;
+    }
+
+    /**
+     * Gets time (in seconds) for which MFA will be considered fresh
+     * 
+     * @return int
+     */
+    public function getExpiration(): int
+    {
+        return $this->expiration;
     }
 
     /**

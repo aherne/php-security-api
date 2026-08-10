@@ -2,6 +2,7 @@
 
 namespace Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken;
 
+use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\Token\EncryptionException;
 use Lucinda\WebSecurity\Token\Exception;
 use Lucinda\WebSecurity\Token\SynchronizerToken;
@@ -53,41 +54,41 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
         return $this->accessToken;
     }
 
+
     /**
      * Saves user's unique identifier into driver (eg: on login).
      *
-     * @param  int|string $userID Unique user identifier (usually an int)
-     * @throws EncryptionException
+     * @param LoggedInUserInfo $authentication Encapsulated persistent authentication
      */
-    public function save(int|string $userID): void
+    public function save(LoggedInUserInfo $authentication): void
     {
-        $this->accessToken = $this->tokenDriver->encode($userID, $this->expirationTime);
+        $this->accessToken = $this->tokenDriver->encode(serialize($authentication), $this->expirationTime);
     }
 
     /**
      * Loads logged in user's unique identifier from driver.
      *
-     * @return int|string|null Unique user identifier (usually an int) or NULL if none exists.
+     * @return LoggedInUserInfo|null Encapsulated persistent authentication
      * @throws EncryptionException
      * @throws Exception
      */
-    public function load(): int|string|null
+    public function load(): ?LoggedInUserInfo
     {
         if (!$this->accessToken) {
             return null;
         }
         // decode token
-        $userID = null;
+        $userInfo = null;
         try {
-            $userID = $this->tokenDriver->decode($this->accessToken, $this->regenerationTime);
+            $userInfo = $this->tokenDriver->decode($this->accessToken, $this->regenerationTime);
         } catch (RegenerationException $e) {
-            $userID = $e->getPayload();
-            $this->accessToken = $this->tokenDriver->encode($userID, $this->expirationTime);
+            $userInfo = $e->getPayload();
+            $this->accessToken = $this->tokenDriver->encode($userInfo, $this->expirationTime);
         } catch (ExpiredException $e) {
             $this->accessToken = null;
             return null;
         }
-        return $userID;
+        return unserialize($userInfo);
     }
 
     /**

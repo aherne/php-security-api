@@ -3,9 +3,9 @@
 namespace Lucinda\WebSecurity\PersistenceDrivers\RememberMe;
 
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
-use Lucinda\WebSecurity\Token\EncryptionException;
 use Lucinda\WebSecurity\Token\SynchronizerToken;
 use Lucinda\WebSecurity\Token\ExpiredException;
+use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 
 /**
  * Encapsulates a driver that persists unique user identifier into a crypted "remember me" cookie variable.
@@ -39,29 +39,27 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     /**
      * Saves user's unique identifier into driver (eg: on login).
      *
-     * @param  int|string $userID Unique user identifier (usually an int)
-     * @throws EncryptionException
+     * @param LoggedInUserInfo $authentication Encapsulated persistent authentication
      */
-    public function save(int|string $userID): void
+    public function save(LoggedInUserInfo $authentication): void
     {
-        $token = $this->token->encode($userID, $this->securityOptions->getExpirationTime());
+        $token = $this->token->encode(serialize($authentication), $this->securityOptions->getExpirationTime());
         $this->registerCookie($token, time()+$this->securityOptions->getExpirationTime());
     }
 
     /**
      * Loads logged in user's unique identifier from driver.
      *
-     * @return int|string|null Unique user identifier (usually an int) or NULL if none exists.
-     * @throws \Exception
+     * @return LoggedInUserInfo|null Encapsulated persistent authentication
      */
-    public function load(): int|string|null
+    public function load(): ?LoggedInUserInfo
     {
         if (empty($_COOKIE[$this->parameterName])) {
             return null;
         }
 
         try {
-            return $this->token->decode($_COOKIE[$this->parameterName]);
+            return unserialize($this->token->decode($_COOKIE[$this->parameterName]));
         } catch (\Exception $e) {
             // delete bad cookie
             $this->registerCookie("", time()-3600);

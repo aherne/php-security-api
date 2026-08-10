@@ -5,21 +5,19 @@ namespace Lucinda\WebSecurity;
 use Lucinda\WebSecurity\Configuration as SecurityConfiguration;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Detectors\PersistenceDrivers as PersistenceDriversDetector;
-use Lucinda\WebSecurity\Detectors\RememberMeTicked;
-use Lucinda\WebSecurity\Detectors\UserId;
+use Lucinda\WebSecurity\Detectors\UserInfo as UserInfoDetector;
 use Lucinda\WebSecurity\Packets\MultiFactor as MultiFactorPacket;
 use Lucinda\WebSecurity\Packets\Packet;
 use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
 use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
+use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
+use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver;
-use Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\PersistenceDriver as TokenPersistenceDriver;
-use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver as RememberMePersistenceDriver;
-use Lucinda\WebSecurity\Security\Authentication;
-use Lucinda\WebSecurity\Security\Authentication\ResultStatus as AuthenticationStatus;
-use Lucinda\WebSecurity\Security\Authorization;
-use Lucinda\WebSecurity\Security\Authorization\ResultStatus as AuthorizationStatus;
-use Lucinda\WebSecurity\Security\MultiFactorAuthentication;
-use Lucinda\WebSecurity\Security\MultiFactorAuthentication\ResultStatus as MultiFactorAuthenticationStatus;
+use Lucinda\WebSecurity\Wrapper\Authentication as AuthenticationWrapper;
+use Lucinda\WebSecurity\Wrapper\MultiFactorAuthentication as MultiFactorAuthenticationWrapper;
+use Lucinda\WebSecurity\Wrapper\Authorization as AuthorizationWrapper;
+use Lucinda\WebSecurity\Packets\LoggedInUser;
+use Lucinda\WebSecurity\Wrapper\OutcomeBuilder;
 
 /**
  * Authenticates and authorizes based on contents of XML tag 'security'
@@ -30,7 +28,7 @@ final class Wrapper
      * @var PersistenceDriver[]
      */
     private array $persistenceDrivers = [];
-    private string|int|null $userID = null;
+    private ?LoggedInUserInfo $userInfo = null;
     private Request $request;
     private SecurityConfiguration $configuration;
     /**
@@ -64,8 +62,8 @@ final class Wrapper
         $pdd = new PersistenceDriversDetector($this->configuration->getPersistence(), $request->getIpAddress());
         $this->persistenceDrivers = $pdd->getPersistenceDrivers();
 
-        $udd = new UserId($this->persistenceDrivers, $request->getAccessToken());
-        $this->userID = $udd->getUserID();
+        $udd = new UserInfoDetector($this->persistenceDrivers, $request->getAccessToken());
+        $this->userInfo = $udd->getUserInfo();
 
         $this->csrfToken = new CsrfToken($this->configuration->getCsrf(), $request->getIpAddress());
         $this->outcome = $this->execute();
@@ -74,11 +72,12 @@ final class Wrapper
     /**
      * Executes the configured security workflow.
      *
-     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|LoggedInUser|null
      */
-    private function execute(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+    private function execute(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|LoggedInUser|null
     {
-        if ($outcome = $this->authentication()) {
+        $outcome = $this->authentication();
+        if ($outcome !== null) {
             return $outcome;
         }
 
@@ -89,7 +88,7 @@ final class Wrapper
         if ($outcome = $this->authorization()) {
             return $outcome;
         }
-        
+
         return null;
     }
 
@@ -100,36 +99,16 @@ final class Wrapper
      */
     private function authentication(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
     {
-        $validator = new Authentication(
-            $this->configuration->getAuthentication(),
+        $driver = new AuthenticationWrapper(
+            $this->configuration,
             $this->request,
-            $this->userID,
             $this->csrfToken,
-            $this->oauth2Drivers
+            $this->persistenceDrivers,
+            $this->oauth2Drivers,
+            $this->userInfo
             );
-        $outcome = $validator->getOutcome();
-        if (!$outcome) {
-            return null;
-        }
-
-        if ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::PASSWORD_VERIFIED) {
-            $this->userID = $outcome->getUserID();
-
-            $multiFactorConfiguration = $this->configuration->getMultiFactorAuthentication();
-            if ($multiFactorConfiguration === null) {
-                $outcome->setStatus(AuthenticationStatus::LOGIN_OK);
-                $this->login();
-            } else {
-                return null; // let next MFA stage handle it
-            }
-        } elseif ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::LOGIN_OK) {
-            $this->userID = $outcome->getUserID();
-            $this->login();
-        } elseif ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::LOGOUT_OK) {
-            $this->userID = null;
-            $this->logout();
-        }
-
+        $outcome = $driver->run();
+        $this->userInfo = $driver->getLoggedInUserInfo();
         return $outcome;
     }
 
@@ -140,20 +119,14 @@ final class Wrapper
      */
     private function multiFactorAuthentication(): MultiFactorPacket|ThrottlingPacket|null
     {
-        $configuration = $this->configuration->getMultiFactorAuthentication();
-        if ($configuration === null || $this->userID === null) {
-            return null;
-        }
-
-        $validator = new MultiFactorAuthentication($configuration, $this->request, $this->userID);
-        $outcome = $validator->getOutcome();
-        if (!$outcome) {
-            return null;
-        }
-
-        if ($outcome instanceof MultiFactorPacket && in_array($outcome->getStatus(), [MultiFactorAuthenticationStatus::SUCCEEDED, MultiFactorAuthenticationStatus::NOT_REQUIRED])) {
-            $this->login();
-        }
+        $driver = new MultiFactorAuthenticationWrapper(
+            $this->configuration,
+            $this->request,
+            $this->persistenceDrivers,
+            $this->userInfo
+            );
+        $outcome = $driver->run();
+        $this->userInfo = $driver->getLoggedInUserInfo();
         return $outcome;
     }
 
@@ -164,70 +137,28 @@ final class Wrapper
      */
     private function authorization(): ?SecurityPacket
     {
-        $validator = new Authorization(
-            $this->configuration->getAuthorization(),
+        $userID = ($this->userInfo?->getAuthenticatedStage() === AuthenticationStage::AUTHENTICATED)
+        ? $this->userInfo->getUserID()
+        : null;
+
+        $driver = new AuthorizationWrapper(
+            $this->configuration,
             $this->request,
-            $this->userID,
-            !empty($this->routes->routes) ? $this->routes : null
-            );
-        if ($outcome = $validator->getOutcome()) {
-            if ($outcome->getStatus() == AuthorizationStatus::OK) {
-                return null;
-            }
-
-            $callback = $outcome->getCallbackURI();
-            if ($callback) {
-                $callback = $this->request->getContextPath()."/".$callback;
-            }
-            return new SecurityPacket($outcome->getStatus(), $callback ?: null);
-        }
-        return null;
-    }
-
-    /**
-     * Processes login.
-     *
-     */
-    private function login(): void
-    {
-        $object = new RememberMeTicked($this->configuration, $this->request);
-        foreach ($this->persistenceDrivers as $persistenceDriver) {
-            if ($persistenceDriver instanceof RememberMePersistenceDriver && $object->getTicked()) {
-                continue; // do not save to remember me persistence driver unless remember me was actually ticked
-            }
-            $persistenceDriver->save($this->userID);
-        }
-    }
-
-    /**
-     * Processes logout.
-     *
-     */
-    private function logout(): void
-    {
-        foreach ($this->persistenceDrivers as $persistenceDriver) {
-            $persistenceDriver->clear();
-        }
+            $this->routes,
+            $userID
+        );
+        return $driver->run();
     }
 
     /**
      * Gets outcome.
      *
-     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|LoggedInUser|null
      */
-    public function getOutcome(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+    public function getOutcome(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|LoggedInUser|null
     {
-        return $this->outcome;
-    }
-
-    /**
-     * Gets user ID.
-     *
-     * @return int|string|null
-     */
-    public function getUserID(): int|string|null
-    {
-        return $this->userID;
+        $builder = new OutcomeBuilder($this->outcome, $this->userInfo, $this->persistenceDrivers);
+        return $builder->getOutcome();
     }
 
     /**
@@ -237,21 +168,6 @@ final class Wrapper
      */
     public function getCsrfToken(): string
     {
-        return $this->csrfToken->generate($this->userID);
-    }
-
-    /**
-     * Gets access token.
-     *
-     * @return ?string
-     */
-    public function getAccessToken(): ?string
-    {
-        foreach ($this->persistenceDrivers as $driver) {
-            if ($driver instanceof TokenPersistenceDriver) {
-                return $driver->getAccessToken();
-            }
-        }
-        return null;
+        return $this->csrfToken->generate($this->userInfo?->getUserID());
     }
 }
