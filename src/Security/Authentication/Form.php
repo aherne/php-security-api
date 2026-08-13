@@ -12,6 +12,7 @@ use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
 use Lucinda\WebSecurity\Configuration\Authentication\Form\Login as LoginPolicy;
 use Lucinda\WebSecurity\Configuration\Authentication\Form\Logout as LogoutPolicy;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
+use Lucinda\WebSecurity\Packets\GuestUser;
 
 /**
  * Encapsulates Form logic.
@@ -66,9 +67,9 @@ final class Form extends Generic
      * @param LoginPolicy $configuration
      * @param CsrfToken $csrfTokenDetector
      * @param FormLoginThrottler $throttler
-     * @return SecurityPacket|ThrottlingPacket|null
+     * @return SecurityPacket|ThrottlingPacket|GuestUser
      */
-    private function login(LoginPolicy $configuration, CsrfToken $csrfTokenDetector, FormLoginThrottler $throttler): SecurityPacket|ThrottlingPacket|null
+    private function login(LoginPolicy $configuration, CsrfToken $csrfTokenDetector, FormLoginThrottler $throttler): SecurityPacket|ThrottlingPacket|GuestUser
     {
         if ($this->userID !== null) { // already logged in
             return new SecurityPacket(
@@ -87,31 +88,41 @@ final class Form extends Generic
             if (empty($parameters[$csrfParameter]) || empty($parameters[$usernameParameter]) || empty($parameters[$passwordParameter])) {
                 return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetFailure()));
             }
+            $username = $parameters[$usernameParameter];
+            $password = $parameters[$passwordParameter];
+            $ipAddress = $this->request->getIpAddress();
 
-            // check csrf
-            if (
-                !$csrfTokenDetector->isValid($parameters[$csrfParameter], 0) || 
-                $throttler->isThrottled($parameters[$usernameParameter], $this->request->getIpAddress())
-                ) { // penalize for attempting to bypass csrf or issue wrong one again
-                $throttler->penalize($parameters[$usernameParameter], $this->request->getIpAddress());
-                $packet = new ThrottlingPacket(ResultStatus::LOGIN_THROTTLED);
-                $packet->setCallback($this->getCallback($configuration->getTargetFailure()));
-                return $packet;
+            // check if throttled already
+            if ($throttler->isThrottled($username, $ipAddress)) {
+                return $this->throttle($configuration->getTargetThrottled());
+            }
+
+            // check if csrf token is invalid or missing
+            if (!$csrfTokenDetector->isValid($parameters[$csrfParameter], 0)) {
+                return new SecurityPacket(
+                    ResultStatus::LOGIN_FAILED,
+                    $this->getCallback($configuration->getTargetFailure())
+                );
             }
 
             // attempt login
-            $outcome = $this->dao->login($parameters[$usernameParameter], $parameters[$passwordParameter]);
+            $outcome = $this->dao->login($username, $password);
             if ($outcome !== null) {
                 $packet = new SecurityPacket(ResultStatus::IDENTITY_VERIFIED, $this->getCallback($configuration->getTargetSuccess()));
                 $packet->setUserID($outcome);
                 return $packet;
             } else { // penalize for failing login
-                $throttler->penalize($parameters[$usernameParameter], $this->request->getIpAddress());
+                $throttler->penalize($username, $ipAddress);
+                if ($throttler->isThrottled($username, $ipAddress)) {
+                    return $this->throttle($configuration->getTargetThrottled());
+                }
                 return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetFailure()));
             }
         }
 
-        return null;
+        return new GuestUser(
+            $csrfTokenDetector->generate(0) // we are in login page and have a csrf token generated
+        );
     }
 
     /**
@@ -134,5 +145,17 @@ final class Form extends Generic
         } else {
             return new SecurityPacket(ResultStatus::LOGOUT_FAILED, $this->getCallback($configuration->getTargetFailure()));
         }
+    }
+
+    /**
+     * Composes a throttling packet to answer when user will be refused authentication
+     * 
+     * @return ThrottlingPacket
+     */
+    private function throttle(string $callback): ThrottlingPacket
+    {
+        $packet = new ThrottlingPacket(ResultStatus::LOGIN_THROTTLED);
+        $packet->setCallback($this->getCallback($callback));
+        return $packet;
     }
 }

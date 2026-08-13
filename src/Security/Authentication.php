@@ -6,10 +6,9 @@ use Lucinda\WebSecurity\Configuration\Authentication\Form as ConfigurationAuthen
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2 as ConfigurationAuthenticationOauth2;
 use Lucinda\WebSecurity\Security\Authentication\Form as AuthenticatorForm;
 use Lucinda\WebSecurity\Security\Authentication\Oauth2 as AuthenticatorOauth2;
-use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
-use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
+use Lucinda\WebSecurity\Packets\Packet;
 use Lucinda\WebSecurity\Security\Exception as SecurityException;
 
 /**
@@ -17,7 +16,7 @@ use Lucinda\WebSecurity\Security\Exception as SecurityException;
  */
 final class Authentication
 {
-    private SecurityPacket|ThrottlingPacket|null $outcome = null;
+    private ?Packet $outcome = null;
 
     /**
      * Sets up object state.
@@ -25,14 +24,14 @@ final class Authentication
      * @param ConfigurationAuthentication $configuration
      * @param Request $request
      * @param int|string|null $userID
-     * @param ?CsrfToken $csrfTokenDetector
+     * @param CsrfToken $csrfTokenDetector
      * @param array $oauth2Drivers
      */
     public function __construct(
         ConfigurationAuthentication $configuration,
         Request $request,
         int|string|null $userID,
-        ?CsrfToken $csrfTokenDetector = null,
+        CsrfToken $csrfTokenDetector,
         array $oauth2Drivers = []
         )
     {
@@ -62,8 +61,8 @@ final class Authentication
         ConfigurationAuthenticationForm $configuration,
         Request $request,
         int|string|null $userID,
-        ?CsrfToken $csrfTokenDetector = null,
-        )
+        CsrfToken $csrfTokenDetector
+        ): ?Packet
     {
         if ($csrfTokenDetector === null) {
             throw new SecurityException("Csrf token detector is mandatory for form login!");
@@ -86,7 +85,7 @@ final class Authentication
         Request $request,
         int|string|null $userID,
         array $oauth2Drivers = []
-        )
+        ): ?Packet
     {
         if (empty($oauth2Drivers)) {
             throw new SecurityException("Oauth2 drivers are mandatory for oauth2 login!");
@@ -99,9 +98,9 @@ final class Authentication
     /**
      * Gets outcome.
      *
-     * @return SecurityPacket|ThrottlingPacket|null
+     * @return ?Packet
      */
-    public function getOutcome(): SecurityPacket|ThrottlingPacket|null
+    public function getOutcome(): ?Packet
     {
         return $this->outcome;
     }

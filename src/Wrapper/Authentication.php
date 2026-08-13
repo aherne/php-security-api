@@ -11,6 +11,7 @@ use Lucinda\WebSecurity\Security\Authentication as SecurityAuthentication;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus as AuthenticationStatus;
 use Lucinda\WebSecurity\Detectors\RememberMeTicked;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
+use Lucinda\WebSecurity\Packets\GuestUser;
 use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
 use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver as RememberMePersistenceDriver;
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
@@ -44,9 +45,9 @@ final class Authentication
     /**
      * Runs authentication.
      *
-     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|GuestUser|null
      */
-    public function run(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+    public function run(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|GuestUser|null
     {
         $validator = new SecurityAuthentication(
             $this->configuration->getAuthentication(),
@@ -64,13 +65,13 @@ final class Authentication
             $multiFactorConfiguration = $this->configuration->getMultiFactorAuthentication();
             if ($multiFactorConfiguration === null) {
                 $outcome->setStatus(AuthenticationStatus::LOGIN_OK);
-                $this->login($outcome, AuthenticationStage::AUTHENTICATED);
+                $this->login($outcome);
             } else {
-                $this->login($outcome, AuthenticationStage::PENDING_MFA);
+                $this->loginWithMFA($outcome, $multiFactorConfiguration->getPendingExpiration());
                 return null; // let next MFA stage handle it
             }
         } elseif ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::LOGIN_OK) {
-            $this->login($outcome, AuthenticationStage::AUTHENTICATED);
+            $this->login($outcome);
         } elseif ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::LOGOUT_OK) {
             $this->userInfo = null;
             $this->logout();
@@ -80,22 +81,50 @@ final class Authentication
     }
 
     /**
-     * Processes login.
+     * Registers login.
      *
+     * @param SecurityPacket $outcome
      */
-    private function login(SecurityPacket $outcome, AuthenticationStage $authenticationStage): void
+    private function login(SecurityPacket $outcome): void
     {
         $object = new RememberMeTicked($this->configuration, $this->request);
-        $this->userInfo = new LoggedInUserInfo($outcome->getUserID(), $authenticationStage, $object->getTicked());
+        $this->userInfo = new LoggedInUserInfo(
+            $outcome->getUserID(),
+            AuthenticationStage::AUTHENTICATED,
+            $object->getTicked()
+            );
         foreach ($this->persistenceDrivers as $persistenceDriver) {
             if (
                 $persistenceDriver instanceof RememberMePersistenceDriver
-                && (
-                    $authenticationStage === AuthenticationStage::PENDING_MFA
-                    || !$object->getTicked()
-                )
+                && 
+                !$object->getTicked()
             ) {
                 continue;
+            }
+            $persistenceDriver->save($this->userInfo);
+        }
+    }
+
+    /**
+     * Registers pending MFA-validated login.
+     *
+     * @param SecurityPacket $outcome
+     * @param int $pendingExpirationMFA
+     */
+    private function loginWithMFA(SecurityPacket $outcome, int $pendingExpirationMFA): void
+    {
+        $object = new RememberMeTicked($this->configuration, $this->request);
+        $this->userInfo = new LoggedInUserInfo(
+            $outcome->getUserID(),
+            AuthenticationStage::PENDING_MFA,
+            $object->getTicked(),
+            (time() + $pendingExpirationMFA)
+            );
+        foreach ($this->persistenceDrivers as $persistenceDriver) {
+            if (
+                $persistenceDriver instanceof RememberMePersistenceDriver
+            ) {
+                continue; // there no remember me for pending authentication
             }
             $persistenceDriver->save($this->userInfo);
         }

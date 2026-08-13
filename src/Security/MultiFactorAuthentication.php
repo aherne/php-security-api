@@ -3,7 +3,6 @@
 namespace Lucinda\WebSecurity\Security;
 
 use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication as Configuration;
-use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication\Totp as TotpConfiguration;
 use Lucinda\WebSecurity\Packets\MultiFactor as MultiFactorPacket;
 use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
 use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
@@ -28,16 +27,34 @@ final class MultiFactorAuthentication
      */
     public function __construct(Configuration $configuration, Request $request, ?LoggedInUserInfo $userInfo = null)
     {
-        if ($userInfo === null || !$this->isMfaDue($configuration, $userInfo)) {
-            return; // not logged in or already passed MFA
+        if ($userInfo === null) {
+            // not logged in => no MFA
+            return; 
+        }
+        
+        $validUntil = $userInfo->getStageValidUntil();
+        $now = time();
+
+        if ($userInfo->getAuthenticatedStage() === AuthenticationStage::PENDING_MFA) {
+            if ($validUntil === null || $now >= $validUntil) {
+                // PENDING_MFA and deadline expired
+                $outcome = new MultiFactorPacket();
+                $outcome->setUserID($userInfo->getUserID());
+                $outcome->setStatus(MultifactorResultStatus::EXPIRED);
+                $this->outcome = $outcome; // PENDING_MFA and deadline expired
+                return;
+            }
+
+            // Pending and still valid: execute MFA.
+        } elseif ($validUntil !== null && $now < $validUntil) {
+            // Authenticated and MFA is still fresh.
+            return;
         }
 
-        $method = $configuration->getMethod();
-        if ($method instanceof TotpConfiguration) {
-            $this->outcome = $this->authenticateByTotp($configuration, $request, $userInfo->getUserID());
-            if ($this->outcome instanceof MultiFactorPacket && $this->outcome->getStatus() == MultifactorResultStatus::SUCCEEDED) {
-                $this->outcome->setValidUntil(time()+$configuration->getExpiration());
-            }
+        // Authenticated with null/expired validity: evaluate MFA.
+        $this->outcome = $this->authenticateByTotp($configuration, $request, $userInfo->getUserID());
+        if ($this->outcome instanceof MultiFactorPacket && $this->outcome->getStatus() == MultifactorResultStatus::SUCCEEDED) {
+            $this->outcome->setValidUntil(time()+$configuration->getExpiration());
         }
     }
 
@@ -57,16 +74,6 @@ final class MultiFactorAuthentication
     {
         $authenticator = new Totp($configuration, $request, $userID);
         return $authenticator->getOutcome();
-    }
-
-    private function isMfaDue(Configuration $configuration, LoggedInUserInfo $userInfo): bool {
-        if ($userInfo->getAuthenticatedStage() === AuthenticationStage::PENDING_MFA) {
-            return true;
-        }
-
-        $validUntil = $userInfo->getMfaValidUntil();
-
-        return $validUntil === null || time() >= $validUntil;
     }
 
     /**

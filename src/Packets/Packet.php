@@ -9,6 +9,7 @@ abstract class Packet
 {
     private ?string $callback = null;
     private int|string|null $userID = null;
+    private ?string $accessToken = null;
 
     /**
      * Sets user ID
@@ -48,5 +49,15 @@ abstract class Packet
     public function getCallback(): ?string
     {
         return $this->callback;
+    }
+
+    public function setAccessToken(string $accessToken): void
+    {
+        $this->accessToken = $accessToken;
+    }
+
+    public function getAccessToken(): ?string
+    {
+        return $this->accessToken;
     }
 }

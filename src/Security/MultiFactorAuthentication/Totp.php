@@ -7,6 +7,7 @@ use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication\Totp as TotpConf
 use Lucinda\WebSecurity\DAO\MultiFactorAuthentication as MultiFactorAuthenticationDAO;
 use Lucinda\WebSecurity\DAO\Throttler\MultiFactorAuthentication as MultiFactorAuthenticationThrottler;
 use Lucinda\WebSecurity\Packets\MultiFactor as MultiFactorPacket;
+use Lucinda\WebSecurity\Packets\Throttling;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Security\MultiFactorAuthentication\Totp\GoogleAuthenticator;
 
@@ -75,14 +76,14 @@ final class Totp extends Generic
      *
      * @return MultiFactorPacket|null
      */
-    private function execute(): MultiFactorPacket|null
+    private function execute(): MultiFactorPacket|Throttling|null
     {
         if (!$this->dao->isRequired($this->userID)) {
             return $this->compose(ResultStatus::NOT_REQUIRED, $this->configuration->getSuccessRoute());
         }
 
-        if ($this->throttler->isThrottled($this->userID)) {
-            return $this->compose(ResultStatus::THROTTLED, $this->configuration->getThrottledRoute());
+        if ($this->throttler->isThrottled($this->userID, $this->request->getIpAddress())) {
+            return $this->composeThrottling($this->configuration->getThrottledRoute());
         }
 
         if ($this->request->getUri() === $this->configuration->getSetupRoute()) {
@@ -103,9 +104,9 @@ final class Totp extends Generic
     /**
      * Sets up.
      *
-     * @return MultiFactorPacket
+     * @return MultiFactorPacket|Throttling
      */
-    private function setup(): MultiFactorPacket
+    private function setup(): MultiFactorPacket|Throttling
     {
         $secret = $this->dao->getSetupSecret($this->userID);
         if ($secret === null) {
@@ -123,17 +124,16 @@ final class Totp extends Generic
             $this->dao->clearSetupSecret($this->userID);
             return $this->compose(ResultStatus::SUCCEEDED, $this->configuration->getSuccessRoute());
         }
-
-        $this->throttler->penalize($this->userID);
-        return $this->compose(ResultStatus::FAILED, $this->configuration->getFailureRoute());
+        
+        return $this->fail();
     }
 
     /**
      * Challenge.
      *
-     * @return MultiFactorPacket
+     * @return MultiFactorPacket|Throttling
      */
-    private function challenge(): MultiFactorPacket
+    private function challenge(): MultiFactorPacket|Throttling
     {
         $secret = $this->dao->getSecret($this->userID);
         if ($secret === null) {
@@ -149,8 +149,7 @@ final class Totp extends Generic
             return $this->compose(ResultStatus::SUCCEEDED, $this->configuration->getSuccessRoute());
         }
 
-        $this->throttler->penalize($this->userID);
-        return $this->compose(ResultStatus::FAILED, $this->configuration->getFailureRoute());
+        return $this->fail();
     }
 
     /**
@@ -196,5 +195,22 @@ final class Totp extends Generic
             return null;
         }
         return (string) $code;
+    }
+
+    /**
+     * Composes a FAILED (or THROTTLED) packet, penalizing attempt as well
+     * 
+     * @return MultiFactorPacket|Throttling
+     */
+    private function fail(): MultiFactorPacket|Throttling
+    {
+        $ipAddress = $this->request->getIpAddress();
+        $this->throttler->penalize($this->userID, $ipAddress);
+        if ($this->throttler->isThrottled($this->userID, $ipAddress)) {
+            return $this->composeThrottling(
+                $this->configuration->getThrottledRoute()
+            );
+        }
+        return $this->compose(ResultStatus::FAILED, $this->configuration->getFailureRoute());
     }
 }

@@ -6,19 +6,19 @@ final class LoggedInUserInfo
 {
     private int|string $userID;
     private AuthenticationStage $stage;
-    private ?int $mfaValidUntil = null;
+    private ?int $stageValidUntil = null;
     private bool $rememberRequested = false;
 
     public function __construct(
         int|string $userID,
         AuthenticationStage $stage,
         bool $rememberRequested = false,
-        ?int $mfaValidUntil = null
+        ?int $stageValidUntil = null
     ) {
         $this->userID = $userID;
         $this->stage = $stage;
         $this->rememberRequested = $rememberRequested;
-        $this->mfaValidUntil = $mfaValidUntil;
+        $this->stageValidUntil = $stageValidUntil;
     }
 
     public function getUserID(): int|string
@@ -31,9 +31,9 @@ final class LoggedInUserInfo
         return $this->stage;
     }
 
-    public function getMfaValidUntil(): ?int
+    public function getStageValidUntil(): ?int
     {
-        return $this->mfaValidUntil;
+        return $this->stageValidUntil;
     }
 
     public function rememberRequested(): bool

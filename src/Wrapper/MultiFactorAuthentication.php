@@ -50,7 +50,7 @@ final class MultiFactorAuthentication
         $status = $outcome->getStatus();
 
         if ($status === MultiFactorAuthenticationStatus::SUCCEEDED) {
-            $validUntil = $outcome->getValidUntil();
+            $validUntil = $outcome->getValidUntil(); // this is packet's valid until
 
             if ($validUntil === null) {
                 throw new ConfigurationException(
@@ -60,9 +60,7 @@ final class MultiFactorAuthentication
 
             $this->login($validUntil);
             return $outcome;
-        }
-
-        if ($status === MultiFactorAuthenticationStatus::NOT_REQUIRED) {
+        } elseif ($status === MultiFactorAuthenticationStatus::NOT_REQUIRED) {
             if (
                 $this->userInfo->getAuthenticatedStage()
                 === AuthenticationStage::PENDING_MFA
@@ -74,12 +72,17 @@ final class MultiFactorAuthentication
             // Already authenticated and MFA policy currently requires nothing.
             // Allow Wrapper::execute() to continue to authorization.
             return null;
+        } elseif ($status === MultiFactorAuthenticationStatus::EXPIRED) {
+            $this->userInfo = null;
+            foreach ($this->persistenceDrivers as $persistenceDriver) {
+                $persistenceDriver->clear();
+            }
         }
 
         return $outcome;
     }
 
-    private function login(?int $mfaValidUntil): void
+    private function login(?int $stageValidUntil): void
     {
         $wasTicked = $this->userInfo->rememberRequested();
 
@@ -87,7 +90,7 @@ final class MultiFactorAuthentication
             $this->userInfo->getUserID(),
             AuthenticationStage::AUTHENTICATED,
             $wasTicked,
-            $mfaValidUntil
+            $stageValidUntil
         );
         foreach ($this->persistenceDrivers as $persistenceDriver) {
             if ($persistenceDriver instanceof RememberMePersistenceDriver && !$wasTicked) {

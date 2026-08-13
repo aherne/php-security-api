@@ -2,6 +2,7 @@
 
 namespace Lucinda\WebSecurity\Security\Authentication;
 
+use Lucinda\WebSecurity\Packets\GuestUser;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
 use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
@@ -13,7 +14,7 @@ class Generic
 {
     protected int|string|null $userID;
     protected Request $request;
-    protected SecurityPacket|ThrottlingPacket|null $outcome = null;
+    protected SecurityPacket|ThrottlingPacket|GuestUser|null $outcome = null;
 
     /**
      * Gets callback.
@@ -31,7 +32,7 @@ class Generic
      *
      * @return SecurityPacket|ThrottlingPacket|null
      */
-    public function getOutcome(): SecurityPacket|ThrottlingPacket|null
+    public function getOutcome(): SecurityPacket|ThrottlingPacket|GuestUser|null
     {
         return $this->outcome;
     }

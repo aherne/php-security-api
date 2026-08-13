@@ -20,6 +20,7 @@ final class Login
     private string $pageSource;
     private string $targetSuccess;
     private string $targetFailure;
+    private string $targetThrottled;
     
     /**
      * Sets up object state.
@@ -31,6 +32,7 @@ final class Login
         $this->setPageSource($xml);
         $this->setTargetSuccess($xml);
         $this->setTargetFailure($xml);
+        $this->setTargetThrottled($xml);
         $this->setParameterUsername($xml);
         $this->setParameterPassword($xml);
         $this->setParameterRememberMe($xml);
@@ -38,7 +40,7 @@ final class Login
     }
 
     /**
-     * Sets page source.
+     * Sets page source route
      *
      * @param \SimpleXMLElement $xml
      */
@@ -51,7 +53,7 @@ final class Login
     }
 
     /**
-     * Gets page source.
+     * Gets page source route
      *
      * @return string
      */
@@ -61,7 +63,7 @@ final class Login
     }
 
     /**
-     * Sets target success.
+     * Sets target success route
      *
      * @param \SimpleXMLElement $xml
      */
@@ -74,7 +76,7 @@ final class Login
     }
 
     /**
-     * Gets target success.
+     * Gets target success route
      *
      * @return string
      */
@@ -84,7 +86,7 @@ final class Login
     }
 
     /**
-     * Sets target failure.
+     * Sets target failure route
      *
      * @param \SimpleXMLElement $xml
      */
@@ -97,13 +99,36 @@ final class Login
     }
 
     /**
-     * Gets target failure.
+     * Gets target failure route
      *
      * @return string
      */
     public function getTargetFailure(): string
     {
         return $this->targetFailure;
+    }
+
+    /**
+     * Sets target throttled route
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    private function setTargetThrottled(\SimpleXMLElement $xml): void
+    {
+        if (empty($xml["target_throttled"])) {
+            throw new ConfigurationException("Attribute 'target_throttled' must be set for tag 'login'");
+        }
+        $this->targetThrottled = (string) $xml["target_throttled"];
+    }
+
+    /**
+     * Gets target throttled route
+     *
+     * @return string
+     */
+    public function getTargetThrottled(): string
+    {
+        return $this->targetThrottled;
     }
 
     /**

@@ -11,7 +11,6 @@ use Lucinda\WebSecurity\Security\Authentication\ResultStatus as AuthenticationRe
 final class Throttling extends Packet
 {
     private MultifactorResultStatus|AuthenticationResultStatus $status;
-    private ?int $timePenalty = null;
 
     /**
      * Sets up object state.
@@ -44,28 +43,5 @@ final class Throttling extends Packet
     public function getStatus(): MultifactorResultStatus|AuthenticationResultStatus
     {
         return $this->status;
-    }
-
-    /**
-     * Sets number of seconds client will be banned from authenticating
-     *
-     * @param int $timePenalty
-     */
-    public function setTimePenalty(int $timePenalty): void
-    {
-        $this->timePenalty = $timePenalty;
-    }
-
-    /**
-     * Gets number of seconds client will be banned from authenticating
-     *
-     * @return int|null
-     */
-    public function getTimePenalty(): ?int
-    {
-        if (!$this->timePenalty) {
-            throw new Exception("Time penalty must be set beforehand!");
-        }
-        return $this->timePenalty;
     }
 }

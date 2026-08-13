@@ -13,4 +13,5 @@ enum ResultStatus: int
     case SUCCEEDED = 4;
     case THROTTLED = 5;
     case FAILED = 6;
+    case EXPIRED = 7;
 }

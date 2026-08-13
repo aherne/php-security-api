@@ -6,17 +6,13 @@ use Lucinda\WebSecurity\Configuration as SecurityConfiguration;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Detectors\PersistenceDrivers as PersistenceDriversDetector;
 use Lucinda\WebSecurity\Detectors\UserInfo as UserInfoDetector;
-use Lucinda\WebSecurity\Packets\MultiFactor as MultiFactorPacket;
 use Lucinda\WebSecurity\Packets\Packet;
-use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
-use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
 use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver;
 use Lucinda\WebSecurity\Wrapper\Authentication as AuthenticationWrapper;
 use Lucinda\WebSecurity\Wrapper\MultiFactorAuthentication as MultiFactorAuthenticationWrapper;
 use Lucinda\WebSecurity\Wrapper\Authorization as AuthorizationWrapper;
-use Lucinda\WebSecurity\Packets\LoggedInUser;
 use Lucinda\WebSecurity\Wrapper\OutcomeBuilder;
 
 /**
@@ -72,9 +68,9 @@ final class Wrapper
     /**
      * Executes the configured security workflow.
      *
-     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|LoggedInUser|null
+     * @return ?Packet
      */
-    private function execute(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|LoggedInUser|null
+    private function execute(): ?Packet
     {
         $outcome = $this->authentication();
         if ($outcome !== null) {
@@ -95,9 +91,9 @@ final class Wrapper
     /**
      * Runs authentication.
      *
-     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+     * @return ?Packet
      */
-    private function authentication(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|null
+    private function authentication(): ?Packet
     {
         $driver = new AuthenticationWrapper(
             $this->configuration,
@@ -115,9 +111,9 @@ final class Wrapper
     /**
      * Runs multi-factor authentication.
      *
-     * @return MultiFactorPacket|ThrottlingPacket|null
+     * @return ?Packet
      */
-    private function multiFactorAuthentication(): MultiFactorPacket|ThrottlingPacket|null
+    private function multiFactorAuthentication(): ?Packet
     {
         $driver = new MultiFactorAuthenticationWrapper(
             $this->configuration,
@@ -133,9 +129,9 @@ final class Wrapper
     /**
      * Runs authorization.
      *
-     * @return ?SecurityPacket
+     * @return ?Packet
      */
-    private function authorization(): ?SecurityPacket
+    private function authorization(): ?Packet
     {
         $userID = ($this->userInfo?->getAuthenticatedStage() === AuthenticationStage::AUTHENTICATED)
         ? $this->userInfo->getUserID()
@@ -153,21 +149,11 @@ final class Wrapper
     /**
      * Gets outcome.
      *
-     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|LoggedInUser|null
+     * @return ?Packet
      */
-    public function getOutcome(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|LoggedInUser|null
+    public function getOutcome(): ?Packet
     {
         $builder = new OutcomeBuilder($this->outcome, $this->userInfo, $this->persistenceDrivers);
         return $builder->getOutcome();
-    }
-
-    /**
-     * Gets CSRF token.
-     *
-     * @return string
-     */
-    public function getCsrfToken(): string
-    {
-        return $this->csrfToken->generate($this->userInfo?->getUserID());
     }
 }

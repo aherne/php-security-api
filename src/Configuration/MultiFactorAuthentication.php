@@ -14,6 +14,7 @@ final class MultiFactorAuthentication
     private string $dao;
     private string $throttler;
     private int $expiration;
+    private int $pendingExpiration;
     private string $challengeRoute;
     private string $setupRoute;
     private string $successRoute;
@@ -36,6 +37,7 @@ final class MultiFactorAuthentication
         $this->setDAO($subXML);
         $this->setThrottler($subXML);
         $this->setExpiration($subXML);
+        $this->setPendingExpiration($subXML);
         $this->setChallengeRoute($subXML);
         $this->setSetupRoute($subXML);
         $this->setSuccessRoute($subXML);
@@ -99,30 +101,43 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets time (in seconds) for which MFA will be considered fresh
+     * Sets time (in seconds) for which successful MFA will be considered fresh
      * 
      * @param \SimpleXMLElement $xml
      */
     private function setExpiration(\SimpleXMLElement $xml): void
     {
-        if (empty($xml["expiration"])) {
-            throw new Exception("Attribute 'expiration' must be set for tag 'multi_factor_authentication'");
-        }
-        $expiration = (string) $xml["expiration"];
-        if (filter_var($expiration, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
-            throw new Exception("Attribute 'expiration' must be a positive integer for tag 'multi_factor_authentication'");
-        }
-        $this->expiration = (int) $expiration;
+        $this->expiration = $this->validatePositiveNumber($xml, "expiration");
     }
 
     /**
-     * Gets time (in seconds) for which MFA will be considered fresh
+     * Gets time (in seconds) for which successful MFA will be considered fresh
      * 
      * @return int
      */
     public function getExpiration(): int
     {
         return $this->expiration;
+    }
+
+    /**
+     * Sets time (in seconds) for which MFA pending attempts will be allowed until expired
+     * 
+     * @param \SimpleXMLElement $xml
+     */
+    private function setPendingExpiration(\SimpleXMLElement $xml): void
+    {
+        $this->pendingExpiration = $this->validatePositiveNumber($xml, "pending_expiration");
+    }
+
+    /**
+     * Gets time (in seconds) for which MFA pending attempts will be allowed until expired
+     * 
+     * @return int
+     */
+    public function getPendingExpiration(): int
+    {
+        return $this->pendingExpiration;
     }
 
     /**
@@ -261,5 +276,17 @@ final class MultiFactorAuthentication
     public function getMethod(): Totp
     {
         return $this->method;
+    }
+
+    private function validatePositiveNumber(\SimpleXMLElement $xml, string $tagName): int
+    {
+        if (empty($xml[$tagName])) {
+            throw new Exception("Attribute '".$tagName."' must be set for tag 'multi_factor_authentication'");
+        }
+        $expiration = (string) $xml[$tagName];
+        if (filter_var($expiration, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
+            throw new Exception("Attribute '".$tagName."' must be a positive integer for tag 'multi_factor_authentication'");
+        }
+        return (int) $expiration;
     }
 }
