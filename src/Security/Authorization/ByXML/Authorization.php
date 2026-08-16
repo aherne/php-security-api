@@ -50,7 +50,7 @@ final class Authorization
         $callbackURI = "";
 
         // check if user is authenticated
-        $isUserGuest = !$userID;
+        $isUserGuest = $userID===null;
 
         // get user roles
         $userRoles = $userAuthorizationRoles->getRoles($userID);

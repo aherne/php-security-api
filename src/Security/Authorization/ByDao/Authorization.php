@@ -40,7 +40,7 @@ final class Authorization
         $callbackURI = "";
         if ($page->getID()) {
             if (!$page->isPublic()) {
-                if ($user->getID()) {
+                if ($user->getID()!==null) {
                     if (!$user->isAllowed($page, $httpRequestMethod)) {
                         $callbackURI = $this->loggedInFailureCallback;
                         $status = ResultStatus::FORBIDDEN;
@@ -57,7 +57,7 @@ final class Authorization
                 $status = ResultStatus::OK;
             }
         } else {
-            if ($user->getID()) {
+            if ($user->getID()!==null) {
                 $callbackURI = $this->loggedInFailureCallback;
             } else {
                 $callbackURI = $this->loggedOutFailureCallback;

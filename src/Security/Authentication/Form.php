@@ -19,6 +19,7 @@ use Lucinda\WebSecurity\Packets\GuestUser;
  */
 final class Form extends Generic
 {
+    const GUEST_USER = "guest";
     private FormAuthentication $dao;
 
     /**
@@ -98,7 +99,7 @@ final class Form extends Generic
             }
 
             // check if csrf token is invalid or missing
-            if (!$csrfTokenDetector->isValid($parameters[$csrfParameter], 0)) {
+            if (!$csrfTokenDetector->isValid($parameters[$csrfParameter], self::GUEST_USER)) {
                 return new SecurityPacket(
                     ResultStatus::LOGIN_FAILED,
                     $this->getCallback($configuration->getTargetFailure())
@@ -121,7 +122,7 @@ final class Form extends Generic
         }
 
         return new GuestUser(
-            $csrfTokenDetector->generate(0) // we are in login page and have a csrf token generated
+            $csrfTokenDetector->generate(self::GUEST_USER) // we are in login page and have a csrf token generated
         );
     }
 
