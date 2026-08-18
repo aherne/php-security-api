@@ -70,4 +70,14 @@ class ThrottlingTest
     {
         return (new Booleans($this->packet()->getCallback() === null))->assertTrue();
     }
+    public function setAccessToken()
+    {
+    }
+        
+
+    public function getAccessToken()
+    {
+    }
+        
+
 }

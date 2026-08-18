@@ -50,10 +50,10 @@ final class Authorization
         $callbackURI = "";
 
         // check if user is authenticated
-        $isUserGuest = $userID===null;
+        $isUserGuest = empty($userID);
 
         // get user roles
-        $userRoles = $userAuthorizationRoles->getRoles($userID);
+        $userRoles = $userAuthorizationRoles->getRoles($isUserGuest ? null : $userID);
 
         // get page roles
         $detector = new RolesDetector($xml, "routes", "route", "id", $routeToAuthorize);

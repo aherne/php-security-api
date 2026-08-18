@@ -88,7 +88,13 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
             $this->accessToken = null;
             return null;
         }
-        return unserialize($userInfo);
+        
+        $user = unserialize($userInfo, ["allowed_classes" => [LoggedInUserInfo::class]]);
+        if (!$user instanceof LoggedInUserInfo) {
+            throw new EncryptionException("Invalid authentication payload!");
+        }
+
+        return $user;
     }
 
     /**

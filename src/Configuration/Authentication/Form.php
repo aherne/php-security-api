@@ -2,21 +2,27 @@
 
 namespace Lucinda\WebSecurity\Configuration\Authentication;
 
-use Lucinda\WebSecurity\Configuration\Authentication\Form\Login;
-use Lucinda\WebSecurity\Configuration\Authentication\Form\Logout;
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
-use Lucinda\WebSecurity\DAO\FormAuthentication;
+use Lucinda\WebSecurity\DAO\FormLogin;
 use Lucinda\WebSecurity\DAO\Throttler\FormLogin as FormLoginThrottler;
 
 /**
  * Encapsulates Form logic.
  */
-final class Form
+final class Form extends Generic
 {
+    public const DEFAULT_PARAMETER_USERNAME = "username";
+    public const DEFAULT_PARAMETER_PASSWORD = "password";
+    public const DEFAULT_PARAMETER_REMEMBER_ME = "remember_me";
+    public const DEFAULT_PARAMETER_CSRF = "csrf";
     private string $dao;
     private string $throttler;
-    private Login $loginPolicy;
-    private Logout $logoutPolicy;
+    private string $parameterUsername;
+    private string $parameterPassword;
+    private string $parameterRememberMe;
+    private string $pageSource;
+    private string $targetThrottled;
+    private string $parameterCsrf;
 
     /**
      * Sets up object state.
@@ -27,8 +33,14 @@ final class Form
     {
         $this->setDAO($xml);
         $this->setThrottler($xml);
-        $this->setLoginPolicy($xml);
-        $this->setLogoutPolicy($xml);
+        $this->setPageSource($xml);
+        $this->setTargetSuccess($xml);
+        $this->setTargetFailure($xml);
+        $this->setTargetThrottled($xml);
+        $this->setParameterUsername($xml);
+        $this->setParameterPassword($xml);
+        $this->setParameterRememberMe($xml);
+        $this->setParameterCsrf($xml);
     }
 
     /**
@@ -42,8 +54,8 @@ final class Form
         if (empty($daoClass)) {
             throw new ConfigurationException("Attribute 'dao' must be set for tag 'form'");
         }
-        if (!is_subclass_of($daoClass, FormAuthentication::class)) {
-            throw new ConfigurationException("DAO must be instance of ".FormAuthentication::class);
+        if (!is_subclass_of($daoClass, FormLogin::class)) {
+            throw new ConfigurationException("DAO must be instance of ".FormLogin::class);
         }
         $this->dao = $daoClass;
     }
@@ -86,48 +98,128 @@ final class Form
     }
 
     /**
-     * Sets login policy.
+     * Sets page source route
      *
      * @param \SimpleXMLElement $xml
      */
-    private function setLoginPolicy(\SimpleXMLElement $xml): void
+    private function setPageSource(\SimpleXMLElement $xml): void
     {
-        if (!isset($xml->login)) {
-            throw new ConfigurationException("Child tag 'login' must be set for tag 'form'");
+        if (empty($xml["page"])) {
+            throw new ConfigurationException("Attribute 'page' must be set for tag 'form'");
         }
-        $this->loginPolicy = new Login($xml->login);
+        $this->pageSource = (string) $xml["page"];
     }
 
     /**
-     * Gets login policy.
+     * Gets page source route
      *
-     * @return Login
+     * @return string
      */
-    public function getLoginPolicy(): Login
+    public function getPageSource(): string
     {
-        return $this->loginPolicy;
+        return $this->pageSource;
     }
 
     /**
-     * Sets logout policy.
+     * Sets target throttled route
      *
      * @param \SimpleXMLElement $xml
      */
-    private function setLogoutPolicy(\SimpleXMLElement $xml): void
+    private function setTargetThrottled(\SimpleXMLElement $xml): void
     {
-        if (!isset($xml->logout)) {
-            throw new ConfigurationException("Child tag 'logout' must be set for tag 'form'");
+        if (empty($xml["target_throttled"])) {
+            throw new ConfigurationException("Attribute 'target_throttled' must be set for tag 'form'");
         }
-        $this->logoutPolicy = new Logout($xml->logout);
+        $this->targetThrottled = (string) $xml["target_throttled"];
     }
 
     /**
-     * Gets logout policy.
+     * Gets target throttled route
      *
-     * @return Logout
+     * @return string
      */
-    public function getLogoutPolicy(): Logout
+    public function getTargetThrottled(): string
     {
-        return $this->logoutPolicy;
+        return $this->targetThrottled;
+    }
+
+    /**
+     * Sets parameter username.
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    private function setParameterUsername(\SimpleXMLElement $xml): void
+    {
+        $this->parameterUsername = !empty($xml["parameter_username"])?(string) $xml["parameter_username"]:self::DEFAULT_PARAMETER_USERNAME;
+    }
+
+    /**
+     * Gets parameter username.
+     *
+     * @return string
+     */
+    public function getParameterUsername(): string
+    {
+        return $this->parameterUsername;
+    }
+
+    /**
+     * Sets parameter password.
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    private function setParameterPassword(\SimpleXMLElement $xml): void
+    {
+        $this->parameterPassword = !empty($xml["parameter_password"])?(string) $xml["parameter_password"]:self::DEFAULT_PARAMETER_PASSWORD;
+    }
+
+    /**
+     * Gets parameter password.
+     *
+     * @return string
+     */
+    public function getParameterPassword(): string
+    {
+        return $this->parameterPassword;
+    }
+
+    /**
+     * Sets parameter remember me.
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    private function setParameterRememberMe(\SimpleXMLElement $xml): void
+    {
+        $this->parameterRememberMe = !empty($xml["parameter_remember_me"])?(string) $xml["parameter_remember_me"]:self::DEFAULT_PARAMETER_REMEMBER_ME;
+    }
+
+    /**
+     * Gets parameter remember me.
+     *
+     * @return string
+     */
+    public function getParameterRememberMe(): string
+    {
+        return $this->parameterRememberMe;
+    }
+
+    /**
+     * Sets parameter CSRF.
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    private function setParameterCsrf(\SimpleXMLElement $xml): void
+    {
+        $this->parameterCsrf = !empty($xml["csrf"])?(string) $xml["csrf"]:self::DEFAULT_PARAMETER_CSRF;
+    }
+
+    /**
+     * Gets parameter CSRF.
+     *
+     * @return string
+     */
+    public function getParameterCsrf(): string
+    {
+        return $this->parameterCsrf;
     }
 }

@@ -4,8 +4,10 @@ namespace Lucinda\WebSecurity\Security;
 use Lucinda\WebSecurity\Configuration\Authentication as ConfigurationAuthentication;
 use Lucinda\WebSecurity\Configuration\Authentication\Form as ConfigurationAuthenticationForm;
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2 as ConfigurationAuthenticationOauth2;
+use Lucinda\WebSecurity\Configuration\Authentication\Logout as ConfigurationAuthenticationLogout;
 use Lucinda\WebSecurity\Security\Authentication\Form as AuthenticatorForm;
 use Lucinda\WebSecurity\Security\Authentication\Oauth2 as AuthenticatorOauth2;
+use Lucinda\WebSecurity\Security\Authentication\Logout as AuthenticatorLogout;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Packets\Packet;
@@ -35,18 +37,35 @@ final class Authentication
         array $oauth2Drivers = []
         )
     {
-        $methods = $configuration->getMethods();
+        $logoutConfiguration = $configuration->getLogoutMethod();
+        $this->outcome = $this->logout($logoutConfiguration, $request, $userID, $csrfTokenDetector);
+        if ($this->outcome) {
+            return;
+        }
+
+        $methods = $configuration->getLoginMethods();
         foreach ($methods as $subConfiguration) {
             if ($this->outcome) {
                 break; // outcome has already been detected
             }
 
             if ($subConfiguration instanceof ConfigurationAuthenticationForm) {
-                $this->outcome = $this->authenticateByForm($subConfiguration, $request, $userID, $csrfTokenDetector);
+                $this->outcome = $this->loginByForm($subConfiguration, $request, $userID, $csrfTokenDetector);
             } else {
-                $this->outcome = $this->authenticateByOauth2($subConfiguration, $request, $userID, $oauth2Drivers);
+                $this->outcome = $this->loginByOauth2($subConfiguration, $request, $userID, $oauth2Drivers);
             }
         }
+    }
+
+    private function logout(
+        ConfigurationAuthenticationLogout $configuration,
+        Request $request,
+        int|string|null $userID,
+        CsrfToken $csrfTokenDetector
+    ): ?Packet
+    {
+        $authenticator = new AuthenticatorLogout($configuration, $request, $csrfTokenDetector, $userID);
+        return $authenticator->getOutcome();
     }
 
     /**
@@ -57,17 +76,13 @@ final class Authentication
      * @param int|string|null $userID
      * @param ?CsrfToken $csrfTokenDetector
      */
-    private function authenticateByForm(
+    private function loginByForm(
         ConfigurationAuthenticationForm $configuration,
         Request $request,
         int|string|null $userID,
         CsrfToken $csrfTokenDetector
         ): ?Packet
     {
-        if ($csrfTokenDetector === null) {
-            throw new SecurityException("Csrf token detector is mandatory for form login!");
-        }    
-
         $authenticator = new AuthenticatorForm($configuration, $request, $csrfTokenDetector, $userID);
         return $authenticator->getOutcome();
     }
@@ -80,7 +95,7 @@ final class Authentication
      * @param int|string|null $userID
      * @param array $oauth2Drivers
      */
-    private function authenticateByOauth2(
+    private function loginByOauth2(
         ConfigurationAuthenticationOauth2 $configuration,
         Request $request,
         int|string|null $userID,

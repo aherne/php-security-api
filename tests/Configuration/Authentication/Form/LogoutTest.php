@@ -26,4 +26,9 @@ class LogoutTest
     {
         return (new Strings($this->subject()->getTargetFailure()))->assertEquals("error");
     }
+    public function getParameterCsrf()
+    {
+    }
+        
+
 }

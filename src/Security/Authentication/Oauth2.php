@@ -4,19 +4,20 @@ namespace Lucinda\WebSecurity\Security\Authentication;
 
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2 as Configuration;
 use Lucinda\WebSecurity\Request;
-use Lucinda\WebSecurity\DAO\Oauth2Authentication;
+use Lucinda\WebSecurity\DAO\Oauth2Login as LoginDAO;
 use Lucinda\WebSecurity\Security\Exception;
 use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus;
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2 as Oauth2Configuration;
 use Lucinda\WebSecurity\Oauth2Service;
 
+
 /**
  * Encapsulates OAuth2 logic.
  */
 final class Oauth2 extends Generic
 {
-    private Oauth2Authentication $dao;
+    private LoginDAO $dao;
 
     /**
      * Sets up object state.
@@ -41,10 +42,6 @@ final class Oauth2 extends Generic
 
         $requestURL = $request->getUri();
 
-        if ($configuration->getPageLogout() === $requestURL) {
-            $this->outcome = $this->logout($configuration);
-        }       
-
         $drivers = $configuration->getDrivers();
         foreach ($drivers as $driver) {
             $driverName = $driver->getName();
@@ -68,52 +65,43 @@ final class Oauth2 extends Generic
      */
     private function login(Oauth2Configuration $configuration, string $vendor, Oauth2Service $service): SecurityPacket|null
     {
-        if ($this->userID !== null) { // already logged in
+        if (!empty($this->userID)) { // already logged in
             return new SecurityPacket(
                 ResultStatus::DEFERRED,
-                $this->getCallback($configuration->getTargetLoginSuccess())
+                $this->getCallback($configuration->getTargetSuccess())
                 );
         }
 
         $parameters = $this->request->getParameters();
         if (empty($parameters["code"])) {
+            $state = bin2hex(random_bytes(32));
+            $service->produceState($state); // duration is managed internally
             return new SecurityPacket(
                 ResultStatus::DEFERRED,
-                $service->getAuthorizationCodeEndpoint()
+                $service->getAuthorizationCodeEndpoint($state)
                 );
         } else {
+            $expectedState = $service->consumeState();
+            $receivedState = $parameters["state"] ?? null;
+            if (
+                !is_string($expectedState)
+                || $expectedState === ""
+                || !is_string($receivedState)
+                || !hash_equals($expectedState, $receivedState)
+            ) {
+                throw new Exception("Invalid OAuth2 state!");
+            }
+
             $accessToken = $service->getAccessToken($parameters["code"]);
             $userInformation = $service->getUserInfo($accessToken);
-            $outcome = $this->dao->login($userInformation, $vendor, $accessToken);
-            if ($outcome !== null) {
-                $packet = new SecurityPacket(ResultStatus::IDENTITY_VERIFIED, $this->getCallback($configuration->getTargetLoginSuccess()));
+            $outcome = $this->dao->login($userInformation, $vendor);
+            if (!empty($outcome)) {
+                $packet = new SecurityPacket(ResultStatus::IDENTITY_VERIFIED, $this->getCallback($configuration->getTargetSuccess()));
                 $packet->setUserID($outcome);
                 return $packet;
             } else {
-                return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetLoginFailure()));
+                return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetFailure()));
             }
-        }
-    }
-
-    /**
-     * Processes logout.
-     *
-     * @param Oauth2Configuration $configuration
-     * @return SecurityPacket
-     */
-    private function logout(Oauth2Configuration $configuration): SecurityPacket
-    {
-        if ($this->userID === null) { // already logged out
-            return new SecurityPacket(
-                ResultStatus::DEFERRED,
-                $this->getCallback($configuration->getTargetLogoutSuccess())
-                );
-        }
-
-        if ($this->dao->logout($this->userID)) {
-            return new SecurityPacket(ResultStatus::LOGOUT_OK, $this->getCallback($configuration->getTargetLogoutSuccess()));
-        } else {
-            return new SecurityPacket(ResultStatus::LOGOUT_FAILED, $this->getCallback($configuration->getTargetLogoutFailure()));
         }
     }
 }

@@ -2,6 +2,8 @@
 
 namespace Lucinda\WebSecurity\PersistenceDrivers;
 
+use Lucinda\WebSecurity\Security\Exception;
+
 final class LoggedInUserInfo
 {
     private int|string $userID;
@@ -15,6 +17,9 @@ final class LoggedInUserInfo
         bool $rememberRequested = false,
         ?int $stageValidUntil = null
     ) {
+        if (empty($userID)) {
+            throw new Exception("User ID cannot be empty!");
+        }
         $this->userID = $userID;
         $this->stage = $stage;
         $this->rememberRequested = $rememberRequested;

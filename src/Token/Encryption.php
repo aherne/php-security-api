@@ -7,9 +7,11 @@ namespace Lucinda\WebSecurity\Token;
  */
 class Encryption
 {
-    public const CYPHER_METHOD = "AES-256-CBC";
+    public const CYPHER_METHOD = "AES-256-GCM";
+    private const VERSION = "v2";
+    private const TAG_LENGTH = 16;
 
-    private string $salt;
+    private string $key;
 
     /**
      * Creates an encryption instance using a salt password that's going to be used in encryption/decryption.
@@ -18,7 +20,8 @@ class Encryption
      */
     public function __construct(string $salt)
     {
-        $this->salt = $salt;
+        // Produces the 32-byte key required by AES-256.
+        $this->key = hash("sha256", $salt, true);
     }
 
     /**
@@ -30,18 +33,29 @@ class Encryption
      */
     public function encrypt(string $data): string
     {
-        $iv = $this->getIv();
-        $key = openssl_encrypt(
+        $iv = random_bytes(openssl_cipher_iv_length(self::CYPHER_METHOD));
+
+        $ciphertext = openssl_encrypt(
             $data,
             self::CYPHER_METHOD,
-            $this->salt,
-            0,
-            $iv
+            $this->key,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag,
+            self::VERSION,
+            self::TAG_LENGTH
         );
-        if ($key===false) {
+
+        if ($ciphertext === false) {
             throw new EncryptionException("Encryption failed!");
         }
-        return base64_encode($key.":".base64_encode($iv));
+
+        return implode(".", [
+            self::VERSION,
+            base64_encode($iv),
+            base64_encode($tag),
+            base64_encode($ciphertext)
+        ]);
     }
 
     /**
@@ -53,30 +67,40 @@ class Encryption
      */
     public function decrypt(string $data): string
     {
-        $parts = explode(":", base64_decode($data));
-        if (!isset($parts[1])) {
+        $parts = explode(".", $data);
+
+        if (count($parts) !== 4 || $parts[0] !== self::VERSION) {
+            throw new EncryptionException("Invalid encrypted value!");
+        }
+
+        $iv = base64_decode($parts[1], true);
+        $tag = base64_decode($parts[2], true);
+        $ciphertext = base64_decode($parts[3], true);
+
+        if (
+            $iv === false
+            || $tag === false
+            || $ciphertext === false
+            || strlen($iv) !== openssl_cipher_iv_length(self::CYPHER_METHOD)
+            || strlen($tag) !== self::TAG_LENGTH
+        ) {
+            throw new EncryptionException("Invalid encrypted value!");
+        }
+
+        $plaintext = openssl_decrypt(
+            $ciphertext,
+            self::CYPHER_METHOD,
+            $this->key,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag,
+            self::VERSION
+        );
+
+        if ($plaintext === false) {
             throw new EncryptionException("Decryption failed!");
         }
-        $val = openssl_decrypt(
-            $parts[0],
-            self::CYPHER_METHOD,
-            $this->salt,
-            0,
-            base64_decode($parts[1])
-        );
-        if ($val===false) {
-            throw new EncryptionException("Encryption failed!");
-        }
-        return $val;
-    }
 
-    /**
-     * Gets a non-NULL initialized vector
-     *
-     * @return string
-     */
-    private function getIv(): string
-    {
-        return openssl_random_pseudo_bytes(openssl_cipher_iv_length(self::CYPHER_METHOD));
+        return $plaintext;
     }
 }

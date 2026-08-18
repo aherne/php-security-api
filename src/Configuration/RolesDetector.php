@@ -50,15 +50,24 @@ final class RolesDetector
         int|string|null $matchingValue
     ): void {
         $roles = [];
-        $info = $xml->xpath("//".$parentTag."/".$childTag."[@".$requiredAttribute."='".$matchingValue."']");
+        $info = $xml->xpath("//".$parentTag."/".$childTag);
         if (!empty($info)) {
-            if (empty($info[0]['roles'])) {
-                throw new Exception("XML tag ".$parentTag." > ".$childTag." requires attribute: roles");
-            }
-            $tmp = (string) $info[0]["roles"];
-            $tmp= explode(",", $tmp);
-            foreach ($tmp as $role) {
-                $roles[] = trim($role);
+            foreach ($info as $node) {
+                $attributes = $node->attributes();
+                if (!isset($attributes[$requiredAttribute]) || (string) $attributes[$requiredAttribute] !== (string) $matchingValue) {
+                    continue;
+                }
+
+                if (empty($attributes['roles'])) {
+                    throw new Exception("XML tag ".$parentTag." > ".$childTag." requires attribute: roles");
+                }
+
+                $tmp = (string) $attributes['roles'];
+                $tmp= explode(",", $tmp);
+                foreach ($tmp as $role) {
+                    $roles[] = trim($role);
+                }
+                break; // no point moving forward
             }
         }
         $this->roles = $roles;

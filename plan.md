@@ -1,23 +1,5 @@
-1. OAuth2 autoloading fails on Linux
-    The namespace is DAO\OAuth2, but its directory is named DAO/Oauth2. Composer PSR-4 paths are case-sensitive on Linux. I confirmed that autoloading this interface returns false.
-    [UserInformation.php (line 3)](Z:/home/aherne/framework/security/src/DAO/Oauth2/UserInformation.php:3)
-    Rename the directory to OAuth2 or consistently rename the namespace to Oauth2.
-2. Encrypted tokens have no integrity protection
-    [Encryption.php (line 31)](Z:/home/aherne/framework/security/src/Token/Encryption.php:31) uses AES-CBC without an authentication tag or HMAC. Modified ciphertext is decrypted without first proving authenticity. The result is subsequently passed to unrestricted unserialize() in:
-    [SynchronizerToken persistence (line 91)](Z:/home/aherne/framework/security/src/PersistenceDrivers/SynchronizerToken/PersistenceDriver.php:91)
-    [Remember-me persistence (line 62)](Z:/home/aherne/framework/security/src/PersistenceDrivers/RememberMe/PersistenceDriver.php:62)
-    Use AES-256-GCM, or encrypt-then-MAC with the MAC verified before decryption. Prefer an explicit JSON representation of LoggedInUserInfo; otherwise restrict allowed_classes and verify the resulting type.
-3. XML authorization has an XPath-injection sink
-    [RolesDetector.php (line 53)](Z:/home/aherne/framework/security/src/Configuration/RolesDetector.php:53) inserts the request URI directly into an XPath expression:
-    "...[@id='".$matchingValue."']"
-    A URI containing XPath syntax can potentially select another route policy. Iterate through <route> nodes and compare their id attributes using strict PHP equality instead of constructing XPath dynamically.
-4. OAuth2 lacks state validation
-    [Oauth2.php (line 78)](Z:/home/aherne/framework/security/src/Security/Authentication/Oauth2.php:78) redirects to the provider and later exchanges code, but never creates or validates OAuth state. The current [Oauth2Service (line 12)](Z:/home/aherne/framework/security/src/Oauth2Service.php:12) contract does not provide a way to validate it either.
-    That permits login-CSRF/account-session swapping. Generate a cryptographically random state, persist it for the pending authorization request, and validate it before exchanging the code.
-    Medium priority
-5. Explicit bearer tokens do not take precedence
-    [UserInfo.php (line 34)](Z:/home/aherne/framework/security/src/Detectors/UserInfo.php:34) loads persistence drivers in XML order. Because session is configured first, a valid session can cause an explicitly supplied bearer token to be ignored entirely.
-    If accessToken !== "", locate the synchronizer-token driver and load only that credential. An invalid or expired explicit bearer token should not silently fall back to session or remember-me identity.
+    !!! The core problem is that AES-256-CBC only encrypts; it does not prove the ciphertext has not been modified. An attacker controlling a cookie or bearer token can alter encrypted bytes, and your code may decrypt the altered value before noticing anything is wrong.
+
 6. OAuth side effects occur before MFA completes
     [Oauth2.php (line 85)](Z:/home/aherne/framework/security/src/Security/Authentication/Oauth2.php:85) calls the DAO before entering PENDING_MFA. The DAO contract explicitly says it may save the provider access token. If MFA expires, [Wrapper MFA (line 75)](Z:/home/aherne/framework/security/src/Wrapper/MultiFactorAuthentication.php:75) clears persistence but cannot roll back that DAO operation.
     Elegantly separating these operations would help:
@@ -32,14 +14,6 @@
 8. Guest CSRF currently works through accidental type coercion
     The login token is generated for user ID 0, but [SynchronizerToken::decode() (line 73)](Z:/home/aherne/framework/security/src/Token/SynchronizerToken.php:73) converts 0 to null through empty(). It is then accepted because [CsrfToken (line 61)](Z:/home/aherne/framework/security/src/Detectors/CsrfToken.php:61) uses loose comparison, so null == 0.
     Preserve zero in decode() and compare strictly, or use an explicit string subject such as "guest".
-9. User ID 0 is inconsistently supported
-    Form authentication accepts ID 0 because it checks !== null, but authorization treats it as a guest:
-    [ByXML authorization (line 53)](Z:/home/aherne/framework/security/src/Security/Authorization/ByXML/Authorization.php:53)
-    [ByDAO authorization (line 41)](Z:/home/aherne/framework/security/src/Security/Authorization/ByDao/Authorization.php:41)
-    Either declare zero invalid everywhere or replace truthiness checks with !== null.
-10. Configuring both authorization mechanisms silently disables the second
-    [Security\\Authorization (line 35)](Z:/home/aherne/framework/security/src/Security/Authorization.php:35) stops after its first result. ByDAO always produces a result, so by_route is unreachable whenever both are configured.
-    Either make them mutually exclusive during configuration validation or define explicit combination semantics.
 11. Multi-driver persistence writes are not atomic
     Login and MFA promotion save drivers sequentially:
     [Authentication wrapper (line 96)](Z:/home/aherne/framework/security/src/Wrapper/Authentication.php:96)

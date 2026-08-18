@@ -32,4 +32,44 @@ class FormTest
     }
         
 
+    public function getPageSource()
+    {
+    }
+        
+
+    public function getTargetThrottled()
+    {
+    }
+        
+
+    public function getParameterUsername()
+    {
+    }
+        
+
+    public function getParameterPassword()
+    {
+    }
+        
+
+    public function getParameterRememberMe()
+    {
+    }
+        
+
+    public function getTargetSuccess()
+    {
+    }
+        
+
+    public function getTargetFailure()
+    {
+    }
+        
+
+    public function getParameterCsrf()
+    {
+    }
+        
+
 }

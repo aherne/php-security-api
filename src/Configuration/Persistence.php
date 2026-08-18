@@ -11,7 +11,7 @@ use Lucinda\WebSecurity\Configuration\Persistence\SynchronizerToken as Synchroni
  */
 final class Persistence
 {
-    private array $drivers;
+    private array $drivers = [];
 
     /**
      * Sets up object state.
@@ -25,7 +25,26 @@ final class Persistence
         }
         $subXML = $xml->persistence;
 
+        $this->validate($subXML);
         $this->setDrivers($subXML);
+    }
+
+    /**
+     * Performs checks if XML obeys the expected architecture
+     * 
+     * @param \SimpleXMLElement $xml
+     * @throws Exception
+     * @return void
+     */
+    private function validate(\SimpleXMLElement $xml): void
+    {
+        if (isset($xml->synchronizer_token) && (isset($xml->session) || isset($xml->remember_me))) {
+            throw new Exception("Synchronizer token persistence is mutually exclusive with session & remember_me!");
+        }
+
+        if (isset($xml->remember_me) && !isset($xml->session)) {
+            throw new Exception("Remember_me requires session persistence!");
+        }
     }
 
     /**
@@ -39,13 +58,12 @@ final class Persistence
             $this->drivers[] = new SessionPersistence($xml->session);
         }
 
-        if (isset($xml->synchronizer_token)) {
-            $this->drivers[] = new SynchronizedTokenPersistence($xml->synchronizer_token);
+        if (isset($xml->remember_me)) {
+            $this->drivers[] = new RememberMePersistence($xml->remember_me);
         }
 
-        // remember me can be enabled only if session/synchronizer_token already activated
-        if (isset($xml->remember_me) && (isset($xml->session) || isset($xml->synchronizer_token))) {
-            $this->drivers[] = new RememberMePersistence($xml->remember_me);
+        if (isset($xml->synchronizer_token)) {
+            $this->drivers[] = new SynchronizedTokenPersistence($xml->synchronizer_token);
         }
         
         if (empty($this->drivers)) {

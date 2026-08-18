@@ -47,4 +47,19 @@ class Oauth2Test
     {
         return (new Strings($this->subject()->getTargetLogoutFailure()))->assertEquals("error");
     }
+    public function getParameterCsrf()
+    {
+    }
+        
+
+    public function getTargetSuccess()
+    {
+    }
+        
+
+    public function getTargetFailure()
+    {
+    }
+        
+
 }

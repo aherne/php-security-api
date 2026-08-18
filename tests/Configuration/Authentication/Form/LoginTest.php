@@ -46,4 +46,9 @@ class LoginTest
     {
         return (new Strings($this->subject()->getParameterCsrf()))->assertEquals("token");
     }
+    public function getTargetThrottled()
+    {
+    }
+        
+
 }

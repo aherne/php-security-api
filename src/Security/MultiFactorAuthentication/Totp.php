@@ -189,12 +189,20 @@ final class Totp extends Generic
      */
     private function getCode(): ?string
     {
-        $parameters = $this->request->getParameters();
-        $code = $parameters[TotpConfiguration::DEFAULT_CODE_PARAMETER] ?? null;
-        if ($code === null || $code === "") {
+        if ($this->request->getMethod() !== "POST") {
             return null;
         }
-        return (string) $code;
+
+        $parameters = $this->request->getParameters();
+        $code = $parameters[TotpConfiguration::DEFAULT_CODE_PARAMETER] ?? null;
+
+        if (!is_string($code) && !is_int($code)) {
+            return null;
+        }
+
+        $code = (string) $code;
+
+        return $code === "" ? null : $code;
     }
 
     /**

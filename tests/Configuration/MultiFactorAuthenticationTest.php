@@ -52,4 +52,14 @@ class MultiFactorAuthenticationTest
     }
         
 
+    public function getExpiration()
+    {
+    }
+        
+
+    public function getPendingExpiration()
+    {
+    }
+        
+
 }

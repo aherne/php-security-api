@@ -70,6 +70,6 @@ class SynchronizerToken
         }
 
         // return user identifier
-        return (!empty($parts["uid"]) ? $parts["uid"] : null);
+        return empty($parts["uid"]) ? null : $parts["uid"];
     }
 }

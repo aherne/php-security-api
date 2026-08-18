@@ -3,16 +3,14 @@
 namespace Lucinda\WebSecurity\Security\Authentication;
 
 use Lucinda\WebSecurity\DAO\Throttler\FormLogin as FormLoginThrottler;
-use Lucinda\WebSecurity\DAO\FormAuthentication;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus;
 use Lucinda\WebSecurity\Configuration\Authentication\Form as Configuration;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
 use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
-use Lucinda\WebSecurity\Configuration\Authentication\Form\Login as LoginPolicy;
-use Lucinda\WebSecurity\Configuration\Authentication\Form\Logout as LogoutPolicy;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Packets\GuestUser;
+use Lucinda\WebSecurity\DAO\FormLogin as LoginDAO;
 
 /**
  * Encapsulates Form logic.
@@ -20,7 +18,7 @@ use Lucinda\WebSecurity\Packets\GuestUser;
 final class Form extends Generic
 {
     const GUEST_USER = "guest";
-    private FormAuthentication $dao;
+    private LoginDAO $dao;
 
     /**
      * Sets up object state.
@@ -45,19 +43,11 @@ final class Form extends Generic
 
         $throttlerClass = $configuration->getThrottler();
 
-        $loginPolicy = $configuration->getLoginPolicy();
-        if ($request->getUri() === $loginPolicy->getPageSource()) {
+        if ($request->getUri() === $configuration->getPageSource()) {
             $this->outcome = $this->login(
-                $loginPolicy,
+                $configuration,
                 $csrfTokenDetector,
                 new $throttlerClass()
-                );
-        }
-
-        $logoutPolicy = $configuration->getLogoutPolicy();
-        if ($request->getUri() === $logoutPolicy->getPageSource()) {
-            $this->outcome = $this->logout(
-                $logoutPolicy
                 );
         }
     }
@@ -65,14 +55,14 @@ final class Form extends Generic
     /**
      * Processes login.
      *
-     * @param LoginPolicy $configuration
+     * @param Configuration $configuration
      * @param CsrfToken $csrfTokenDetector
      * @param FormLoginThrottler $throttler
      * @return SecurityPacket|ThrottlingPacket|GuestUser
      */
-    private function login(LoginPolicy $configuration, CsrfToken $csrfTokenDetector, FormLoginThrottler $throttler): SecurityPacket|ThrottlingPacket|GuestUser
+    private function login(Configuration $configuration, CsrfToken $csrfTokenDetector, FormLoginThrottler $throttler): SecurityPacket|ThrottlingPacket|GuestUser
     {
-        if ($this->userID !== null) { // already logged in
+        if (!empty($this->userID)) { // already logged in
             return new SecurityPacket(
                 ResultStatus::DEFERRED,
                 $this->getCallback($configuration->getTargetSuccess())
@@ -108,7 +98,7 @@ final class Form extends Generic
 
             // attempt login
             $outcome = $this->dao->login($username, $password);
-            if ($outcome !== null) {
+            if (!empty($outcome)) {
                 $packet = new SecurityPacket(ResultStatus::IDENTITY_VERIFIED, $this->getCallback($configuration->getTargetSuccess()));
                 $packet->setUserID($outcome);
                 return $packet;
@@ -124,28 +114,6 @@ final class Form extends Generic
         return new GuestUser(
             $csrfTokenDetector->generate(self::GUEST_USER) // we are in login page and have a csrf token generated
         );
-    }
-
-    /**
-     * Processes logout.
-     *
-     * @param LogoutPolicy $configuration
-     * @return SecurityPacket
-     */
-    private function logout(LogoutPolicy $configuration): SecurityPacket
-    {
-        if ($this->userID === null) { // already logged out
-            return new SecurityPacket(
-                ResultStatus::DEFERRED,
-                $this->getCallback($configuration->getTargetSuccess())
-                );
-        }
-
-        if ($this->dao->logout($this->userID)) {
-            return new SecurityPacket(ResultStatus::LOGOUT_OK, $this->getCallback($configuration->getTargetSuccess()));
-        } else {
-            return new SecurityPacket(ResultStatus::LOGOUT_FAILED, $this->getCallback($configuration->getTargetFailure()));
-        }
     }
 
     /**

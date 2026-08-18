@@ -72,4 +72,24 @@ class MultiFactorTest
     {
         return (new Booleans($this->packet()->getProvisioningURI() === null))->assertTrue();
     }
+    public function setValidUntil()
+    {
+    }
+        
+
+    public function getValidUntil()
+    {
+    }
+        
+
+    public function setAccessToken()
+    {
+    }
+        
+
+    public function getAccessToken()
+    {
+    }
+        
+
 }

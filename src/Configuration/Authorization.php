@@ -24,6 +24,7 @@ final class Authorization
         }
         $subXML = $xml->authorization;
 
+        $this->validate($subXML);
         $this->setMethods($subXML);
     }
 
@@ -42,6 +43,20 @@ final class Authorization
         }
         if (empty($this->methods)) {
             throw new Exception("Tag 'authorization' must have at least a 'by_dao' or a 'by_route' subtag!");
+        }
+    }
+
+    /**
+     * Validates if XML logic obeys constraints
+     * 
+     * @param \SimpleXMLElement $xml
+     * @throws Exception
+     * @return void
+     */
+    private function validate(\SimpleXMLElement $xml): void
+    {
+        if (isset($xml->by_dao) && isset($xml->by_route)) {
+            throw new Exception("Tag 'authorization' cannot have both 'by_dao' or a 'by_route' subtags!");
         }
     }
 

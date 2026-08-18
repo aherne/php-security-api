@@ -153,7 +153,12 @@ final class Wrapper
      */
     public function getOutcome(): ?Packet
     {
-        $builder = new OutcomeBuilder($this->outcome, $this->userInfo, $this->persistenceDrivers);
+        $builder = new OutcomeBuilder(
+            $this->outcome,
+            $this->userInfo,
+            $this->csrfToken,
+            $this->persistenceDrivers
+            );
         return $builder->getOutcome();
     }
 }

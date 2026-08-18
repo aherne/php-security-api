@@ -6,6 +6,7 @@ use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 use Lucinda\WebSecurity\Token\SynchronizerToken;
 use Lucinda\WebSecurity\Token\ExpiredException;
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
+use Lucinda\WebSecurity\Token\EncryptionException;
 
 /**
  * Encapsulates a driver that persists unique user identifier into a crypted "remember me" cookie variable.
@@ -59,7 +60,12 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
         }
 
         try {
-            return unserialize($this->token->decode($_COOKIE[$this->parameterName]));
+            $userInfo = $this->token->decode($_COOKIE[$this->parameterName]);
+            $user = unserialize($userInfo, ["allowed_classes" => [LoggedInUserInfo::class]]);
+            if (!$user instanceof LoggedInUserInfo) {
+                throw new EncryptionException("Invalid authentication payload!");
+            }
+            return $user;
         } catch (\Exception $e) {
             // delete bad cookie
             $this->registerCookie("", time()-3600);

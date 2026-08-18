@@ -3,6 +3,7 @@
 namespace Lucinda\WebSecurity\Configuration;
 
 use Lucinda\WebSecurity\Configuration\Authentication\Form;
+use Lucinda\WebSecurity\Configuration\Authentication\Logout;
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2;
 
 /**
@@ -10,7 +11,8 @@ use Lucinda\WebSecurity\Configuration\Authentication\Oauth2;
  */
 final class Authentication
 {
-    private array $methods = [];
+    private array $loginMethods = [];
+    private Logout $logoutMethod;
 
     /**
      * Sets up object state.
@@ -24,34 +26,58 @@ final class Authentication
         }
         $subXML = $xml->authentication;
 
-        $this->setMethods($subXML);
+        $this->setLoginMethods($subXML);
+        $this->setLogoutMethod($subXML);
     }
 
     /**
-     * Sets methods.
+     * Sets login methods.
      *
      * @param \SimpleXMLElement $xml
      */
-    private function setMethods(\SimpleXMLElement $xml): void
+    private function setLoginMethods(\SimpleXMLElement $xml): void
     {
         if (isset($xml->form)) {
-            $this->methods[] = new Form($xml->form);
+            $this->loginMethods[] = new Form($xml->form);
         }
         if (isset($xml->oauth2)) {
-            $this->methods[] = new Oauth2($xml->oauth2);
+            $this->loginMethods[] = new Oauth2($xml->oauth2);
         }
-        if (empty($this->methods)) {
+        if (empty($this->loginMethods)) {
             throw new Exception("Tag 'authentication' must have at least a 'form' or an 'oauth2' subtag!");
         }
     }
 
     /**
-     * Gets methods.
+     * Sets logout method.
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    private function setLogoutMethod(\SimpleXMLElement $xml): void
+    {
+        if (!isset($xml->logout)) {
+            throw new Exception("Tag 'authentication' must have a 'logout' subtag!");
+        }
+        $this->logoutMethod = new Logout($xml->logout);
+    }
+
+    /**
+     * Gets login methods configuration
      *
      * @return array
      */
-    public function getMethods(): array
+    public function getLoginMethods(): array
     {
-        return $this->methods;
+        return $this->loginMethods;
+    }
+
+    /**
+     * Gets logout method configuration
+     * 
+     * @return Logout
+     */
+    public function getLogoutMethod(): Logout
+    {
+        return $this->logoutMethod;
     }
 }

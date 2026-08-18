@@ -23,4 +23,14 @@ class AuthenticationTest
     }
         
 
+    public function getLoginMethods()
+    {
+    }
+        
+
+    public function getLogoutMethod()
+    {
+    }
+        
+
 }
