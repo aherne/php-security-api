@@ -13,6 +13,7 @@ use Lucinda\WebSecurity\Detectors\RememberMeTicked;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Packets\GuestUser;
 use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
+use Lucinda\WebSecurity\PersistenceDrivers\Coordinator;
 use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver as RememberMePersistenceDriver;
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 
@@ -21,7 +22,7 @@ final class Authentication
     private Configuration $configuration;
     private Request $request;
     private CsrfToken $csrfToken;
-    private array $persistenceDrivers;
+    private Coordinator $persistenceDrivers;
     private ?LoggedInUserInfo $userInfo;
     private array $oauth2Drivers = [];
 
@@ -37,7 +38,7 @@ final class Authentication
         $this->configuration = $configuration;
         $this->request = $request;
         $this->csrfToken = $csrfToken;
-        $this->persistenceDrivers = $persistenceDrivers;
+        $this->persistenceDrivers = new Coordinator($persistenceDrivers);
         $this->oauth2Drivers = $oauth2Drivers;
         $this->userInfo = $userInfo;
     }
@@ -93,24 +94,9 @@ final class Authentication
             AuthenticationStage::AUTHENTICATED,
             $object->getTicked()
             );
-        $savedDrivers = [];
-        try {
-            foreach ($this->persistenceDrivers as $persistenceDriver) {
-                if (
-                    $persistenceDriver instanceof RememberMePersistenceDriver
-                    && 
-                    !$object->getTicked()
-                ) {
-                    continue;
-                }
-                $persistenceDriver->save($this->userInfo);
-                $savedDrivers[] = $persistenceDriver;
-            }
-        } catch (\Throwable $exception) {
-            $this->logoutFailing($savedDrivers);
-
-            throw $exception;
-        }
+        $this->persistenceDrivers->save($this->userInfo, function($persistenceDriver) use($object) {
+            return $persistenceDriver instanceof RememberMePersistenceDriver && !$object->getTicked();
+        });
     }
 
     /**
@@ -128,50 +114,17 @@ final class Authentication
             $object->getTicked(),
             (time() + $pendingExpirationMFA)
             );
-        $savedDrivers = [];
-        try {
-            foreach ($this->persistenceDrivers as $persistenceDriver) {
-                if (
-                    $persistenceDriver instanceof RememberMePersistenceDriver
-                ) {
-                    continue; // there no remember me for pending authentication
-                }
-                $persistenceDriver->save($this->userInfo);
-                    $savedDrivers[] = $persistenceDriver;
-            }
-        } catch (\Throwable $exception) {
-            $this->logoutFailing($savedDrivers);
-
-            throw $exception;
-        }
+        $this->persistenceDrivers->save($this->userInfo, function($persistenceDriver) {
+            return $persistenceDriver instanceof RememberMePersistenceDriver;
+        });
     }
 
     /**
      * Processes logout.
-     *
      */
     private function logout(): void
     {
-        foreach ($this->persistenceDrivers as $persistenceDriver) {
-            $persistenceDriver->clear();
-        }
-    }
-
-    /**
-     * Clears all persistence drivers if write failed to at least one of thems
-     * 
-     * @param array $savedDrivers
-     * @return void
-     */
-    private function logoutFailing(array $savedDrivers): void
-    {
-        foreach (array_reverse($savedDrivers) as $savedDriver) {
-            try {
-                $savedDriver->clear();
-            } catch (\Throwable) {
-                // Let it swallow (we did the best we can)
-            }
-        }
+        $this->persistenceDrivers->clear();
     }
 
     /**

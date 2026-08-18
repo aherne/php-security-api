@@ -12,12 +12,14 @@ use Lucinda\WebSecurity\Security\MultiFactorAuthentication\ResultStatus as Multi
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver as RememberMePersistenceDriver;
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
+use Lucinda\WebSecurity\PersistenceDrivers\Exception as PersistenceException;
+use Lucinda\WebSecurity\PersistenceDrivers\Coordinator;
 
 final class MultiFactorAuthentication
 {
     private Configuration $configuration;
     private Request $request;
-    private array $persistenceDrivers;
+    private Coordinator $persistenceDrivers;
     private ?LoggedInUserInfo $userInfo;
     
 
@@ -30,7 +32,7 @@ final class MultiFactorAuthentication
     {
         $this->configuration = $configuration;
         $this->request = $request;
-        $this->persistenceDrivers = $persistenceDrivers;
+        $this->persistenceDrivers = new Coordinator($persistenceDrivers);
         $this->userInfo = $userInfo;
     }
 
@@ -74,9 +76,7 @@ final class MultiFactorAuthentication
             return null;
         } elseif ($status === MultiFactorAuthenticationStatus::EXPIRED) {
             $this->userInfo = null;
-            foreach ($this->persistenceDrivers as $persistenceDriver) {
-                $persistenceDriver->clear();
-            }
+            $this->persistenceDrivers->clear();
         }
 
         return $outcome;
@@ -92,37 +92,9 @@ final class MultiFactorAuthentication
             $wasTicked,
             $stageValidUntil
         );
-        $savedDrivers = [];
-        try {
-            foreach ($this->persistenceDrivers as $persistenceDriver) {
-                if ($persistenceDriver instanceof RememberMePersistenceDriver && !$wasTicked) {
-                    continue; // do not save to remember me persistence driver unless remember me was actually ticked
-                }
-                $persistenceDriver->save($this->userInfo);
-                $savedDrivers[] = $persistenceDriver;
-            }
-        } catch (\Throwable $exception) {
-            $this->logoutFailing($savedDrivers);
-
-            throw $exception;
-        }
-    }
-
-    /**
-     * Clears all persistence drivers if write failed to at least one of thems
-     * 
-     * @param array $savedDrivers
-     * @return void
-     */
-    private function logoutFailing(array $savedDrivers): void
-    {
-        foreach (array_reverse($savedDrivers) as $savedDriver) {
-            try {
-                $savedDriver->clear();
-            } catch (\Throwable) {
-                // Let it swallow (we did the best we can)
-            }
-        }
+        $this->persistenceDrivers->save($this->userInfo, function($persistenceDriver) use($wasTicked) {
+            return $persistenceDriver instanceof RememberMePersistenceDriver && !$wasTicked;
+        });
     }
 
     /**

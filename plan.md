@@ -6,11 +6,6 @@
     Resolve OAuth identity before MFA.
     Commit/store the external access token only after final MFA success.
     Alternatively, keep it in a server-side pending transaction and commit or discard that transaction.
-11. Multi-driver persistence writes are not atomic
-    Login and MFA promotion save drivers sequentially:
-    [Authentication wrapper (line 96)](Z:/home/aherne/framework/security/src/Wrapper/Authentication.php:96)
-    [MFA wrapper (line 95)](Z:/home/aherne/framework/security/src/Wrapper/MultiFactorAuthentication.php:95)
-    If a later driver throws, earlier drivers retain the new state. A central saveAll() coordinator could track successful writes and clear/roll them back on failure.
 
 
 

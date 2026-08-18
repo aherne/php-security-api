@@ -108,7 +108,18 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
      */
     public function clear(): void
     {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            throw new PersistenceException(
+                "Cannot clear an inactive session!"
+            );
+        }
+
         $_SESSION = [];
-        session_regenerate_id(true);
+
+        if (!session_regenerate_id(true)) {
+            throw new PersistenceException(
+                "Unable to regenerate session ID!"
+            );
+        }
     }
 }
