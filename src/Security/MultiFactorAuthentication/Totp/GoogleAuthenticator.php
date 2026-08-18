@@ -73,21 +73,22 @@ final class GoogleAuthenticator
      * @param int $period
      * @param int $digits
      * @param int $window
-     * @return bool
+     * @return ?int Matched counter, or null when the code is invalid
      */
-    public function verify(string $secret, string $code, int $period, int $digits, int $window): bool
+    public function verify(string $secret, string $code, int $period, int $digits, int $window): ?int
     {
         if (!preg_match('/^\d{'.$digits.'}$/', $code)) {
-            return false;
+            return null;
         }
 
         $counter = intdiv(time(), $period);
         for ($i = -$window; $i <= $window; $i++) {
-            if (hash_equals($this->generateCode($secret, $counter + $i, $digits), $code)) {
-                return true;
+            $candidateCounter = $counter + $i;
+            if (hash_equals($this->generateCode($secret, $candidateCounter, $digits), $code)) {
+                return $candidateCounter;
             }
         }
-        return false;
+        return null;
     }
 
     /**

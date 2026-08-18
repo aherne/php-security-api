@@ -57,12 +57,7 @@ final class CsrfToken
     public function isValid(string $token, int|string|null $userID): bool
     {
         try {
-            $tokenUserID = $this->token->decode($token);
-            if ($tokenUserID == $userID) {
-                return true;
-            } else {
-                return false;
-            }
+            return $this->token->decode($token) === $userID;
         } catch (\Exception) {
             return false;
         }

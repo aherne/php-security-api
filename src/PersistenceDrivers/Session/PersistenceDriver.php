@@ -4,6 +4,7 @@ namespace Lucinda\WebSecurity\PersistenceDrivers\Session;
 
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
+use Lucinda\WebSecurity\PersistenceDrivers\Exception as PersistenceException;
 
 /**
  * Encapsulates a driver that persists unique user identifier into sessions.
@@ -38,7 +39,14 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
      */
     public function save(LoggedInUserInfo $authentication): void
     {
-        session_regenerate_id(true); // OWASP recomments renewing session ID on privilege changes
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            throw new PersistenceException("Cannot save authentication into an inactive session!");
+        }
+
+        if (!session_regenerate_id(true)) {
+            throw new PersistenceException("Unable to regenerate session ID!");
+        }
+        
         $_SESSION[$this->parameterName] = serialize($authentication);
         $_SESSION["ip"] = $this->current_ip;
         $_SESSION["time"] = time()+$this->securityOptions->getExpirationTime();

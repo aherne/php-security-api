@@ -5,6 +5,8 @@ use Lucinda\WebSecurity\DAO\MultiFactorAuthentication;
 
 class MockMultiFactorAuthentication implements MultiFactorAuthentication
 {
+    /** @var array<int|string,int> */
+    private static array $consumedCounters = [];
 
     public function isRequired(int|string $userID): bool
     {
@@ -36,6 +38,17 @@ class MockMultiFactorAuthentication implements MultiFactorAuthentication
 
     public function clearSetupSecret(int|string $userID): void
     {
+    }
+
+    public function consumeTotpCounter(int|string $userID, int $counter): bool
+    {
+        $lastCounter = self::$consumedCounters[$userID] ?? null;
+        if ($lastCounter !== null && $counter <= $lastCounter) {
+            return false;
+        }
+
+        self::$consumedCounters[$userID] = $counter;
+        return true;
     }
 
     public function penalize(int|string $userID): void

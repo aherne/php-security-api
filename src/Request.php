@@ -11,7 +11,7 @@ final class Request
     private string $contextPath;
     private string $ipAddress;
     private string $method;
-    private string $accessToken;
+    private string $accessToken = "";
     /**
      * @var array<string,mixed>
      */

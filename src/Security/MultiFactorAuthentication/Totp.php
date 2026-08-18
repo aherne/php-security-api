@@ -119,7 +119,7 @@ final class Totp extends Generic
             return $this->setupRequired($secret);
         }
 
-        if ($this->googleAuthenticator->verify($secret, $code, $this->method->getPeriod(), $this->method->getDigits(), $this->method->getWindow())) {
+        if ($this->verifyAndConsume($secret, $code)) {
             $this->dao->enable($this->userID, $secret);
             $this->dao->clearSetupSecret($this->userID);
             return $this->compose(ResultStatus::SUCCEEDED, $this->configuration->getSuccessRoute());
@@ -145,7 +145,7 @@ final class Totp extends Generic
             return $this->compose(ResultStatus::REQUIRED, $this->configuration->getChallengeRoute());
         }
 
-        if ($this->googleAuthenticator->verify($secret, $code, $this->method->getPeriod(), $this->method->getDigits(), $this->method->getWindow())) {
+        if ($this->verifyAndConsume($secret, $code)) {
             return $this->compose(ResultStatus::SUCCEEDED, $this->configuration->getSuccessRoute());
         }
 
@@ -203,6 +203,26 @@ final class Totp extends Generic
         $code = (string) $code;
 
         return $code === "" ? null : $code;
+    }
+
+    /**
+     * Verifies and atomically consumes a TOTP counter.
+     *
+     * @param string $secret
+     * @param string $code
+     * @return bool
+     */
+    private function verifyAndConsume(string $secret, string $code): bool
+    {
+        $counter = $this->googleAuthenticator->verify(
+            $secret,
+            $code,
+            $this->method->getPeriod(),
+            $this->method->getDigits(),
+            $this->method->getWindow()
+        );
+
+        return $counter !== null && $this->dao->consumeTotpCounter($this->userID, $counter);
     }
 
     /**

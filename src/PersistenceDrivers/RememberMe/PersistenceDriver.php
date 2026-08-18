@@ -7,6 +7,7 @@ use Lucinda\WebSecurity\Token\SynchronizerToken;
 use Lucinda\WebSecurity\Token\ExpiredException;
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\Token\EncryptionException;
+use Lucinda\WebSecurity\PersistenceDrivers\Exception as PersistenceException;
 
 /**
  * Encapsulates a driver that persists unique user identifier into a crypted "remember me" cookie variable.
@@ -95,7 +96,7 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
      */
     private function registerCookie(string $token, int $time): void
     {
-        setcookie(
+        $success = setcookie(
             $this->parameterName,
             $token,
             [
@@ -107,6 +108,9 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
                 "samesite" => $this->securityOptions->getSameSite()->value
             ]
         );
+        if (!$success) {
+            throw new PersistenceException("Unable to save remember-me cookie");
+        }
         if ($token === "") {
             unset($_COOKIE[$this->parameterName]);
         } else {

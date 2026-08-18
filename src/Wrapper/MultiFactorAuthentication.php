@@ -92,15 +92,44 @@ final class MultiFactorAuthentication
             $wasTicked,
             $stageValidUntil
         );
-        foreach ($this->persistenceDrivers as $persistenceDriver) {
-            if ($persistenceDriver instanceof RememberMePersistenceDriver && !$wasTicked) {
-                continue; // do not save to remember me persistence driver unless remember me was actually ticked
+        $savedDrivers = [];
+        try {
+            foreach ($this->persistenceDrivers as $persistenceDriver) {
+                if ($persistenceDriver instanceof RememberMePersistenceDriver && !$wasTicked) {
+                    continue; // do not save to remember me persistence driver unless remember me was actually ticked
+                }
+                $persistenceDriver->save($this->userInfo);
+                $savedDrivers[] = $persistenceDriver;
             }
-            $persistenceDriver->save($this->userInfo);
+        } catch (\Throwable $exception) {
+            $this->logoutFailing($savedDrivers);
+
+            throw $exception;
         }
     }
 
+    /**
+     * Clears all persistence drivers if write failed to at least one of thems
+     * 
+     * @param array $savedDrivers
+     * @return void
+     */
+    private function logoutFailing(array $savedDrivers): void
+    {
+        foreach (array_reverse($savedDrivers) as $savedDriver) {
+            try {
+                $savedDriver->clear();
+            } catch (\Throwable) {
+                // Let it swallow (we did the best we can)
+            }
+        }
+    }
 
+    /**
+     * Gets authenticated user info
+     * 
+     * @return LoggedInUserInfo|null
+     */
     public function getLoggedInUserInfo(): ?LoggedInUserInfo
     {
         return $this->userInfo;

@@ -55,4 +55,20 @@ interface MultiFactorAuthentication
      * @param int|string $userID
      */
     public function clearSetupSecret(int|string $userID): void;
+
+    /**
+     * Atomically consumes a successfully verified TOTP counter.
+     *
+     * Implementations must return false when the counter is less than or equal
+     * to the last counter consumed for this user. The comparison and update
+     * must happen atomically to prevent concurrent replay.
+     * 
+     * UPDATE user_mfa SET last_totp_counter = :counter WHERE
+     * user_id = :user_id AND (last_totp_counter IS NULL OR last_totp_counter < :counter)
+     *
+     * @param int|string $userID
+     * @param int $counter
+     * @return bool Whether the counter was consumed
+     */
+    public function consumeTotpCounter(int|string $userID, int $counter): bool;
 }

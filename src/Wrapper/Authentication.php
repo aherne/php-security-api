@@ -93,15 +93,23 @@ final class Authentication
             AuthenticationStage::AUTHENTICATED,
             $object->getTicked()
             );
-        foreach ($this->persistenceDrivers as $persistenceDriver) {
-            if (
-                $persistenceDriver instanceof RememberMePersistenceDriver
-                && 
-                !$object->getTicked()
-            ) {
-                continue;
+        $savedDrivers = [];
+        try {
+            foreach ($this->persistenceDrivers as $persistenceDriver) {
+                if (
+                    $persistenceDriver instanceof RememberMePersistenceDriver
+                    && 
+                    !$object->getTicked()
+                ) {
+                    continue;
+                }
+                $persistenceDriver->save($this->userInfo);
+                $savedDrivers[] = $persistenceDriver;
             }
-            $persistenceDriver->save($this->userInfo);
+        } catch (\Throwable $exception) {
+            $this->logoutFailing($savedDrivers);
+
+            throw $exception;
         }
     }
 
@@ -120,13 +128,21 @@ final class Authentication
             $object->getTicked(),
             (time() + $pendingExpirationMFA)
             );
-        foreach ($this->persistenceDrivers as $persistenceDriver) {
-            if (
-                $persistenceDriver instanceof RememberMePersistenceDriver
-            ) {
-                continue; // there no remember me for pending authentication
+        $savedDrivers = [];
+        try {
+            foreach ($this->persistenceDrivers as $persistenceDriver) {
+                if (
+                    $persistenceDriver instanceof RememberMePersistenceDriver
+                ) {
+                    continue; // there no remember me for pending authentication
+                }
+                $persistenceDriver->save($this->userInfo);
+                    $savedDrivers[] = $persistenceDriver;
             }
-            $persistenceDriver->save($this->userInfo);
+        } catch (\Throwable $exception) {
+            $this->logoutFailing($savedDrivers);
+
+            throw $exception;
         }
     }
 
@@ -141,6 +157,28 @@ final class Authentication
         }
     }
 
+    /**
+     * Clears all persistence drivers if write failed to at least one of thems
+     * 
+     * @param array $savedDrivers
+     * @return void
+     */
+    private function logoutFailing(array $savedDrivers): void
+    {
+        foreach (array_reverse($savedDrivers) as $savedDriver) {
+            try {
+                $savedDriver->clear();
+            } catch (\Throwable) {
+                // Let it swallow (we did the best we can)
+            }
+        }
+    }
+
+    /**
+     * Gets authenticated user info
+     * 
+     * @return LoggedInUserInfo|null
+     */
     public function getLoggedInUserInfo(): ?LoggedInUserInfo
     {
         return $this->userInfo;

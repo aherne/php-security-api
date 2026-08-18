@@ -34,9 +34,16 @@ class GoogleAuthenticatorTest
 
     public function verify(): array
     {
+        $period = 300;
+        $digits = 6;
+        $counter = intdiv(time(), $period);
+        $method = new \ReflectionMethod($this->authenticator, "generateCode");
+        $code = $method->invoke($this->authenticator, "ABC234", $counter, $digits);
+
         return [
-            (new Booleans($this->authenticator->verify("ABC234", "abc123", 30, 6, 1)))->assertFalse(),
-            (new Booleans($this->authenticator->verify("ABC234", "12345", 30, 6, 1)))->assertFalse()
+            (new Booleans($this->authenticator->verify("ABC234", "abc123", 30, 6, 1) === null))->assertTrue(),
+            (new Booleans($this->authenticator->verify("ABC234", "12345", 30, 6, 1) === null))->assertTrue(),
+            (new Integers($this->authenticator->verify("ABC234", $code, $period, $digits, 0) ?? -1))->assertEquals($counter)
         ];
     }
 }
