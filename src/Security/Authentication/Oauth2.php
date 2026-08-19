@@ -13,8 +13,8 @@ use Lucinda\WebSecurity\DAO\OAuth2\Login as LoginDAO;
 use Lucinda\WebSecurity\DAO\OAuth2\AutomaticProvisioning;
 use Lucinda\WebSecurity\DAO\OAuth2\ApprovalProvisioning;
 use Lucinda\WebSecurity\DAO\OAuth2\UserInformation;
-use Lucinda\WebSecurity\Oauth2ApprovalStatus;
-use Lucinda\WebSecurity\Oauth2Service;
+use Lucinda\WebSecurity\OAuth2ApprovalStatus;
+use Lucinda\WebSecurity\OAuth2Service;
 
 
 /**
@@ -66,10 +66,10 @@ final class Oauth2 extends Generic
      *
      * @param Oauth2Configuration $configuration
      * @param string $vendor
-     * @param Oauth2Service $service
+     * @param OAuth2Service $service
      * @return SecurityPacket|null
      */
-    private function login(Oauth2Configuration $configuration, string $vendor, Oauth2Service $service): SecurityPacket|null
+    private function login(Oauth2Configuration $configuration, string $vendor, OAuth2Service $service): SecurityPacket|null
     {
         if (!empty($this->userID)) { // already logged in
             return new SecurityPacket(
@@ -134,10 +134,10 @@ final class Oauth2 extends Generic
     {
         $status = $this->dao->requestApproval($userInformation, $vendor);
         return match ($status) {
-            Oauth2ApprovalStatus::PENDING =>
+            OAuth2ApprovalStatus::PENDING =>
                 $this->pendingApproval($configuration),
 
-            Oauth2ApprovalStatus::REJECTED =>
+            OAuth2ApprovalStatus::REJECTED =>
                 $this->loginFailed($configuration),
         };
     }

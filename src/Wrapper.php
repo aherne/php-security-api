@@ -28,7 +28,7 @@ final class Wrapper
     private Request $request;
     private SecurityConfiguration $configuration;
     /**
-     * @var array<string,Oauth2Service>
+     * @var array<string,OAuth2Service>
      */
     private array $oauth2Drivers;
     private ?\SimpleXMLElement $routes = null;
@@ -40,7 +40,7 @@ final class Wrapper
      *
      * @param  \SimpleXMLElement $xml
      * @param  Request           $request
-     * @param  Oauth2Service[]   $oauth2Drivers
+     * @param  OAuth2Service[]   $oauth2Drivers
      * @param ?\SimpleXMLElement $routes
      */
     public function __construct(

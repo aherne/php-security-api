@@ -2,7 +2,7 @@
 
 namespace Lucinda\WebSecurity\DAO\OAuth2;
 
-use Lucinda\WebSecurity\Oauth2ApprovalStatus;
+use Lucinda\WebSecurity\OAuth2ApprovalStatus;
 
 interface ApprovalProvisioning extends Login
 {
@@ -12,5 +12,5 @@ interface ApprovalProvisioning extends Login
     public function requestApproval(
         UserInformation $userInformation,
         string $vendorName
-    ): Oauth2ApprovalStatus;
+    ): OAuth2ApprovalStatus;
 }

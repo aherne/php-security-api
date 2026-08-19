@@ -7,7 +7,7 @@ use Lucinda\WebSecurity\DAO\OAuth2\UserInformation;
 /**
  * Defines OAuth2Service contract.
  */
-interface Oauth2Service
+interface OAuth2Service
 {
     function getAuthorizationCodeEndpoint(string $state): string;
     function getAccessToken(string $authorizationCode): string;
