@@ -62,4 +62,9 @@ class Oauth2Test
     }
         
 
+    public function getProvisioning()
+    {
+    }
+        
+
 }

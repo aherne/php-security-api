@@ -17,6 +17,7 @@ enum ResultStatus: int
     case LOGIN_OK = 1;
     case LOGIN_FAILED = 2;
     case LOGIN_THROTTLED = 6;
+    case LOGIN_PENDING = 8;
     case LOGOUT_OK = 3;
     case LOGOUT_FAILED = 4;
     case DEFERRED = 5;

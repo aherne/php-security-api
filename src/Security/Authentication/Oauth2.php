@@ -4,11 +4,16 @@ namespace Lucinda\WebSecurity\Security\Authentication;
 
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2 as Configuration;
 use Lucinda\WebSecurity\Request;
-use Lucinda\WebSecurity\DAO\Oauth2Login as LoginDAO;
 use Lucinda\WebSecurity\Security\Exception;
 use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus;
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2 as Oauth2Configuration;
+use Lucinda\WebSecurity\Configuration\Authentication\Oauth2\Provisioning;
+use Lucinda\WebSecurity\DAO\OAuth2\Login as LoginDAO;
+use Lucinda\WebSecurity\DAO\OAuth2\AutomaticProvisioning;
+use Lucinda\WebSecurity\DAO\OAuth2\ApprovalProvisioning;
+use Lucinda\WebSecurity\DAO\OAuth2\UserInformation;
+use Lucinda\WebSecurity\Oauth2ApprovalStatus;
 use Lucinda\WebSecurity\Oauth2Service;
 
 
@@ -17,6 +22,7 @@ use Lucinda\WebSecurity\Oauth2Service;
  */
 final class Oauth2 extends Generic
 {
+    /** @var AutomaticProvisioning|ApprovalProvisioning|LoginDAO $dao */
     private LoginDAO $dao;
 
     /**
@@ -94,14 +100,62 @@ final class Oauth2 extends Generic
 
             $accessToken = $service->getAccessToken($parameters["code"]);
             $userInformation = $service->getUserInfo($accessToken);
-            $outcome = $this->dao->login($userInformation, $vendor);
-            if (!empty($outcome)) {
-                $packet = new SecurityPacket(ResultStatus::IDENTITY_VERIFIED, $this->getCallback($configuration->getTargetSuccess()));
-                $packet->setUserID($outcome);
-                return $packet;
-            } else {
-                return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetFailure()));
+            
+            $userID = $this->dao->resolve($userInformation, $vendor);
+
+            if ($userID !== null) {
+                return $this->identityVerified($configuration, $userID);
             }
+
+            return match ($configuration->getProvisioning()) {
+                Provisioning::EXISTING_ONLY =>
+                    $this->loginFailed($configuration),
+
+                Provisioning::AUTOMATIC =>
+                    $this->createAccount($configuration, $userInformation, $vendor),
+
+                Provisioning::APPROVAL_REQUIRED =>
+                    $this->requestApproval($configuration, $userInformation, $vendor),
+            };
         }
+    }
+
+    private function createAccount(Oauth2Configuration $configuration, UserInformation $userInformation, string $vendor): SecurityPacket
+    {
+        $userID = $this->dao->create($userInformation, $vendor);
+        if ($userID === null) {
+            return $this->loginFailed($configuration);
+        } else {
+            return $this->identityVerified($configuration, $userID);
+        }
+    }
+
+    private function requestApproval(Oauth2Configuration $configuration, UserInformation $userInformation, string $vendor): SecurityPacket
+    {
+        $status = $this->dao->requestApproval($userInformation, $vendor);
+        return match ($status) {
+            Oauth2ApprovalStatus::PENDING =>
+                $this->pendingApproval($configuration),
+
+            Oauth2ApprovalStatus::REJECTED =>
+                $this->loginFailed($configuration),
+        };
+    }
+
+    private function identityVerified(Oauth2Configuration $configuration, int|string $userID): SecurityPacket
+    {        
+        $packet = new SecurityPacket(ResultStatus::IDENTITY_VERIFIED, $this->getCallback($configuration->getTargetSuccess()));
+        $packet->setUserID($userID);
+        return $packet;
+    }
+
+    private function loginFailed(Oauth2Configuration $configuration): SecurityPacket
+    {        
+        return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetFailure()));
+    }
+
+    private function pendingApproval(Oauth2Configuration $configuration): SecurityPacket
+    {        
+        return new SecurityPacket(ResultStatus::LOGIN_PENDING, $this->getCallback($configuration->getTargetPending()));
     }
 }

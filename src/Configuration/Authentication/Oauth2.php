@@ -3,8 +3,11 @@
 namespace Lucinda\WebSecurity\Configuration\Authentication;
 
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2\Driver;
+use Lucinda\WebSecurity\Configuration\Authentication\Oauth2\Provisioning;
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
-use Lucinda\WebSecurity\DAO\Oauth2Login;
+use Lucinda\WebSecurity\DAO\OAuth2\Login as Oauth2Login;
+use Lucinda\WebSecurity\DAO\OAuth2\ApprovalProvisioning as Oauth2ApprovalProvisioning;
+use Lucinda\WebSecurity\DAO\OAuth2\AutomaticProvisioning as Oauth2AutomaticProvisioning;
 
 /**
  * Encapsulates OAuth2 logic.
@@ -13,6 +16,8 @@ final class Oauth2 extends Generic
 {
     private string $dao;
     private array $drivers = [];
+    private Provisioning $provisioning;
+    protected string $targetPending = "";
 
     /**
      * Sets up object state.
@@ -21,11 +26,41 @@ final class Oauth2 extends Generic
      */
     public function __construct(\SimpleXMLElement $xml)
     {
+        $this->setProvisioning($xml);
         $this->setDAO($xml);
         $this->setTargetSuccess($xml);
         $this->setTargetFailure($xml);
-        $this->setParameterCsrf($xml);
+        $this->setTargetPending($xml);
         $this->setDrivers($xml);
+    }
+
+    /**
+     * Sets how the state machine will treat accounts attempting OAuth2 login
+     * 
+     * @param \SimpleXMLElement $xml
+     * @throws ConfigurationException
+     * @return void
+     */
+    private function setProvisioning(\SimpleXMLElement $xml): void
+    {
+        $provisioning = (string) $xml["provisioning"];
+        if (empty($provisioning)) {
+            throw new ConfigurationException("Attribute 'provisioning' must be set for tag 'oauth2'");
+        }
+        if (Provisioning::tryFrom($provisioning) === null) {
+            throw new ConfigurationException("Attribute 'provisioning' has invalid value");
+        }
+        $this->provisioning = Provisioning::from($provisioning);
+    }
+
+    /**
+     * Gets how the state machine will treat accounts attempting OAuth2 login
+     * 
+     * @return Provisioning
+     */
+    public function getProvisioning(): Provisioning
+    {
+        return $this->provisioning;
     }
 
     /**
@@ -36,11 +71,21 @@ final class Oauth2 extends Generic
     private function setDAO(\SimpleXMLElement $xml): void
     {
         $daoClass = (string) $xml["dao"];
-        if (empty($daoClass)) {
-            throw new ConfigurationException("Attribute 'dao' must be set for tag 'oauth2'");
-        }
-        if (!is_subclass_of($daoClass, Oauth2Login::class)) {
-            throw new ConfigurationException("DAO must be instance of ".Oauth2Login::class);
+        $requiredDAO = match ($this->provisioning) {
+            Provisioning::EXISTING_ONLY =>
+                Oauth2Login::class,
+
+            Provisioning::AUTOMATIC =>
+                Oauth2AutomaticProvisioning::class,
+
+            Provisioning::APPROVAL_REQUIRED =>
+                Oauth2ApprovalProvisioning::class,
+        };
+
+        if (!is_subclass_of($daoClass, $requiredDAO)) {
+            throw new ConfigurationException(
+                "DAO must implement ".$requiredDAO
+            );
         }
         $this->dao = $daoClass;
     }
@@ -78,5 +123,31 @@ final class Oauth2 extends Generic
     public function getDrivers(): array
     {
         return $this->drivers;
+    }
+
+    /**
+     * Sets target pending route
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    protected function setTargetPending(\SimpleXMLElement $xml): void
+    {
+        if ($this->provisioning !== Provisioning::APPROVAL_REQUIRED) {
+            return; // this feature is 100% useless unless OAuth2 accounts require approval
+        }
+        if (empty($xml["target_pending"])) {
+            throw new ConfigurationException("Attribute 'target_pending' is mandatory 'authentication' sub-tags");
+        }
+        $this->targetPending = (string) $xml["target_pending"];
+    }
+
+    /**
+     * Gets target pending route
+     *
+     * @return string
+     */
+    public function getTargetPending(): string
+    {
+        return $this->targetPending;
     }
 }
