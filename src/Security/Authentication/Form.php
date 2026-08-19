@@ -76,9 +76,14 @@ final class Form extends Generic
             $csrfParameter = $configuration->getParameterCsrf();
             $usernameParameter = $configuration->getParameterUsername();
             $passwordParameter = $configuration->getParameterPassword();
-            if (empty($parameters[$csrfParameter]) || empty($parameters[$usernameParameter]) || empty($parameters[$passwordParameter])) {
+            if (!$this->validateParameters([
+                $configuration->getParameterCsrf(),
+                $configuration->getParameterUsername(),
+                $configuration->getParameterPassword()
+            ])) {
                 return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetFailure()));
             }
+            
             $username = $parameters[$usernameParameter];
             $password = $parameters[$passwordParameter];
             $ipAddress = $this->request->getIpAddress();
@@ -126,5 +131,22 @@ final class Form extends Generic
         $packet = new ThrottlingPacket(ResultStatus::LOGIN_THROTTLED);
         $packet->setCallback($this->getCallback($callback));
         return $packet;
+    }
+
+    /**
+     * Validates if request parameters identified by keys are all existing and strings
+     * 
+     * @param array $keys
+     * @return bool
+     */
+    private function validateParameters(array $keys): bool
+    {
+        $parameters = $this->request->getParameters();
+        foreach ($keys as $key) {
+            if (empty($parameters[$key]) || !is_string($parameters[$key])) {
+                return false;
+            }
+        }
+        return true;
     }
 }

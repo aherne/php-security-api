@@ -1,66 +1,6 @@
 The audit found 9 concrete bugs. Three are release blockers. I made no source changes and ignored the obsolete tests as requested.
 Release blockers
-1. Critical: enrolled TOTP can be replaced without the old factor
-    [Totp.php (line 89)](/Users/luciangabrielpopescu/framework/security/src/Security/MultiFactorAuthentication/Totp.php:89) enters setup() before checking whether the user already has a secret at line 97.
-    A user with a stolen password can:
-    1. Complete primary authentication.
-    2. Request the MFA setup route.
-    3. Receive a newly generated secret.
-    4. Validate that new secret.
-    5. Cause enable() to overwrite the victim’s existing secret.
-    I reproduced this with a DAO returning an existing secret; the result was still SETUP_REQUIRED, and a replacement setup secret was saved.
-    Setup must be allowed only when getSecret($userID) === null. Put the enrolled-secret check before route dispatch and also guard setup() defensively.
-
-2. High: successful form login crashes
-    [RememberMeTicked.php (line 41)](/Users/luciangabrielpopescu/framework/security/src/Detectors/RememberMeTicked.php:41) calls two removed APIs:
-    getMethods()
-    getLoginPolicy()
-    The current APIs are:
-    getLoginMethods()
-    getParameterRememberMe()
-    Every successful form POST reaches this detector before persistence and currently throws:
-    Error: Call to undefined method ...Authentication::getMethods()
-    FIXED
-
-3. High: OAuth classes will fail PSR-4 autoloading on Linux
-    The macOS filesystem is hiding incomplete case-only renames. Git currently tracks:
-    src/Oauth2Service.php
-    src/Oauth2ApprovalStatus.php
-    But the code refers to OAuth2Service and OAuth2ApprovalStatus. Additionally, [OAuth2ApprovalStatus.php (line 5)](/Users/luciangabrielpopescu/framework/security/src/OAuth2ApprovalStatus.php:5) declares Oauth2ApprovalStatus.
-    Composer’s optimized autoloader explicitly reports the enum as non-PSR-4-compliant and skips it. On a case-sensitive Linux clone, OAuth2Service will also not resolve.
-    Force the filename changes through temporary names with git mv, and rename the enum declaration to OAuth2ApprovalStatus.
 Important functional bugs
-
-4. User ID 0 is still unsupported
-    This regression is present in several layers:
-    - [LoggedInUserInfo.php (line 20)](/Users/luciangabrielpopescu/framework/security/src/PersistenceDrivers/LoggedInUserInfo.php:20) rejects 0 and "0".
-    - [Form.php (line 65)](/Users/luciangabrielpopescu/framework/security/src/Security/Authentication/Form.php:65) treats ID 0 as logged out and a DAO result of 0 as login failure.
-    - [Oauth2.php (line 78)](/Users/luciangabrielpopescu/framework/security/src/Security/Authentication/Oauth2.php:78) treats it as logged out.
-    - [Logout.php (line 57)](/Users/luciangabrielpopescu/framework/security/src/Security/Authentication/Logout.php:57) treats it as already logged out.
-    - [SynchronizerToken.php (line 73)](/Users/luciangabrielpopescu/framework/security/src/Token/SynchronizerToken.php:73) decodes it as null.
-    - Both authorization implementations classify it as a guest.
-    - [ByDao/Authorization.php (line 41)](/Users/luciangabrielpopescu/framework/security/src/Security/Authorization/ByDao/Authorization.php:41) also treats page ID 0 as nonexistent.
-    Use explicit === null/!== null checks. For LoggedInUserInfo, reject only the empty string, not integer or string zero.
-
-5. Session payload loading is unsafe and fragile
-    [Session/PersistenceDriver.php (line 87)](/Users/luciangabrielpopescu/framework/security/src/PersistenceDrivers/Session/PersistenceDriver.php:87) assumes $_SESSION["ip"] and $_SESSION["time"] exist. Missing metadata causes undefined-key errors; I reproduced this with an otherwise valid authentication record.
-    At [line 103 (line 103)](/Users/luciangabrielpopescu/framework/security/src/PersistenceDrivers/Session/PersistenceDriver.php:103), unrestricted unserialize():
-    - Instantiates arbitrary serialized classes.
-    - Does not verify LoggedInUserInfo.
-    - Produces a return-type TypeError for corrupted records.
-    I confirmed that a serialized object’s __wakeup() executes before the return-type failure. Use allowed_classes, verify instanceof LoggedInUserInfo, validate metadata, and check whether session_start() succeeds.
-
-6. Malformed request parameters cause uncaught TypeErrors
-    [Form.php (line 79)](/Users/luciangabrielpopescu/framework/security/src/Security/Authentication/Form.php:79) checks only empty(). A request such as csrf[]=x passes that test and then passes an array to CsrfToken::isValid(string ...), producing a 500-level TypeError.
-    Username and password have the same problem. OAuth’s authorization code at [Oauth2.php (line 86)](/Users/luciangabrielpopescu/framework/security/src/Security/Authentication/Oauth2.php:86) is also passed to a string parameter without type validation.
-    Validate all external parameters with is_string() before calling typed application/service methods.
-
-7. OAuth provider errors restart authentication indefinitely
-    At [Oauth2.php (line 86)](/Users/luciangabrielpopescu/framework/security/src/Security/Authentication/Oauth2.php:86), every response without code is treated as a new login.
-    A standard callback such as:
-    error=access_denied&state=...
-    therefore generates another state and redirects to the provider again. I reproduced the result as DEFERRED with a new state saved.
-    Handle error callbacks first: validate and consume their state, then return LOGIN_FAILED.
 
 8. Security-sensitive XML values are silently coerced
     Several parsers cast instead of validating:
@@ -93,3 +33,59 @@ I did not classify automatic account creation before MFA, stateless-token revoca
 
 
 7:22 AM
+
+Keep the previous design:
+enum SecurityEventType: string
+{
+    case FORM_PARAMETERS_INVALID = "form_parameters_invalid";
+    case FORM_CSRF_REJECTED = "form_csrf_rejected";
+    case FORM_CREDENTIALS_REJECTED = "form_credentials_rejected";
+    case FORM_LOGIN_SUCCEEDED = "form_login_succeeded";
+
+    case OAUTH_STATE_REJECTED = "oauth_state_rejected";
+    case OAUTH_PROVIDER_REJECTED = "oauth_provider_rejected";
+    case OAUTH_CODE_REJECTED = "oauth_code_rejected";
+    case OAUTH_LOGIN_SUCCEEDED = "oauth_login_succeeded";
+
+    case MFA_CODE_REJECTED = "mfa_code_rejected";
+    case MFA_REPLAY_REJECTED = "mfa_replay_rejected";
+    case MFA_SUCCEEDED = "mfa_succeeded";
+    case MFA_THROTTLED = "mfa_throttled";
+
+    case LOGOUT_CSRF_REJECTED = "logout_csrf_rejected";
+    case LOGOUT_SUCCEEDED = "logout_succeeded";
+
+    case AUTHORIZATION_REJECTED = "authorization_rejected";
+}
+Then:
+final class SecurityEvent
+{
+    public function __construct(
+        private SecurityEventType $type,
+        private int|string|null $userID = null,
+        private array $context = []
+    ) {
+    }
+
+    // getters
+}
+And the output boundary:
+interface SecurityAuditLogger
+{
+    public function record(SecurityEvent $event): void;
+}
+Every decision branch emits a typed event before returning its deliberately generic packet:
+$this->auditLogger->record(
+    new SecurityEvent(
+        SecurityEventType::FORM_CSRF_REJECTED,
+        context: ["uri" => $this->request->getUri()]
+    )
+);
+
+return $this->loginFailed($configuration);
+A temporary JsonFileAuditLogger, PSR-3 adapter, database logger, or SIEM adapter implements that interface. The authentication code never changes again.
+So the correct architecture is:
+Decision branch
+    ├── typed SecurityEvent → internal audit logger
+    └── generic Packet      → external caller
+That preserves both observability and security: operators know the exact cause, while clients see only LOGIN_FAILED.

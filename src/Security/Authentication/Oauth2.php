@@ -83,7 +83,12 @@ final class Oauth2 extends Generic
         }
 
         $parameters = $this->request->getParameters();
-        if (empty($parameters["code"])) {
+        $isCallback = (
+            array_key_exists("code", $parameters)
+            || array_key_exists("error", $parameters)
+            || array_key_exists("state", $parameters)
+        );
+        if (!!$isCallback) {
             $state = bin2hex(random_bytes(32));
             $this->state->save(
                 $state,
@@ -94,7 +99,7 @@ final class Oauth2 extends Generic
                 ResultStatus::DEFERRED,
                 $service->getAuthorizationCodeEndpoint($state)
                 );
-        } else {
+        } else {       
             $receivedState = $parameters["state"] ?? null;
 
             if (
@@ -102,10 +107,20 @@ final class Oauth2 extends Generic
                 || $receivedState === ""
                 || !$this->state->consume($receivedState, $vendor)
             ) {
-                throw new Exception("Invalid OAuth2 state!");
+                return $this->loginFailed($configuration);
             }
 
-            $accessToken = $service->getAccessToken($parameters["code"]);
+            if (array_key_exists("error", $parameters)) {
+                return $this->loginFailed($configuration);
+            }
+
+            $code = $parameters["code"] ?? null;
+
+            if (!is_string($code) || $code === "") {
+                return $this->loginFailed($configuration);
+            }
+
+            $accessToken = $service->getAccessToken($code);
             $userInformation = $service->getUserInfo($accessToken);
             
             $userID = $this->dao->resolve($userInformation, $vendor);
