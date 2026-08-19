@@ -15,7 +15,7 @@ use Lucinda\WebSecurity\DAO\OAuth2\ApprovalProvisioning;
 use Lucinda\WebSecurity\DAO\OAuth2\UserInformation;
 use Lucinda\WebSecurity\OAuth2ApprovalStatus;
 use Lucinda\WebSecurity\OAuth2Service;
-
+use Lucinda\WebSecurity\OAuth2State;
 
 /**
  * Encapsulates OAuth2 logic.
@@ -24,6 +24,7 @@ final class Oauth2 extends Generic
 {
     /** @var AutomaticProvisioning|ApprovalProvisioning|LoginDAO $dao */
     private LoginDAO $dao;
+    private OAuth2State $state;
 
     /**
      * Sets up object state.
@@ -32,16 +33,19 @@ final class Oauth2 extends Generic
      * @param Request $request
      * @param int|string|null $userID
      * @param array $oauth2Drivers
+     * @param OAuth2State $oauth2State
      */
     public function __construct(
         Configuration $configuration,
         Request $request,
         int|string|null $userID,
-        array $oauth2Drivers
+        array $oauth2Drivers,
+        OAuth2State $oauth2State
         )
     {
         $this->request = $request;
         $this->userID = $userID;
+        $this->state = $oauth2State;
 
         $daoClass = $configuration->getDAO();
         $this->dao = new $daoClass();
@@ -81,19 +85,22 @@ final class Oauth2 extends Generic
         $parameters = $this->request->getParameters();
         if (empty($parameters["code"])) {
             $state = bin2hex(random_bytes(32));
-            $service->produceState($state); // duration is managed internally
+            $this->state->save(
+                $state,
+                $vendor,
+                time() + $configuration->getStateExpiration()
+            );
             return new SecurityPacket(
                 ResultStatus::DEFERRED,
                 $service->getAuthorizationCodeEndpoint($state)
                 );
         } else {
-            $expectedState = $service->consumeState();
             $receivedState = $parameters["state"] ?? null;
+
             if (
-                !is_string($expectedState)
-                || $expectedState === ""
-                || !is_string($receivedState)
-                || !hash_equals($expectedState, $receivedState)
+                !is_string($receivedState)
+                || $receivedState === ""
+                || !$this->state->consume($receivedState, $vendor)
             ) {
                 throw new Exception("Invalid OAuth2 state!");
             }

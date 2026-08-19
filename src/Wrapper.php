@@ -31,6 +31,7 @@ final class Wrapper
      * @var array<string,OAuth2Service>
      */
     private array $oauth2Drivers;
+    private ?OAuth2State $oauth2State;
     private ?\SimpleXMLElement $routes = null;
     private CsrfToken $csrfToken;
     private ?Packet $outcome = null;
@@ -38,21 +39,24 @@ final class Wrapper
     /**
      * Performs class logic by delegating to specialized methods
      *
-     * @param  \SimpleXMLElement $xml
-     * @param  Request           $request
-     * @param  OAuth2Service[]   $oauth2Drivers
+     * @param \SimpleXMLElement $xml
+     * @param Request           $request
+     * @param OAuth2Service[]   $oauth2Drivers
+     * @param ?OAuth2State      $oauth2State
      * @param ?\SimpleXMLElement $routes
      */
     public function __construct(
         \SimpleXMLElement $xml,
         Request $request,
         array $oauth2Drivers = [],
+        ?OAuth2State $oauth2State = null,
         ?\SimpleXMLElement $routes = null
         )
     {
         $this->request = $request;
         $this->configuration = new SecurityConfiguration($xml);
         $this->oauth2Drivers = $oauth2Drivers;
+        $this->oauth2State = $oauth2State;
         $this->routes = $routes;
 
         $pdd = new PersistenceDriversDetector($this->configuration->getPersistence(), $request->getIpAddress());
@@ -101,6 +105,7 @@ final class Wrapper
             $this->csrfToken,
             $this->persistenceDrivers,
             $this->oauth2Drivers,
+            $this->oauth2State,
             $this->userInfo
             );
         $outcome = $driver->run();

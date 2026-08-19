@@ -12,7 +12,4 @@ interface OAuth2Service
     function getAuthorizationCodeEndpoint(string $state): string;
     function getAccessToken(string $authorizationCode): string;
     function getUserInfo(string $accessToken): UserInformation;
-    // TODO: migrate below to OAuth2State interface
-    function produceState(string $state): void;
-    function consumeState(): ?string;
 }

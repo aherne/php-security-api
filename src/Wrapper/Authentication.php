@@ -11,6 +11,7 @@ use Lucinda\WebSecurity\Security\Authentication as SecurityAuthentication;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus as AuthenticationStatus;
 use Lucinda\WebSecurity\Detectors\RememberMeTicked;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
+use Lucinda\WebSecurity\OAuth2State;
 use Lucinda\WebSecurity\Packets\GuestUser;
 use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
 use Lucinda\WebSecurity\PersistenceDrivers\Coordinator;
@@ -25,6 +26,7 @@ final class Authentication
     private Coordinator $persistenceDrivers;
     private ?LoggedInUserInfo $userInfo;
     private array $oauth2Drivers = [];
+    private ?OAuth2State $oauth2State = null;
 
     public function __construct(
         Configuration $configuration,
@@ -32,6 +34,7 @@ final class Authentication
         CsrfToken $csrfToken,
         array $persistenceDrivers,
         array $oauth2Drivers = [],
+        ?OAuth2State $oauth2State = null,
         ?LoggedInUserInfo $userInfo = null
         )
     {
@@ -40,6 +43,7 @@ final class Authentication
         $this->csrfToken = $csrfToken;
         $this->persistenceDrivers = new Coordinator($persistenceDrivers);
         $this->oauth2Drivers = $oauth2Drivers;
+        $this->oauth2State = $oauth2State;
         $this->userInfo = $userInfo;
     }
     
@@ -55,7 +59,8 @@ final class Authentication
             $this->request,
             $this->userInfo!==null?$this->userInfo->getUserID():null,
             $this->csrfToken,
-            $this->oauth2Drivers
+            $this->oauth2Drivers,
+            $this->oauth2State
             );
         $outcome = $validator->getOutcome();
         if (!$outcome) {

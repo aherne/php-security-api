@@ -17,7 +17,8 @@ final class Oauth2 extends Generic
     private string $dao;
     private array $drivers = [];
     private Provisioning $provisioning;
-    protected string $targetPending = "";
+    private string $targetPending = "";
+    private int $stateExpiration;
 
     /**
      * Sets up object state.
@@ -31,6 +32,7 @@ final class Oauth2 extends Generic
         $this->setTargetSuccess($xml);
         $this->setTargetFailure($xml);
         $this->setTargetPending($xml);
+        $this->setStateExpiration($xml);
         $this->setDrivers($xml);
     }
 
@@ -130,7 +132,7 @@ final class Oauth2 extends Generic
      *
      * @param \SimpleXMLElement $xml
      */
-    protected function setTargetPending(\SimpleXMLElement $xml): void
+    private function setTargetPending(\SimpleXMLElement $xml): void
     {
         if ($this->provisioning !== Provisioning::APPROVAL_REQUIRED) {
             return; // this feature is 100% useless unless OAuth2 accounts require approval
@@ -149,5 +151,34 @@ final class Oauth2 extends Generic
     public function getTargetPending(): string
     {
         return $this->targetPending;
+    }
+
+    /**
+     * Sets for how long value of OAuth2 state will remain fresh
+     *
+     * @param \SimpleXMLElement $xml
+     */
+    private function setStateExpiration(\SimpleXMLElement $xml): void
+    {
+        $stateExpiration = filter_var(
+            (string) $xml["state_expiration"],
+            FILTER_VALIDATE_INT,
+            ["options" => ["min_range" => 1]]
+        );
+
+        if ($stateExpiration === false) {
+            throw new ConfigurationException("Attribute 'state_expiration' must have positive integer value");
+        }
+        $this->stateExpiration = (int) $stateExpiration;
+    }
+
+    /**
+     * Gets for how long value of OAuth2 state will remain fresh
+     *
+     * @return int
+     */
+    public function getStateExpiration(): int
+    {
+        return $this->stateExpiration;
     }
 }

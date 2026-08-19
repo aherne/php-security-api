@@ -10,6 +10,7 @@ use Lucinda\WebSecurity\Security\Authentication\Oauth2 as AuthenticatorOauth2;
 use Lucinda\WebSecurity\Security\Authentication\Logout as AuthenticatorLogout;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
+use Lucinda\WebSecurity\OAuth2State;
 use Lucinda\WebSecurity\Packets\Packet;
 use Lucinda\WebSecurity\Security\Exception as SecurityException;
 
@@ -28,13 +29,15 @@ final class Authentication
      * @param int|string|null $userID
      * @param CsrfToken $csrfTokenDetector
      * @param array $oauth2Drivers
+     * @param ?OAuth2State $oauth2State
      */
     public function __construct(
         ConfigurationAuthentication $configuration,
         Request $request,
         int|string|null $userID,
         CsrfToken $csrfTokenDetector,
-        array $oauth2Drivers = []
+        array $oauth2Drivers = [],
+        ?OAuth2State $oauth2State = null
         )
     {
         $logoutConfiguration = $configuration->getLogoutMethod();
@@ -52,7 +55,10 @@ final class Authentication
             if ($subConfiguration instanceof ConfigurationAuthenticationForm) {
                 $this->outcome = $this->loginByForm($subConfiguration, $request, $userID, $csrfTokenDetector);
             } else {
-                $this->outcome = $this->loginByOauth2($subConfiguration, $request, $userID, $oauth2Drivers);
+                if (empty($oauth2Drivers) || $oauth2State === null) {
+                    throw new SecurityException("Oauth2 drivers and state are mandatory for oauth2 login!");
+                }
+                $this->outcome = $this->loginByOauth2($subConfiguration, $request, $userID, $oauth2Drivers, $oauth2State);
             }
         }
     }
@@ -94,19 +100,17 @@ final class Authentication
      * @param Request $request
      * @param int|string|null $userID
      * @param array $oauth2Drivers
+     * @param OAuth2State $oauth2State
      */
     private function loginByOauth2(
         ConfigurationAuthenticationOauth2 $configuration,
         Request $request,
         int|string|null $userID,
-        array $oauth2Drivers = []
+        array $oauth2Drivers,
+        OAuth2State $oauth2State
         ): ?Packet
     {
-        if (empty($oauth2Drivers)) {
-            throw new SecurityException("Oauth2 drivers are mandatory for oauth2 login!");
-        }    
-
-        $authenticator = new AuthenticatorOauth2($configuration, $request, $userID, $oauth2Drivers);
+        $authenticator = new AuthenticatorOauth2($configuration, $request, $userID, $oauth2Drivers, $oauth2State);
         return $authenticator->getOutcome();
     }
 
