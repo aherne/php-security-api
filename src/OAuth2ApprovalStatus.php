@@ -2,7 +2,7 @@
 
 namespace Lucinda\WebSecurity;
 
-enum Oauth2ApprovalStatus: string
+enum OAuth2ApprovalStatus: string
 {
     case PENDING = "pending";
     case REJECTED = "rejected";

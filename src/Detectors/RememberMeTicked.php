@@ -38,9 +38,9 @@ final class RememberMeTicked
         }
 
         $rememberMeParam = "";
-        foreach ($configuration->getAuthentication()->getMethods() as $method) {
+        foreach ($configuration->getAuthentication()->getLoginMethods() as $method) {
             if ($method instanceof FormAuthentication) {
-                $rememberMeParam = $method->getLoginPolicy()->getParameterRememberMe();
+                $rememberMeParam = $method->getParameterRememberMe();
             }
         }
 

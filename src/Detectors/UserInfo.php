@@ -11,7 +11,7 @@ use Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\PersistenceDriver a
  */
 final class UserInfo
 {
-    private ?LoggedInUserInfo $userInfo;
+    private ?LoggedInUserInfo $userInfo = null;
 
     /**
      * Sets logged in user id based on persistence drivers

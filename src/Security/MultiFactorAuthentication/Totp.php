@@ -86,16 +86,18 @@ final class Totp extends Generic
             return $this->composeThrottling($this->configuration->getThrottledRoute());
         }
 
-        if ($this->request->getUri() === $this->configuration->getSetupRoute()) {
-            return $this->setup();
+        $enrolledSecret = $this->dao->getSecret($this->userID);
+
+        if ($enrolledSecret === null) {
+            if ($this->request->getUri() === $this->configuration->getSetupRoute()) {
+                return $this->setup();
+            }
+
+            return $this->setupRequired();
         }
 
         if ($this->request->getUri() === $this->configuration->getChallengeRoute()) {
             return $this->challenge();
-        }
-
-        if ($this->dao->getSecret($this->userID) === null) {
-            return $this->setupRequired();
         }
 
         return $this->compose(ResultStatus::REQUIRED, $this->configuration->getChallengeRoute());
