@@ -8,6 +8,7 @@ use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\DAO\Logout as LogoutDAO;
+use Lucinda\WebSecurity\Security\FailureReason;
 
 /**
  * Encapsulates logout logic.
@@ -68,15 +69,33 @@ final class Logout extends Generic
             $this->request->getMethod() !== "POST"
             || !is_string($csrfToken)
             || $csrfToken === ""
-            || !$csrfTokenDetector->isValid($csrfToken, $this->userID)
             ) {
-            return new SecurityPacket(ResultStatus::LOGOUT_FAILED, $this->getCallback($configuration->getTargetFailure()));
+            return new SecurityPacket(
+                ResultStatus::LOGOUT_FAILED,
+                $this->getCallback($configuration->getTargetFailure()),
+                FailureReason::LOGOUT_PARAMETERS_INVALID
+                );
+        }
+
+        if (!$csrfTokenDetector->isValid($csrfToken, $this->userID)) {
+            return new SecurityPacket(
+                ResultStatus::LOGOUT_FAILED,
+                $this->getCallback($configuration->getTargetFailure()),
+                FailureReason::LOGOUT_CSRF_REJECTED
+                );
         }
 
         if ($this->dao->logout($this->userID)) {
-            return new SecurityPacket(ResultStatus::LOGOUT_OK, $this->getCallback($configuration->getTargetSuccess()));
+            return new SecurityPacket(
+                ResultStatus::LOGOUT_OK,
+                $this->getCallback($configuration->getTargetSuccess())
+                );
         } else {
-            return new SecurityPacket(ResultStatus::LOGOUT_FAILED, $this->getCallback($configuration->getTargetFailure()));
+            return new SecurityPacket(
+                ResultStatus::LOGOUT_FAILED,
+                $this->getCallback($configuration->getTargetFailure()),
+                FailureReason::LOGOUT_REJECTED
+                );
         }
     }
 }

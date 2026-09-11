@@ -16,6 +16,7 @@ use Lucinda\WebSecurity\DAO\OAuth2\UserInformation;
 use Lucinda\WebSecurity\OAuth2ApprovalStatus;
 use Lucinda\WebSecurity\OAuth2Service;
 use Lucinda\WebSecurity\OAuth2State;
+use Lucinda\WebSecurity\Security\FailureReason;
 
 /**
  * Encapsulates OAuth2 logic.
@@ -88,7 +89,7 @@ final class Oauth2 extends Generic
             || array_key_exists("error", $parameters)
             || array_key_exists("state", $parameters)
         );
-        if (!!$isCallback) {
+        if (!$isCallback) {
             $state = bin2hex(random_bytes(32));
             $this->state->save(
                 $state,
@@ -107,17 +108,17 @@ final class Oauth2 extends Generic
                 || $receivedState === ""
                 || !$this->state->consume($receivedState, $vendor)
             ) {
-                return $this->loginFailed($configuration);
+                return $this->loginFailed($configuration, FailureReason::OAUTH_INVALID_STATE);
             }
 
             if (array_key_exists("error", $parameters)) {
-                return $this->loginFailed($configuration);
+                return $this->loginFailed($configuration, FailureReason::OAUTH_ERROR);
             }
 
             $code = $parameters["code"] ?? null;
 
             if (!is_string($code) || $code === "") {
-                return $this->loginFailed($configuration);
+                return $this->loginFailed($configuration, FailureReason::OAUTH_PROVIDER_REJECTED);
             }
 
             $accessToken = $service->getAccessToken($code);
@@ -131,7 +132,7 @@ final class Oauth2 extends Generic
 
             return match ($configuration->getProvisioning()) {
                 Provisioning::EXISTING_ONLY =>
-                    $this->loginFailed($configuration),
+                    $this->loginFailed($configuration, FailureReason::OAUTH_ACCOUNT_UNLISTED),
 
                 Provisioning::AUTOMATIC =>
                     $this->createAccount($configuration, $userInformation, $vendor),
@@ -146,7 +147,7 @@ final class Oauth2 extends Generic
     {
         $userID = $this->dao->create($userInformation, $vendor);
         if ($userID === null) {
-            return $this->loginFailed($configuration);
+            return $this->loginFailed($configuration, FailureReason::OAUTH_REGISTRATION_REJECTED);
         } else {
             return $this->identityVerified($configuration, $userID);
         }
@@ -160,7 +161,7 @@ final class Oauth2 extends Generic
                 $this->pendingApproval($configuration),
 
             OAuth2ApprovalStatus::REJECTED =>
-                $this->loginFailed($configuration),
+                $this->loginFailed($configuration, FailureReason::OAUTH_ACCOUNT_REJECTED),
         };
     }
 
@@ -171,13 +172,20 @@ final class Oauth2 extends Generic
         return $packet;
     }
 
-    private function loginFailed(Oauth2Configuration $configuration): SecurityPacket
+    private function loginFailed(Oauth2Configuration $configuration, FailureReason $failureReason): SecurityPacket
     {        
-        return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetFailure()));
+        return new SecurityPacket(
+            ResultStatus::LOGIN_FAILED,
+            $this->getCallback($configuration->getTargetFailure()),
+            $failureReason
+            );
     }
 
     private function pendingApproval(Oauth2Configuration $configuration): SecurityPacket
     {        
-        return new SecurityPacket(ResultStatus::LOGIN_PENDING, $this->getCallback($configuration->getTargetPending()));
+        return new SecurityPacket(
+            ResultStatus::LOGIN_PENDING,
+            $this->getCallback($configuration->getTargetPending())
+            );
     }
 }

@@ -4,6 +4,7 @@ namespace Lucinda\WebSecurity\Packets;
 
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus as AuthenticationResultStatus;
 use Lucinda\WebSecurity\Security\Authorization\ResultStatus as AuthorizationResultStatus;
+use Lucinda\WebSecurity\Security\FailureReason;
 
 /**
  * Holds the outcome of authentication/authorization
@@ -17,11 +18,17 @@ final class Security extends Packet
      *
      * @param AuthenticationResultStatus|AuthorizationResultStatus $status
      * @param ?string $callback
+     * @param ?FailureReason $failureReason
      */
-    public function __construct(AuthenticationResultStatus|AuthorizationResultStatus $status, ?string $callback = null)
+    public function __construct(
+        AuthenticationResultStatus|AuthorizationResultStatus $status,
+        ?string $callback = null,
+        ?FailureReason $failureReason = null
+        )
     {
         $this->setStatus($status);
         $this->setCallback($callback);
+        $this->setFailureReason($failureReason);
     }
 
     /**

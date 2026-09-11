@@ -2,6 +2,8 @@
 
 namespace Lucinda\WebSecurity\Packets;
 
+use Lucinda\WebSecurity\Security\FailureReason;
+
 /**
  * Holds the outcome of authentication/authorization
  */
@@ -10,6 +12,7 @@ abstract class Packet
     private ?string $callback = null;
     private int|string|null $userID = null;
     private ?string $accessToken = null;
+    private ?FailureReason $failureReason = null;
 
     /**
      * Sets user ID
@@ -49,6 +52,16 @@ abstract class Packet
     public function getCallback(): ?string
     {
         return $this->callback;
+    }
+
+    public function setFailureReason(?FailureReason $failureReason): void
+    {
+        $this->failureReason = $failureReason;
+    }
+
+    public function getFailureReason(): ?FailureReason
+    {
+        return $this->failureReason;
     }
 
     public function setAccessToken(string $accessToken): void

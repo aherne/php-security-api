@@ -11,6 +11,7 @@ use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Packets\GuestUser;
 use Lucinda\WebSecurity\DAO\FormLogin as LoginDAO;
+use Lucinda\WebSecurity\Security\FailureReason;
 
 /**
  * Encapsulates Form logic.
@@ -81,7 +82,11 @@ final class Form extends Generic
                 $configuration->getParameterUsername(),
                 $configuration->getParameterPassword()
             ])) {
-                return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetFailure()));
+                return new SecurityPacket(
+                    ResultStatus::LOGIN_FAILED,
+                    $this->getCallback($configuration->getTargetFailure()),
+                    FailureReason::FORM_PARAMETERS_INVALID
+                    );
             }
             
             $username = $parameters[$usernameParameter];
@@ -97,7 +102,8 @@ final class Form extends Generic
             if (!$csrfTokenDetector->isValid($parameters[$csrfParameter], self::GUEST_USER)) {
                 return new SecurityPacket(
                     ResultStatus::LOGIN_FAILED,
-                    $this->getCallback($configuration->getTargetFailure())
+                    $this->getCallback($configuration->getTargetFailure()),
+                    FailureReason::FORM_CSRF_REJECTED
                 );
             }
 
@@ -112,7 +118,11 @@ final class Form extends Generic
                 if ($throttler->isThrottled($username, $ipAddress)) {
                     return $this->throttle($configuration->getTargetThrottled());
                 }
-                return new SecurityPacket(ResultStatus::LOGIN_FAILED, $this->getCallback($configuration->getTargetFailure()));
+                return new SecurityPacket(
+                    ResultStatus::LOGIN_FAILED,
+                    $this->getCallback($configuration->getTargetFailure()),
+                    FailureReason::FORM_CREDENTIALS_REJECTED
+                    );
             }
         }
 

@@ -35,7 +35,12 @@ class SynchronizerToken
         $currentTime = time();
         $payload = ["uid"=>$userID, "ip"=>$this->ip, "time"=>$currentTime, "expiration"=>($currentTime+$expirationTime)];
         $encryption = new Encryption($this->salt);
-        return $encryption->encrypt(json_encode($payload));
+        try {
+            $json = json_encode($payload, JSON_THROW_ON_ERROR);
+        } catch(\JsonException $exception) {
+            throw new Exception("Token payload could not be encoded!", 0, $exception);
+        }
+        return $encryption->encrypt($json);
     }
 
     /**
@@ -53,10 +58,31 @@ class SynchronizerToken
     {
         $encryption = new Encryption($this->salt);
         $decryptedValue = $encryption->decrypt($token);
-        $parts = json_decode($decryptedValue, true);
+        try {
+            $parts = json_decode($decryptedValue, true, 512, JSON_THROW_ON_ERROR);
+        } catch(\JsonException $exception) {
+            throw new Exception("Token payload could not be decoded!", 0, $exception);
+        }
+
+        // validate decoded json structure
+        if (
+            !is_array($parts)
+            || !array_key_exists("uid", $parts)
+            || !isset($parts["ip"], $parts["time"], $parts["expiration"])
+            || (
+                $parts["uid"] !== null
+                && !is_int($parts["uid"])
+                && !is_string($parts["uid"])
+            )
+            || !is_string($parts["ip"])
+            || !is_int($parts["time"])
+            || !is_int($parts["expiration"])
+        ) {
+            throw new Exception("Invalid token payload!");
+        }
 
         // validate token
-        if ($this->ip!=$parts["ip"]) {
+        if ($this->ip!==$parts["ip"]) {
             throw new Exception("Token was issued from a different ip!");
         }
         $currentTime = time();

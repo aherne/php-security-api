@@ -1,0 +1,19 @@
+<?php
+
+namespace Lucinda\WebSecurity\Security;
+
+enum FailureReason
+{
+    case FORM_PARAMETERS_INVALID;
+    case FORM_CSRF_REJECTED;
+    case FORM_CREDENTIALS_REJECTED;
+    case LOGOUT_PARAMETERS_INVALID;
+    case LOGOUT_CSRF_REJECTED;
+    case LOGOUT_REJECTED;
+    case OAUTH_INVALID_STATE;
+    case OAUTH_ERROR;
+    case OAUTH_PROVIDER_REJECTED;
+    case OAUTH_ACCOUNT_UNLISTED;
+    case OAUTH_REGISTRATION_REJECTED;
+    case OAUTH_ACCOUNT_REJECTED;
+}
