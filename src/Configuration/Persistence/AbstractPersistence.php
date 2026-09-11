@@ -2,6 +2,8 @@
 
 namespace Lucinda\WebSecurity\Configuration\Persistence;
 
+use Lucinda\WebSecurity\Configuration\FieldValidator;
+
 /**
  * Encapsulates AbstractPersistence logic.
  */
@@ -16,7 +18,12 @@ abstract class AbstractPersistence
      */
     protected function setExpirationTime(\SimpleXMLElement $xml): void
     {
-        $this->expiration = !empty($xml["expiration"])?(int) $xml["expiration"]:null;
+        if (empty($xml["expiration"])) {
+            return;
+        }
+
+        $validator = new FieldValidator();
+        $this->expiration = $validator->getValidInteger($xml, "expiration", 1);
     }
 
     /**

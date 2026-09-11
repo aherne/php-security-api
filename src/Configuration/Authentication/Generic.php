@@ -17,7 +17,7 @@ abstract class Generic
     protected function setTargetSuccess(\SimpleXMLElement $xml): void
     {
         if (empty($xml["target_success"])) {
-            throw new ConfigurationException("Attribute 'target_success' is mandatory 'authentication' sub-tags");
+            throw new ConfigurationException("Attribute 'target_success' is mandatory for 'authentication' sub-tags");
         }
         $this->targetSuccess = (string) $xml["target_success"];
     }
@@ -40,7 +40,7 @@ abstract class Generic
     protected function setTargetFailure(\SimpleXMLElement $xml): void
     {
         if (empty($xml["target_failure"])) {
-            throw new ConfigurationException("Attribute 'target_failure' is mandatory 'authentication' sub-tags");
+            throw new ConfigurationException("Attribute 'target_failure' is mandatory for 'authentication' sub-tags");
         }
         $this->targetFailure = (string) $xml["target_failure"];
     }

@@ -37,7 +37,7 @@ final class Wrapper extends AbstractWrapper
         $securityOptions->setIsHttpOnly($configuration->getIsHttpOnly() ?? false);
         $securityOptions->setIsSecure($configuration->getIsHttpsOnly() ?? false);
         if ($sameSite = $configuration->getSameSite()) {
-            $securityOptions->setSameSite(CookieSameSiteOptions::from($sameSite));
+            $securityOptions->setSameSite($sameSite);
         }
 
         $this->driver = new PersistenceDriver(

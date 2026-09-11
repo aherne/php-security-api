@@ -3,6 +3,8 @@
 namespace Lucinda\WebSecurity\Configuration\Persistence;
 
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
+use Lucinda\WebSecurity\Configuration\FieldValidator;
+use Lucinda\WebSecurity\PersistenceDrivers\CookieSameSiteOptions;
 
 /**
  * Encapsulates RememberMe logic.
@@ -13,9 +15,9 @@ final class RememberMe extends AbstractPersistence
     public const DEFAULT_EXPIRATION_TIME = 24*3600;
     private string $parameterName;
     private string $secret;
-    private ?bool $isHttpOnly;
-    private ?bool $isHttpsOnly;
-    private ?string $sameSite;
+    private ?bool $isHttpOnly = null;
+    private ?bool $isHttpsOnly = null;
+    private ?CookieSameSiteOptions $sameSite = null;
 
     /**
      * Sets up object state.
@@ -82,7 +84,12 @@ final class RememberMe extends AbstractPersistence
      */
     protected function setExpirationTime(\SimpleXMLElement $xml): void
     {
-        $this->expiration = !empty($xml["expiration"])?(int) $xml["expiration"]:self::DEFAULT_EXPIRATION_TIME;
+        if (empty($xml["expiration"])) {
+            $this->expiration = self::DEFAULT_EXPIRATION_TIME;
+        } else {
+            $validator = new FieldValidator();
+            $this->expiration = $validator->getValidInteger($xml, "expiration", 1);
+        }
     }
 
     /**
@@ -92,7 +99,12 @@ final class RememberMe extends AbstractPersistence
      */
     private function setIsHttpOnly(\SimpleXMLElement $xml): void
     {
-        $this->isHttpOnly = isset($xml["is_http_only"])?(bool) ((int) $xml["is_http_only"]):null;
+        if (!isset($xml["is_http_only"])) {
+            return;
+        } else {
+            $validator = new FieldValidator();
+            $this->isHttpOnly = $validator->getValidBoolean($xml, "is_http_only");
+        }
     }
 
     /**
@@ -112,7 +124,12 @@ final class RememberMe extends AbstractPersistence
      */
     private function setIsHttpsOnly(\SimpleXMLElement $xml): void
     {
-        $this->isHttpsOnly = isset($xml["is_https_only"])?(bool) ((int) $xml["is_https_only"]):null;
+        if (!isset($xml["is_https_only"])) {
+            return;
+        } else {
+            $validator = new FieldValidator();
+            $this->isHttpsOnly = $validator->getValidBoolean($xml, "is_https_only");
+        }
     }
 
     /**
@@ -132,15 +149,20 @@ final class RememberMe extends AbstractPersistence
      */
     private function setSameSite(\SimpleXMLElement $xml): void
     {
-        $this->sameSite = !empty($xml["same_site"])?(string) $xml["same_site"]:null;
+        if (!isset($xml["same_site"])) {
+            return;
+        } else {
+            $validator = new FieldValidator();
+            $this->sameSite = $validator->getValidEnum($xml, "same_site", CookieSameSiteOptions::class);
+        }
     }
 
     /**
      * Gets same site.
      *
-     * @return ?string
+     * @return ?CookieSameSiteOptions
      */
-    public function getSameSite(): ?string
+    public function getSameSite(): ?CookieSameSiteOptions
     {
         return $this->sameSite;
     }

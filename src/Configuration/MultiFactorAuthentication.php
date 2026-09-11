@@ -107,7 +107,12 @@ final class MultiFactorAuthentication
      */
     private function setExpiration(\SimpleXMLElement $xml): void
     {
-        $this->expiration = $this->validatePositiveNumber($xml, "expiration");
+        if (!isset($xml["expiration"])) {
+            throw new Exception("Attribute 'expiration' is mandatory for tag 'multi_factor_authentication'");
+        } else {
+            $validator = new FieldValidator();
+            $this->expiration = $validator->getValidInteger($xml, "expiration", 1);
+        }
     }
 
     /**
@@ -127,7 +132,12 @@ final class MultiFactorAuthentication
      */
     private function setPendingExpiration(\SimpleXMLElement $xml): void
     {
-        $this->pendingExpiration = $this->validatePositiveNumber($xml, "pending_expiration");
+        if (!isset($xml["pending_expiration"])) {
+            throw new Exception("Attribute 'pending_expiration' is mandatory for tag 'multi_factor_authentication'");
+        } else {
+            $validator = new FieldValidator();
+            $this->pendingExpiration = $validator->getValidInteger($xml, "pending_expiration", 1);
+        }
     }
 
     /**
@@ -276,17 +286,5 @@ final class MultiFactorAuthentication
     public function getMethod(): Totp
     {
         return $this->method;
-    }
-
-    private function validatePositiveNumber(\SimpleXMLElement $xml, string $tagName): int
-    {
-        if (empty($xml[$tagName])) {
-            throw new Exception("Attribute '".$tagName."' must be set for tag 'multi_factor_authentication'");
-        }
-        $expiration = (string) $xml[$tagName];
-        if (filter_var($expiration, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) {
-            throw new Exception("Attribute '".$tagName."' must be a positive integer for tag 'multi_factor_authentication'");
-        }
-        return (int) $expiration;
     }
 }

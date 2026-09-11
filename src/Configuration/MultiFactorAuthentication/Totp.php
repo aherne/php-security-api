@@ -3,6 +3,7 @@
 namespace Lucinda\WebSecurity\Configuration\MultiFactorAuthentication;
 
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
+use Lucinda\WebSecurity\Configuration\FieldValidator;
 
 /**
  * Encapsulates Totp logic.
@@ -84,9 +85,11 @@ final class Totp
      */
     private function setPeriod(\SimpleXMLElement $xml): void
     {
-        $this->period = !empty($xml["period"])?(int) $xml["period"]:self::DEFAULT_PERIOD;
-        if ($this->period < 1) {
-            throw new ConfigurationException("Attribute 'period' must be positive for tag 'totp'");
+        if (!isset($xml["period"])) {
+            $this->period = self::DEFAULT_PERIOD;
+        } else {
+            $validator = new FieldValidator();
+            $this->period = $validator->getValidInteger($xml, "period", 1);
         }
     }
 
@@ -107,9 +110,15 @@ final class Totp
      */
     private function setDigits(\SimpleXMLElement $xml): void
     {
-        $this->digits = !empty($xml["digits"])?(int) $xml["digits"]:self::DEFAULT_DIGITS;
-        if (!in_array($this->digits, [6, 7, 8])) {
-            throw new ConfigurationException("Attribute 'digits' must be one of: 6, 7, 8");
+        if (!isset($xml["digits"])) {
+            $this->digits = self::DEFAULT_DIGITS;
+        } else {
+            $validator = new FieldValidator();
+            $digits = $validator->getValidInteger($xml, "digits", 5);
+            if (!in_array($digits, [6, 7, 8])) {
+                throw new ConfigurationException("Attribute 'digits' must be one of: 6, 7, 8");
+            }
+            $this->digits = $digits;
         }
     }
 
@@ -130,9 +139,11 @@ final class Totp
      */
     private function setWindow(\SimpleXMLElement $xml): void
     {
-        $this->window = isset($xml["window"])?(int) $xml["window"]:self::DEFAULT_WINDOW;
-        if ($this->window < 0) {
-            throw new ConfigurationException("Attribute 'window' must not be negative for tag 'totp'");
+        if (empty($xml["window"])) {
+            $this->window = self::DEFAULT_WINDOW;
+        } else {
+            $validator = new FieldValidator();
+            $this->window = $validator->getValidInteger($xml, "window", 0);
         }
     }
 

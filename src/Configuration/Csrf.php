@@ -7,7 +7,7 @@ namespace Lucinda\WebSecurity\Configuration;
  */
 final class Csrf
 {
-    public const DEFAULT_EXPIRATION = 10*60;
+    public const DEFAULT_EXPIRATION_TIME = 10*60;
     private string $secret;
     private int $expiration;
 
@@ -57,7 +57,12 @@ final class Csrf
      */
     private function setExpirationTime(\SimpleXMLElement $xml): void
     {
-        $this->expiration = !empty($xml["expiration"])?(int) $xml["expiration"]:self::DEFAULT_EXPIRATION;
+        if (!isset($xml["expiration"])) {
+            $this->expiration = self::DEFAULT_EXPIRATION_TIME;
+        } else {
+            $validator = new FieldValidator();
+            $this->expiration = $validator->getValidInteger($xml, "expiration", 1);
+        }
     }
 
     /**

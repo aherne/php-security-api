@@ -3,6 +3,7 @@
 namespace Lucinda\WebSecurity\Configuration\Persistence;
 
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
+use Lucinda\WebSecurity\Configuration\FieldValidator;
 
 /**
  * Encapsulates SynchronizerToken logic.
@@ -56,7 +57,12 @@ final class SynchronizerToken extends AbstractPersistence
      */
     protected function setExpirationTime(\SimpleXMLElement $xml): void
     {
-        $this->expiration = !empty($xml["expiration"])?(int) $xml["expiration"]:self::DEFAULT_EXPIRATION_TIME;
+        if (!isset($xml["expiration"])) {
+            $this->expiration = self::DEFAULT_EXPIRATION_TIME;
+        } else {
+            $validator = new FieldValidator();
+            $this->expiration = $validator->getValidInteger($xml, "expiration", 1);
+        }
     }
 
     /**
@@ -66,7 +72,12 @@ final class SynchronizerToken extends AbstractPersistence
      */
     private function setRegenerationTime(\SimpleXMLElement $xml): void
     {
-        $this->regeneration = !empty($xml["regeneration"])?(int) $xml["regeneration"]:self::DEFAULT_REGENERATION_TIME;
+        if (empty($xml["regeneration"])) {
+            $this->regeneration = self::DEFAULT_REGENERATION_TIME;
+        } else {
+            $validator = new FieldValidator();
+            $this->regeneration = $validator->getValidInteger($xml, "regeneration", 1);
+        }
     }
 
     /**

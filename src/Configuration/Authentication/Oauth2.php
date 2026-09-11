@@ -5,6 +5,7 @@ namespace Lucinda\WebSecurity\Configuration\Authentication;
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2\Driver;
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2\Provisioning;
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
+use Lucinda\WebSecurity\Configuration\FieldValidator;
 use Lucinda\WebSecurity\DAO\OAuth2\Login as Oauth2Login;
 use Lucinda\WebSecurity\DAO\OAuth2\ApprovalProvisioning as Oauth2ApprovalProvisioning;
 use Lucinda\WebSecurity\DAO\OAuth2\AutomaticProvisioning as Oauth2AutomaticProvisioning;
@@ -45,14 +46,12 @@ final class Oauth2 extends Generic
      */
     private function setProvisioning(\SimpleXMLElement $xml): void
     {
-        $provisioning = (string) $xml["provisioning"];
-        if (empty($provisioning)) {
-            throw new ConfigurationException("Attribute 'provisioning' must be set for tag 'oauth2'");
+        if (!isset($xml["provisioning"])) {
+            throw new ConfigurationException("Attribute 'provisioning' is mandatory for tag 'oauth2'");
+        } else {
+            $validator = new FieldValidator();
+            $this->provisioning = $validator->getValidEnum($xml, "provisioning", Provisioning::class);
         }
-        if (Provisioning::tryFrom($provisioning) === null) {
-            throw new ConfigurationException("Attribute 'provisioning' has invalid value");
-        }
-        $this->provisioning = Provisioning::from($provisioning);
     }
 
     /**
@@ -138,7 +137,7 @@ final class Oauth2 extends Generic
             return; // this feature is 100% useless unless OAuth2 accounts require approval
         }
         if (empty($xml["target_pending"])) {
-            throw new ConfigurationException("Attribute 'target_pending' is mandatory 'authentication' sub-tags");
+            throw new ConfigurationException("Attribute 'target_pending' is mandatory for tag 'oauth2'");
         }
         $this->targetPending = (string) $xml["target_pending"];
     }
@@ -160,16 +159,12 @@ final class Oauth2 extends Generic
      */
     private function setStateExpiration(\SimpleXMLElement $xml): void
     {
-        $stateExpiration = filter_var(
-            (string) $xml["state_expiration"],
-            FILTER_VALIDATE_INT,
-            ["options" => ["min_range" => 1]]
-        );
-
-        if ($stateExpiration === false) {
-            throw new ConfigurationException("Attribute 'state_expiration' must have positive integer value");
+        if (!isset($xml["state_expiration"])) {
+            throw new ConfigurationException("Attribute 'state_expiration' is mandatory for tag 'oauth2'");
+        } else {
+            $validator = new FieldValidator();
+            $this->stateExpiration = $validator->getValidInteger($xml, "state_expiration", 1);
         }
-        $this->stateExpiration = (int) $stateExpiration;
     }
 
     /**
