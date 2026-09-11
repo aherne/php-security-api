@@ -34,14 +34,14 @@ final class Authorization
     /**
      * Performs an authorization task.
      *
-     * @param  \SimpleXMLElement $xml
+     * @param  RolesDetector     $rolesDetector
      * @param  string            $routeToAuthorize
      * @param  int|string|null   $userID
      * @param  UserRoles         $userAuthorizationRoles
      * @return Result
      */
     public function authorize(
-        \SimpleXMLElement $xml,
+        RolesDetector $rolesDetector,
         string $routeToAuthorize,
         int|string|null $userID,
         UserRoles $userAuthorizationRoles
@@ -56,8 +56,7 @@ final class Authorization
         $userRoles = $userAuthorizationRoles->getRoles($isUserGuest ? null : $userID);
 
         // get page roles
-        $detector = new RolesDetector($xml, "routes", "route", "id", $routeToAuthorize);
-        $pageRoles = $detector->getRoles();
+        $pageRoles = $rolesDetector->getRoles($routeToAuthorize);
         if (empty($pageRoles)) {
             $status = ResultStatus::NOT_FOUND;
             $callbackURI = ($isUserGuest ? $this->loggedOutFailureCallback : $this->loggedInFailureCallback);

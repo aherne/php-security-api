@@ -7,8 +7,8 @@ namespace Lucinda\WebSecurity\Configuration;
  */
 final class RolesDetector
 {
-    /**
-     * @var string[]
+    /*
+     * @var array<string, string[]>
      */
     private array $roles;
 
@@ -19,17 +19,15 @@ final class RolesDetector
      * @param  string            $parentTag
      * @param  string            $childTag
      * @param  string            $requiredAttribute
-     * @param  int|string|null   $matchingValue
      * @throws Exception
      */
     public function __construct(
         \SimpleXMLElement $xml,
         string $parentTag,
         string $childTag,
-        string $requiredAttribute,
-        int|string|null $matchingValue
+        string $requiredAttribute
     ) {
-        $this->setRoles($xml, $parentTag, $childTag, $requiredAttribute, $matchingValue);
+        $this->setRoles($xml, $parentTag, $childTag, $requiredAttribute);
     }
 
     /**
@@ -39,23 +37,21 @@ final class RolesDetector
      * @param  string            $parentTag
      * @param  string            $childTag
      * @param  string            $requiredAttribute
-     * @param  int|string|null   $matchingValue
+     * @param  string   $matchingValue
      * @throws Exception
      */
     private function setRoles(
         \SimpleXMLElement $xml,
         string $parentTag,
         string $childTag,
-        string $requiredAttribute,
-        int|string|null $matchingValue
+        string $requiredAttribute
     ): void {
-        $roles = [];
         $info = $xml->xpath("//".$parentTag."/".$childTag);
         if (!empty($info)) {
             foreach ($info as $node) {
                 $attributes = $node->attributes();
-                if (!isset($attributes[$requiredAttribute]) || (string) $attributes[$requiredAttribute] !== (string) $matchingValue) {
-                    continue;
+                if (empty($attributes[$requiredAttribute])) {
+                    throw new Exception("XML tag ".$parentTag." > ".$childTag." requires attribute: ".$requiredAttribute);
                 }
 
                 if (empty($attributes['roles'])) {
@@ -64,22 +60,24 @@ final class RolesDetector
 
                 $tmp = (string) $attributes['roles'];
                 $tmp= explode(",", $tmp);
+                $roles = [];
                 foreach ($tmp as $role) {
                     $roles[] = trim($role);
                 }
-                break; // no point moving forward
+                $this->roles[(string) $attributes[$requiredAttribute]] = $roles;
             }
         }
-        $this->roles = $roles;
     }
 
     /**
      * Gets roles detected
      *
+     * @param string $matchingValue
      * @return string[]
      */
-    public function getRoles(): array
+    public function getRoles(string $matchingValue): array
     {
-        return $this->roles;
+        return $this->roles[$matchingValue] ?? [];
     }
 }
+    

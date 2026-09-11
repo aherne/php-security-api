@@ -3,6 +3,7 @@
 namespace Lucinda\WebSecurity\Wrapper;
 
 use Lucinda\WebSecurity\Configuration;
+use Lucinda\WebSecurity\Configuration\RolesDetector;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Security\Authorization as SecurityAuthorization;
 use Lucinda\WebSecurity\Packets\Security as SecurityPacket;
@@ -12,20 +13,20 @@ final class Authorization
 {
     private Configuration $configuration;
     private Request $request;
-    private ?\SimpleXMLElement $routes;
+    private ?RolesDetector $rolesDetector;
     private int|string|null $authenticatedUserID;
     
 
     public function __construct(
         Configuration $configuration,
         Request $request,
-        ?\SimpleXMLElement $routes = null,
+        ?RolesDetector $rolesDetector = null,
         int|string|null $authenticatedUserID = null
         )
     {
         $this->configuration = $configuration;
         $this->request = $request;
-        $this->routes = $routes;
+        $this->rolesDetector = $rolesDetector;
         $this->authenticatedUserID = $authenticatedUserID;
     }
 
@@ -35,7 +36,7 @@ final class Authorization
             $this->configuration->getAuthorization(),
             $this->request,
             $this->authenticatedUserID,
-            !empty($this->routes->routes) ? $this->routes : null
+            $this->rolesDetector
             );
         if ($outcome = $validator->getOutcome()) {
             if ($outcome->getStatus() == AuthorizationStatus::OK) {

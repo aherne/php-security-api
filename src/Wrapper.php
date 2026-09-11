@@ -3,6 +3,7 @@
 namespace Lucinda\WebSecurity;
 
 use Lucinda\WebSecurity\Configuration as SecurityConfiguration;
+use Lucinda\WebSecurity\Configuration\RolesDetector;
 use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\Detectors\PersistenceDrivers as PersistenceDriversDetector;
 use Lucinda\WebSecurity\Detectors\UserInfo as UserInfoDetector;
@@ -17,6 +18,8 @@ use Lucinda\WebSecurity\Wrapper\OutcomeBuilder;
 
 /**
  * Authenticates and authorizes based on contents of XML tag 'security'
+ * 
+ * $detector = new RolesDetector($xml, "routes", "route", "id");
  */
 final class Wrapper
 {
@@ -32,7 +35,7 @@ final class Wrapper
      */
     private array $oauth2Drivers;
     private ?OAuth2State $oauth2State;
-    private ?\SimpleXMLElement $routes = null;
+    private ?RolesDetector $rolesDetector = null;
     private CsrfToken $csrfToken;
     private ?Packet $outcome = null;
 
@@ -43,21 +46,21 @@ final class Wrapper
      * @param Request           $request
      * @param OAuth2Service[]   $oauth2Drivers
      * @param ?OAuth2State      $oauth2State
-     * @param ?\SimpleXMLElement $routes
+     * @param ?RolesDetector    $rolesDetector
      */
     public function __construct(
         \SimpleXMLElement $xml,
         Request $request,
         array $oauth2Drivers = [],
         ?OAuth2State $oauth2State = null,
-        ?\SimpleXMLElement $routes = null
+        ?RolesDetector $rolesDetector = null
         )
     {
         $this->request = $request;
         $this->configuration = new SecurityConfiguration($xml);
         $this->oauth2Drivers = $oauth2Drivers;
         $this->oauth2State = $oauth2State;
-        $this->routes = $routes;
+        $this->rolesDetector = $rolesDetector;
 
         $pdd = new PersistenceDriversDetector($this->configuration->getPersistence(), $request->getIpAddress());
         $this->persistenceDrivers = $pdd->getPersistenceDrivers();
@@ -145,7 +148,7 @@ final class Wrapper
         $driver = new AuthorizationWrapper(
             $this->configuration,
             $this->request,
-            $this->routes,
+            $this->rolesDetector,
             $userID
         );
         return $driver->run();

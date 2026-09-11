@@ -4,6 +4,7 @@ namespace Lucinda\WebSecurity\Security;
 use Lucinda\WebSecurity\Configuration\Authorization as ConfigurationAuthorization;
 use Lucinda\WebSecurity\Configuration\Authorization\ByDAO as ConfigurationAuthorizationByDAO;
 use Lucinda\WebSecurity\Configuration\Authorization\ByXML as ConfigurationAuthorizationByXML;
+use Lucinda\WebSecurity\Configuration\RolesDetector;
 use Lucinda\WebSecurity\Security\Authorization\ByDao as AuthorizatorByDAO;
 use Lucinda\WebSecurity\Security\Authorization\ByXML as AuthorizatorByXML;
 use Lucinda\WebSecurity\Request;
@@ -23,13 +24,13 @@ final class Authorization
      * @param ConfigurationAuthorization $configuration
      * @param Request $request
      * @param int|string|null $userID
-     * @param ?\SimpleXMLElement $routes
+     * @param ?RolesDetector $rolesDetector
      */
     public function __construct(
         ConfigurationAuthorization $configuration,
         Request $request,
         int|string|null $userID,
-        ?\SimpleXMLElement $routes = null
+        ?RolesDetector $rolesDetector = null
         )
     {        
         $methods = $configuration->getMethods();
@@ -41,7 +42,7 @@ final class Authorization
             if ($subConfiguration instanceof ConfigurationAuthorizationByDAO) {
                 $this->outcome = $this->authenticateByDAO($subConfiguration, $request, $userID);
             } else {
-                $this->outcome = $this->authenticateByXML($subConfiguration, $request, $userID, $routes);
+                $this->outcome = $this->authenticateByXML($subConfiguration, $request, $userID, $rolesDetector);
             }
         }
     }
@@ -69,20 +70,20 @@ final class Authorization
      * @param ConfigurationAuthorizationByXML $configuration
      * @param Request $request
      * @param int|string|null $userID
-     * @param ?\SimpleXMLElement $routes
+     * @param ?RolesDetector $rolesDetector
      */
     private function authenticateByXML(
         ConfigurationAuthorizationByXML $configuration,
         Request $request,
         int|string|null $userID,
-        ?\SimpleXMLElement $routes = null
+        ?RolesDetector $rolesDetector = null
         )
     {
-        if ($routes === null) {
+        if ($rolesDetector === null) {
             throw new SecurityException("XML based authorization requires preconfigured routes");
         }
 
-        $authenticator = new AuthorizatorByXML($configuration, $request, $userID, $routes);
+        $authenticator = new AuthorizatorByXML($configuration, $request, $userID, $rolesDetector);
         return $authenticator->getResult();
     }
 
