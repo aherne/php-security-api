@@ -12,18 +12,32 @@ use Lucinda\WebSecurity\Security\MultiFactorAuthentication\Totp;
 use Lucinda\WebSecurity\Security\MultiFactorAuthentication\ResultStatus as MultifactorResultStatus;
 
 /**
- * Encapsulates MultiFactorAuthentication logic.
+ * Evaluates authentication-stage deadlines and executes MFA when needed
+ *
+ * Construction rejects expired pending-MFA state, skips authenticated state
+ * whose MFA validity is still fresh, and otherwise delegates to TOTP handling.
+ * Successful verification receives a new MFA-validity deadline. The computed
+ * packet is available through getOutcome(); persistence is handled by the
+ * enclosing wrapper.
+ *
+ * @see \Lucinda\WebSecurity\Configuration\MultiFactorAuthentication
+ * @see \Lucinda\WebSecurity\Wrapper\MultiFactorAuthentication
+ * @see \Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo
  */
 final class MultiFactorAuthentication
 {
     private MultiFactorPacket|ThrottlingPacket|null $outcome = null;
 
     /**
-     * Sets up object state.
+     * Constructs and executes MFA evaluation for the supplied authentication state
      *
-     * @param Configuration $configuration
-     * @param Request $request
-     * @param ?LoggedInUserInfo $userInfo
+     * Delegated processing may modify enrollment data, consume a verified
+     * counter, or record a failed attempt.
+     *
+     * @param Configuration $configuration Parsed MFA settings and configured DAO classes
+     * @param Request $request Current request to evaluate
+     * @param LoggedInUserInfo|null $userInfo Persisted authentication state, or null when no identity is available
+     * @throws \Throwable If a DAO, throttler, or TOTP operation fails
      */
     public function __construct(Configuration $configuration, Request $request, ?LoggedInUserInfo $userInfo = null)
     {
@@ -59,12 +73,13 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Authenticate by TOTP.
+     * Delegates enrollment or challenge handling to the TOTP implementation
      *
-     * @param Configuration $configuration
-     * @param Request $request
-     * @param int|string $userID
-     * @return MultiFactorPacket|ThrottlingPacket|null
+     * @param Configuration $configuration Parsed MFA and TOTP settings
+     * @param Request $request Current request to evaluate
+     * @param int|string $userID Non-empty local ID whose MFA requirements are evaluated
+     * @return MultiFactorPacket|ThrottlingPacket|null Computed TOTP outcome, or null when none is produced
+     * @throws \Throwable If a DAO, throttler, or TOTP operation fails
      */
     private function authenticateByTotp(
         Configuration $configuration,
@@ -77,9 +92,9 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets outcome.
+     * Gets the MFA outcome computed during construction
      *
-     * @return MultiFactorPacket|ThrottlingPacket|null
+     * @return MultiFactorPacket|ThrottlingPacket|null Computed outcome, or null for absent user state or still-fresh authentication
      */
     public function getOutcome(): MultiFactorPacket|ThrottlingPacket|null
     {

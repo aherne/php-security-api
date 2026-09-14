@@ -10,7 +10,14 @@ use Lucinda\WebSecurity\Token\RegenerationException;
 use Lucinda\WebSecurity\Token\ExpiredException;
 
 /**
- * Encapsulates a PersistenceDriver that employs SynchronizerToken to authenticate users.
+ * Encodes and restores authentication state using an encrypted bearer token
+ *
+ * The caller supplies the incoming token and retrieves the current token
+ * after loading or saving. This driver does not read request headers or
+ * write response headers. It renews eligible tokens while loading.
+ *
+ * @see Wrapper
+ * @see \Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo
  */
 final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver
 {
@@ -20,12 +27,12 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     protected ?string $accessToken = null;
 
     /**
-     * Creates a persistence driver object.
+     * Creates a bearer-token persistence driver without issuing a token
      *
-     * @param string $salt             Strong password to use for crypting.
-     * @param string $ip               Value of REMOTE_ADDR attribute, unless ignored.
-     * @param int    $expirationTime   Time by which token expires (can be renewed), in seconds.
-     * @param int    $regenerationTime Time by which token is renewed, in seconds.
+     * @param string $salt Secret used to derive the token encryption key
+     * @param string $ip Client IP for binding, or an empty string when IP binding is disabled
+     * @param int $expirationTime Lifetime in seconds for newly issued tokens
+     * @param int $regenerationTime Token age threshold in seconds for renewal; zero disables age-based renewal
      */
     public function __construct(string $salt, string $ip, int $expirationTime = 3600, int $regenerationTime = 60)
     {
@@ -35,9 +42,12 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     }    
 
     /**
-     * Sets access token value based on contents of HTTP authorization header of "bearer" type
+     * Supplies the incoming authentication bearer token for later loading
      *
-     * @param string $accessToken
+     * Stores the value without validating it. The caller extracts the token
+     * from the request; the Authorization scheme prefix is not part of it.
+     *
+     * @param string $accessToken Authentication bearer token without the Bearer prefix
      */
     public function setAccessToken(string $accessToken): void
     {
@@ -45,9 +55,13 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     }
 
     /**
-     * Gets access token value.
+     * Gets the current authentication bearer token
      *
-     * @return ?string
+     * Loading may renew the token, and saving replaces it. The caller can
+     * return the current value to the client. Treat it as a credential and
+     * exclude it from logs.
+     *
+     * @return string|null Current token, an empty string after clear(), or null before assignment or after expiry
      */
     public function getAccessToken(): ?string
     {
@@ -56,9 +70,14 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
 
 
     /**
-     * Saves user's unique identifier into driver (eg: on login).
+     * Encodes authentication state into a new bearer token
      *
-     * @param LoggedInUserInfo $authentication Encapsulated persistent authentication
+     * Replaces the current token without sending it to the client.
+     * The new value is available through getAccessToken().
+     *
+     * @param LoggedInUserInfo $authentication Authentication state to persist
+     * @throws Exception If the token payload cannot be encoded
+     * @throws EncryptionException If token encryption fails
      */
     public function save(LoggedInUserInfo $authentication): void
     {
@@ -66,11 +85,15 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     }
 
     /**
-     * Loads logged in user's unique identifier from driver.
+     * Restores authentication state and renews an eligible bearer token
      *
-     * @return LoggedInUserInfo|null Encapsulated persistent authentication
-     * @throws EncryptionException
-     * @throws Exception
+     * Checks token integrity, IP binding, and expiration. An expired token is
+     * discarded and yields null. A still-valid token older than the renewal
+     * threshold is replaced; retrieve that value through getAccessToken().
+     *
+     * @return LoggedInUserInfo|null Stored authentication state, or null when no token is supplied or it has expired
+     * @throws Exception If token validation or renewal encoding fails
+     * @throws EncryptionException If cryptographic processing fails or the restored payload is not authentication state
      */
     public function load(): ?LoggedInUserInfo
     {
@@ -98,7 +121,10 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     }
 
     /**
-     * Removes user's unique identifier from driver (eg: on logout).
+     * Removes the current token from this driver instance
+     *
+     * Sets the current value to an empty string. This does not revoke copies
+     * of previously issued tokens or remove a token stored by the client.
      */
     public function clear(): void
     {

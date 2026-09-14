@@ -12,7 +12,7 @@ use Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\Wrapper as Synchron
 use Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver;
 
 /**
- * Detects mechanisms for authenticated state persistence set in security.persistence XML tag.
+ * Detects mechanisms for authenticated state persistence based on encapsulated security > persistence XML tag configuration
  */
 final class PersistenceDrivers
 {

@@ -7,7 +7,7 @@ use Lucinda\WebSecurity\Configuration\FieldValidator;
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSameSiteOptions;
 
 /**
- * Encapsulates RememberMe logic.
+ * Encapsulates parsing of the security > persistence > remember_me XML tag
  */
 final class RememberMe extends AbstractPersistence
 {
@@ -20,9 +20,10 @@ final class RememberMe extends AbstractPersistence
     private ?CookieSameSiteOptions $sameSite = null;
 
     /**
-     * Sets up object state.
+     * Sets up object state from the remember_me XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The remember_me XML tag
+     * @throws ConfigurationException If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -35,9 +36,11 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Sets parameter name.
+     * Detects the remember-me cookie name based on 'parameter_name' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_PARAMETER_NAME when the attribute is missing or empty.
+     *
+     * @param \SimpleXMLElement $xml The remember_me XML tag
      */
     private function setParameterName(\SimpleXMLElement $xml): void
     {
@@ -45,7 +48,7 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Gets parameter name.
+     * Gets the remember-me cookie name
      *
      * @return string
      */
@@ -55,9 +58,10 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Sets secret.
+     * Detects the token encryption secret based on 'secret' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The remember_me XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setSecret(\SimpleXMLElement $xml): void
     {
@@ -68,7 +72,7 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Gets secret.
+     * Gets the token encryption secret
      *
      * @return string
      */
@@ -78,13 +82,16 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Sets expiration time.
+     * Detects token lifetime in seconds based on 'expiration' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_EXPIRATION_TIME when the attribute is absent.
+     *
+     * @param \SimpleXMLElement $xml The remember_me XML tag
+     * @throws ConfigurationException If provided but not a positive integer
      */
     protected function setExpirationTime(\SimpleXMLElement $xml): void
     {
-        if (empty($xml["expiration"])) {
+        if (!isset($xml["expiration"])) {
             $this->expiration = self::DEFAULT_EXPIRATION_TIME;
         } else {
             $validator = new FieldValidator();
@@ -93,9 +100,12 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Sets is http only.
+     * Detects the cookie HttpOnly flag based on the optional 'is_http_only' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Accepts 0 for false and 1 for true; leaves the flag unset when the attribute is absent.
+     *
+     * @param \SimpleXMLElement $xml The remember_me XML tag
+     * @throws ConfigurationException If provided but not an integer 0 or 1
      */
     private function setIsHttpOnly(\SimpleXMLElement $xml): void
     {
@@ -108,7 +118,7 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Gets is http only.
+     * Gets the cookie HttpOnly flag, or null when the attribute was absent
      *
      * @return ?bool
      */
@@ -118,9 +128,12 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Sets is https only.
+     * Detects the cookie Secure flag based on the optional 'is_https_only' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Accepts 0 for false and 1 for true; leaves the flag unset when the attribute is absent.
+     *
+     * @param \SimpleXMLElement $xml The remember_me XML tag
+     * @throws ConfigurationException If provided but not an integer 0 or 1
      */
     private function setIsHttpsOnly(\SimpleXMLElement $xml): void
     {
@@ -133,7 +146,7 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Gets is https only.
+     * Gets the cookie Secure flag, or null when the attribute was absent
      *
      * @return ?bool
      */
@@ -143,9 +156,10 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Sets same site.
+     * Detects the cookie SameSite option based on the optional 'same_site' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The remember_me XML tag
+     * @throws ConfigurationException If provided but not None, Strict or Lax
      */
     private function setSameSite(\SimpleXMLElement $xml): void
     {
@@ -158,7 +172,7 @@ final class RememberMe extends AbstractPersistence
     }
 
     /**
-     * Gets same site.
+     * Gets the cookie SameSite option, or null when the attribute was absent
      *
      * @return ?CookieSameSiteOptions
      */

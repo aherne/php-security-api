@@ -12,9 +12,24 @@ use Lucinda\WebSecurity\Security\MultiFactorAuthentication\ResultStatus as Multi
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver as RememberMePersistenceDriver;
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
-use Lucinda\WebSecurity\PersistenceDrivers\Exception as PersistenceException;
-use Lucinda\WebSecurity\PersistenceDrivers\Coordinator;
 
+/**
+ * Binds MFA outcomes to authentication-stage transitions and persistence
+ *
+ * Connects the main configuration, request, and current authentication state
+ * to Security\MultiFactorAuthentication. Persists completed authentication
+ * after successful MFA or a pending user's NOT_REQUIRED decision, and clears
+ * authentication state when the pending-MFA deadline expires.
+ *
+ * Construction binds dependencies; run() executes MFA and persistence updates.
+ * The parent Wrapper reads the resulting state through getLoggedInUserInfo().
+ *
+ * @internal
+ * @see \Lucinda\WebSecurity\Wrapper
+ * @see \Lucinda\WebSecurity\Security\MultiFactorAuthentication
+ * @see Coordinator
+ * @see LoggedInUserInfo
+ */
 final class MultiFactorAuthentication
 {
     private Configuration $configuration;
@@ -23,6 +38,14 @@ final class MultiFactorAuthentication
     private ?LoggedInUserInfo $userInfo;
     
 
+    /**
+     * Binds MFA dependencies without executing verification or persistence
+     *
+     * @param Configuration $configuration Main security configuration containing MFA settings
+     * @param Request $request Current request supplying MFA route, code, and client IP
+     * @param \Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver[] $persistenceDrivers Drivers used to save or clear authentication state
+     * @param LoggedInUserInfo|null $userInfo Pending or authenticated state to evaluate, or null for a guest
+     */
     public function __construct(
         Configuration $configuration,
         Request $request,
@@ -36,6 +59,18 @@ final class MultiFactorAuthentication
         $this->userInfo = $userInfo;
     }
 
+    /**
+     * Executes MFA and applies completion or expiry to authentication persistence
+     *
+     * Successful verification requires a validity timestamp. NOT_REQUIRED
+     * promotes a pending user without an MFA freshness deadline; an already
+     * authenticated user continues without an MFA packet. Expired pending state
+     * is cleared locally and through all persistence drivers.
+     *
+     * @return MultiFactorPacket|ThrottlingPacket|null MFA outcome, or null when MFA is unconfigured, user state is absent, or no further MFA handling is needed
+     * @throws ConfigurationException If a successful MFA packet lacks its validity timestamp
+     * @throws \Throwable If MFA processing, persistence, or cleanup fails
+     */
     public function run(): MultiFactorPacket|ThrottlingPacket|null
     {
         $configuration = $this->configuration->getMultiFactorAuthentication();
@@ -82,6 +117,15 @@ final class MultiFactorAuthentication
         return $outcome;
     }
 
+    /**
+     * Promotes the held user state to authenticated and persists it
+     *
+     * Preserves the recorded remember-me preference and skips remember-me
+     * drivers when it was not requested. Assigns the new state before saving.
+     *
+     * @param int|null $stageValidUntil MFA freshness deadline as a Unix timestamp in seconds, or null when MFA is not required
+     * @throws \Throwable If authentication-state creation, persistence, or compensating cleanup fails
+     */
     private function login(?int $stageValidUntil): void
     {
         $wasTicked = $this->userInfo->rememberRequested();
@@ -98,9 +142,12 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets authenticated user info
-     * 
-     * @return LoggedInUserInfo|null
+     * Gets the authentication state currently held by this helper
+     *
+     * Before run(), returns the supplied state. This getter does not reload
+     * persistence or verify whether a previous failed save was completed.
+     *
+     * @return LoggedInUserInfo|null Currently held pending or authenticated state, or null when absent or cleared
      */
     public function getLoggedInUserInfo(): ?LoggedInUserInfo
     {

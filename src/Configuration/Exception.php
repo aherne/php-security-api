@@ -3,7 +3,7 @@
 namespace Lucinda\WebSecurity\Configuration;
 
 /**
- * Encapsulates Exception logic.
+ * Reports missing or invalid XML security configuration
  */
 final class Exception extends \Exception
 {

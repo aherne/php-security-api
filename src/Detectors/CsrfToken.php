@@ -7,8 +7,7 @@ use Lucinda\WebSecurity\Token\EncryptionException;
 use Lucinda\WebSecurity\Configuration\Csrf as Configuration;
 
 /**
- * Binds SynchronizerToken @ SECURITY-API with settings from configuration.xml @ SERVLETS-API  then sets up an object
- * based on which one can perform CSRF checks later on in application's lifecycle.
+ * Performs CSRF token generation & checks based on encapsulated security > csrf XML tag configuration
  */
 final class CsrfToken
 {

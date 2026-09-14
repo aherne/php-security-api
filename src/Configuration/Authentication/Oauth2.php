@@ -11,20 +11,24 @@ use Lucinda\WebSecurity\DAO\OAuth2\ApprovalProvisioning as Oauth2ApprovalProvisi
 use Lucinda\WebSecurity\DAO\OAuth2\AutomaticProvisioning as Oauth2AutomaticProvisioning;
 
 /**
- * Encapsulates OAuth2 logic.
+ * Encapsulates parsing of the security > authentication > oauth2 XML tag
  */
 final class Oauth2 extends Generic
 {
     private string $dao;
+    /**
+     * @var Driver[]
+     */
     private array $drivers = [];
     private Provisioning $provisioning;
     private string $targetPending = "";
     private int $stateExpiration;
 
     /**
-     * Sets up object state.
+     * Sets up object state from the oauth2 XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The oauth2 XML tag
+     * @throws ConfigurationException If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -38,11 +42,10 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Sets how the state machine will treat accounts attempting OAuth2 login
-     * 
-     * @param \SimpleXMLElement $xml
-     * @throws ConfigurationException
-     * @return void
+     * Detects account creation policy based on 'provisioning' tag attribute
+     *
+     * @param \SimpleXMLElement $xml The oauth2 XML tag
+     * @throws ConfigurationException If missing or not a supported provisioning policy
      */
     private function setProvisioning(\SimpleXMLElement $xml): void
     {
@@ -55,8 +58,8 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Gets how the state machine will treat accounts attempting OAuth2 login
-     * 
+     * Gets detected account creation policy
+     *
      * @return Provisioning
      */
     public function getProvisioning(): Provisioning
@@ -65,9 +68,10 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Sets DAO.
+     * Detects the OAuth2 login DAO class based on 'dao' and 'provisioning' tag attributes
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The oauth2 XML tag
+     * @throws ConfigurationException If the class does not implement the interface required by the policy
      */
     private function setDAO(\SimpleXMLElement $xml): void
     {
@@ -92,9 +96,9 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Gets DAO.
+     * Gets the OAuth2 DAO class name implementing the configured provisioning policy
      *
-     * @return string
+     * @return class-string<Oauth2Login>
      */
     public function getDAO(): string
     {
@@ -102,9 +106,10 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Sets drivers.
+     * Detects OAuth2 provider configurations from 'driver' child tags
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The oauth2 XML tag
+     * @throws ConfigurationException If no driver is configured or a child configuration is invalid
      */
     private function setDrivers(\SimpleXMLElement $xml): void
     {
@@ -117,9 +122,9 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Gets drivers.
+     * Gets detected OAuth2 provider configurations
      *
-     * @return array
+     * @return Driver[]
      */
     public function getDrivers(): array
     {
@@ -127,9 +132,12 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Sets target pending route
+     * Detects pending approval route based on 'target_pending' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * The attribute is used only with the approval_required provisioning policy.
+     *
+     * @param \SimpleXMLElement $xml The oauth2 XML tag
+     * @throws ConfigurationException If approval is required and the attribute is missing or empty
      */
     private function setTargetPending(\SimpleXMLElement $xml): void
     {
@@ -143,7 +151,7 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Gets target pending route
+     * Gets pending approval route, or an empty string when approval is not required
      *
      * @return string
      */
@@ -153,9 +161,10 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Sets for how long value of OAuth2 state will remain fresh
+     * Detects OAuth2 state lifetime in seconds based on 'state_expiration' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The oauth2 XML tag
+     * @throws ConfigurationException If missing or not a positive integer
      */
     private function setStateExpiration(\SimpleXMLElement $xml): void
     {
@@ -168,7 +177,7 @@ final class Oauth2 extends Generic
     }
 
     /**
-     * Gets for how long value of OAuth2 state will remain fresh
+     * Gets OAuth2 state lifetime in seconds
      *
      * @return int
      */

@@ -7,16 +7,20 @@ use Lucinda\WebSecurity\Configuration\Persistence\Session as SessionPersistence;
 use Lucinda\WebSecurity\Configuration\Persistence\SynchronizerToken as SynchronizedTokenPersistence;
 
 /**
- * Encapsulates Persistence logic.
+ * Encapsulates parsing of the security > persistence XML tag
  */
 final class Persistence
 {
+    /**
+     * @var array<SessionPersistence|RememberMePersistence|SynchronizedTokenPersistence>
+     */
     private array $drivers = [];
 
     /**
-     * Sets up object state.
+     * Sets up object state from the security XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The security XML tag
+     * @throws Exception If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -30,11 +34,10 @@ final class Persistence
     }
 
     /**
-     * Performs checks if XML obeys the expected architecture
-     * 
-     * @param \SimpleXMLElement $xml
-     * @throws Exception
-     * @return void
+     * Validates allowed combinations of persistence drivers
+     *
+     * @param \SimpleXMLElement $xml The persistence XML tag
+     * @throws Exception If token and cookie persistence are combined or remember_me lacks session persistence
      */
     private function validate(\SimpleXMLElement $xml): void
     {
@@ -48,9 +51,10 @@ final class Persistence
     }
 
     /**
-     * Sets drivers.
+     * Detects persistence configurations from 'session', 'remember_me' and 'synchronizer_token' child tags
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The persistence XML tag
+     * @throws Exception If no driver is configured or a child configuration is invalid
      */
     private function setDrivers(\SimpleXMLElement $xml): void
     {
@@ -72,9 +76,9 @@ final class Persistence
     }
 
     /**
-     * Gets drivers.
+     * Gets detected persistence driver configurations in loading order
      *
-     * @return array
+     * @return array<SessionPersistence|RememberMePersistence|SynchronizedTokenPersistence>
      */
     public function getDrivers(): array
     {

@@ -12,19 +12,29 @@ use Lucinda\WebSecurity\Security\Authorization\Result;
 use Lucinda\WebSecurity\Security\Exception as SecurityException;
 
 /**
- * Encapsulates Authorization logic.
+ * Selects the configured authorization mechanism and evaluates resource access
+ *
+ * Construction delegates to DAO-based or route-role authorization and retains
+ * the first result. Produces an Authorization\Result, not a packet; the
+ * enclosing wrapper converts denied access into a security packet.
+ *
+ * @see \Lucinda\WebSecurity\Configuration\Authorization
+ * @see \Lucinda\WebSecurity\Wrapper\Authorization
+ * @see \Lucinda\WebSecurity\Security\Authorization\Result
  */
 final class Authorization
 {
     private Result|null $outcome = null;
 
     /**
-     * Sets up object state.
+     * Constructs and executes the configured authorization workflow
      *
-     * @param ConfigurationAuthorization $configuration
-     * @param Request $request
-     * @param int|string|null $userID
-     * @param ?RolesDetector $rolesDetector
+     * @param ConfigurationAuthorization $configuration Parsed authorization configuration
+     * @param Request $request Request whose resource access is being evaluated
+     * @param int|string|null $userID Authenticated local user ID, or null for a guest
+     * @param RolesDetector|null $rolesDetector Parsed route-role policies, required for XML-based authorization
+     * @throws SecurityException If XML-based authorization lacks a roles detector
+     * @throws \Throwable If a configured authorization DAO fails
      */
     public function __construct(
         ConfigurationAuthorization $configuration,
@@ -48,11 +58,13 @@ final class Authorization
     }
 
     /**
-     * Authenticate by DAO.
+     * Delegates access evaluation to the configured page and user DAOs
      *
-     * @param ConfigurationAuthorizationByDAO $configuration
-     * @param Request $request
-     * @param int|string|null $userID
+     * @param ConfigurationAuthorizationByDAO $configuration Parsed DAO-based authorization settings
+     * @param Request $request Request providing the route and HTTP method
+     * @param int|string|null $userID Authenticated local user ID, or null for a guest
+     * @return Result Authorization decision and associated failure callback
+     * @throws \Throwable If an authorization DAO fails
      */
     private function authenticateByDAO(
         ConfigurationAuthorizationByDAO $configuration,
@@ -65,12 +77,15 @@ final class Authorization
     }
 
     /**
-     * Authenticate by x m l.
+     * Delegates access evaluation to the configured route-role policies
      *
-     * @param ConfigurationAuthorizationByXML $configuration
-     * @param Request $request
-     * @param int|string|null $userID
-     * @param ?RolesDetector $rolesDetector
+     * @param ConfigurationAuthorizationByXML $configuration Parsed route-role authorization settings
+     * @param Request $request Request providing the route to authorize
+     * @param int|string|null $userID Authenticated local user ID, or null for a guest
+     * @param RolesDetector|null $rolesDetector Parsed route-role policies
+     * @return Result Authorization decision and associated failure callback
+     * @throws SecurityException If the roles detector is missing
+     * @throws \Throwable If the user-roles DAO fails
      */
     private function authenticateByXML(
         ConfigurationAuthorizationByXML $configuration,
@@ -88,9 +103,9 @@ final class Authorization
     }
 
     /**
-     * Gets outcome.
+     * Gets the authorization result computed during construction
      *
-     * @return Result|null
+     * @return Result|null Computed decision, or null when no authorization mechanism produced one
      */
     public function getOutcome(): Result|null
     {

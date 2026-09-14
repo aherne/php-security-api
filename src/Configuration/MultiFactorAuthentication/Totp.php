@@ -6,7 +6,7 @@ use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 use Lucinda\WebSecurity\Configuration\FieldValidator;
 
 /**
- * Encapsulates Totp logic.
+ * Encapsulates parsing of the security > multi_factor_authentication > totp XML tag
  */
 final class Totp
 {
@@ -22,9 +22,10 @@ final class Totp
     private int $window;
 
     /**
-     * Sets up object state.
+     * Sets up object state from the totp XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The totp XML tag
+     * @throws ConfigurationException If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -36,9 +37,10 @@ final class Totp
     }
 
     /**
-     * Sets issuer.
+     * Detects the authenticator issuer label based on 'issuer' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The totp XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setIssuer(\SimpleXMLElement $xml): void
     {
@@ -49,7 +51,7 @@ final class Totp
     }
 
     /**
-     * Gets issuer.
+     * Gets the issuer label used in the authenticator provisioning URI
      *
      * @return string
      */
@@ -59,9 +61,11 @@ final class Totp
     }
 
     /**
-     * Sets code parameter.
+     * Detects the POST parameter holding the TOTP code based on 'code_param' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_CODE_PARAMETER when the attribute is missing or empty.
+     *
+     * @param \SimpleXMLElement $xml The totp XML tag
      */
     private function setCodeParameter(\SimpleXMLElement $xml): void
     {
@@ -69,7 +73,7 @@ final class Totp
     }
 
     /**
-     * Gets code parameter.
+     * Gets the POST parameter name holding the TOTP code
      *
      * @return string
      */
@@ -79,9 +83,12 @@ final class Totp
     }
 
     /**
-     * Sets period.
+     * Detects TOTP time-step duration in seconds based on 'period' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_PERIOD when the attribute is absent.
+     *
+     * @param \SimpleXMLElement $xml The totp XML tag
+     * @throws ConfigurationException If provided but not a positive integer
      */
     private function setPeriod(\SimpleXMLElement $xml): void
     {
@@ -94,7 +101,7 @@ final class Totp
     }
 
     /**
-     * Gets period.
+     * Gets TOTP time-step duration in seconds
      *
      * @return int
      */
@@ -104,9 +111,12 @@ final class Totp
     }
 
     /**
-     * Sets digits.
+     * Detects TOTP code length based on 'digits' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_DIGITS when the attribute is absent.
+     *
+     * @param \SimpleXMLElement $xml The totp XML tag
+     * @throws ConfigurationException If provided but not an integer equal to 6, 7 or 8
      */
     private function setDigits(\SimpleXMLElement $xml): void
     {
@@ -123,7 +133,7 @@ final class Totp
     }
 
     /**
-     * Gets digits.
+     * Gets the number of digits in a TOTP code
      *
      * @return int
      */
@@ -133,13 +143,17 @@ final class Totp
     }
 
     /**
-     * Sets window.
+     * Detects allowed TOTP clock drift based on 'window' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Counts accepted time steps before and after the current step.
+     * Uses DEFAULT_WINDOW when absent; zero accepts only the current step.
+     *
+     * @param \SimpleXMLElement $xml The totp XML tag
+     * @throws ConfigurationException If provided but not a nonnegative integer
      */
     private function setWindow(\SimpleXMLElement $xml): void
     {
-        if (empty($xml["window"])) {
+        if (!isset($xml["window"])) {
             $this->window = self::DEFAULT_WINDOW;
         } else {
             $validator = new FieldValidator();
@@ -148,7 +162,7 @@ final class Totp
     }
 
     /**
-     * Gets window.
+     * Gets the number of accepted TOTP time steps on either side of the current step
      *
      * @return int
      */

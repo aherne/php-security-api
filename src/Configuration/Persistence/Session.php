@@ -6,7 +6,7 @@ use Lucinda\WebSecurity\Configuration\FieldValidator;
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSameSiteOptions;
 
 /**
- * Encapsulates Session logic.
+ * Encapsulates parsing of the security > persistence > session XML tag
  */
 final class Session extends AbstractPersistence
 {
@@ -18,9 +18,10 @@ final class Session extends AbstractPersistence
     private ?string $handler = null;
 
     /**
-     * Sets up object state.
+     * Sets up object state from the session XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The session XML tag
+     * @throws \Lucinda\WebSecurity\Configuration\Exception If an optional setting is invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -33,9 +34,11 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Sets parameter name.
+     * Detects the session cookie name based on 'parameter_name' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_PARAMETER_NAME when the attribute is missing or empty.
+     *
+     * @param \SimpleXMLElement $xml The session XML tag
      */
     private function setParameterName(\SimpleXMLElement $xml): void
     {
@@ -43,7 +46,7 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Gets parameter name.
+     * Gets the session cookie name
      *
      * @return string
      */
@@ -53,9 +56,12 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Sets is http only.
+     * Detects the cookie HttpOnly flag based on the optional 'is_http_only' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Accepts 0 for false and 1 for true; leaves the flag unset when the attribute is absent.
+     *
+     * @param \SimpleXMLElement $xml The session XML tag
+     * @throws \Lucinda\WebSecurity\Configuration\Exception If provided but not an integer 0 or 1
      */
     private function setIsHttpOnly(\SimpleXMLElement $xml): void
     {
@@ -68,7 +74,7 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Gets is http only.
+     * Gets the cookie HttpOnly flag, or null when the attribute was absent
      *
      * @return ?bool
      */
@@ -78,9 +84,12 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Sets is https only.
+     * Detects the cookie Secure flag based on the optional 'is_https_only' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Accepts 0 for false and 1 for true; leaves the flag unset when the attribute is absent.
+     *
+     * @param \SimpleXMLElement $xml The session XML tag
+     * @throws \Lucinda\WebSecurity\Configuration\Exception If provided but not an integer 0 or 1
      */
     private function setIsHttpsOnly(\SimpleXMLElement $xml): void
     {
@@ -93,7 +102,7 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Gets is https only.
+     * Gets the cookie Secure flag, or null when the attribute was absent
      *
      * @return ?bool
      */
@@ -103,9 +112,10 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Sets same site.
+     * Detects the cookie SameSite option based on the optional 'same_site' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The session XML tag
+     * @throws \Lucinda\WebSecurity\Configuration\Exception If provided but not None, Strict or Lax
      */
     private function setSameSite(\SimpleXMLElement $xml): void
     {
@@ -118,7 +128,7 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Gets same site.
+     * Gets the cookie SameSite option, or null when the attribute was absent
      *
      * @return ?CookieSameSiteOptions
      */
@@ -128,9 +138,9 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Sets handler.
+     * Detects the custom session save handler class based on 'handler' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The session XML tag
      */
     private function setHandler(\SimpleXMLElement $xml): void
     {
@@ -138,7 +148,7 @@ final class Session extends AbstractPersistence
     }
 
     /**
-     * Gets handler.
+     * Gets the custom session save handler class name, or null when none was configured
      *
      * @return ?string
      */

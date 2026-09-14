@@ -7,7 +7,7 @@ use Lucinda\WebSecurity\DAO\PageAuthorization;
 use Lucinda\WebSecurity\DAO\UserAuthorization;
 
 /**
- * Encapsulates ByDAO logic.
+ * Encapsulates parsing of the security > authorization > by_dao XML tag
  */
 final class ByDAO
 {
@@ -17,9 +17,10 @@ final class ByDAO
     private string $callbackLoggedOut;
 
     /**
-     * Sets up object state.
+     * Sets up object state from the by_dao XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The by_dao XML tag
+     * @throws ConfigurationException If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -30,9 +31,10 @@ final class ByDAO
     }
 
     /**
-     * Sets page DAO.
+     * Detects DAO\PageAuthorization class based on 'page_dao' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The by_dao XML tag
+     * @throws ConfigurationException If missing or the class does not implement PageAuthorization
      */
     private function setPageDAO(\SimpleXMLElement $xml): void
     {
@@ -47,9 +49,9 @@ final class ByDAO
     }
 
     /**
-     * Gets page DAO.
+     * Gets detected DAO\PageAuthorization class name
      *
-     * @return string
+     * @return class-string<PageAuthorization>
      */
     public function getPageDAO(): string
     {
@@ -57,9 +59,10 @@ final class ByDAO
     }
 
     /**
-     * Sets user DAO.
+     * Detects DAO\UserAuthorization class based on 'user_dao' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The by_dao XML tag
+     * @throws ConfigurationException If missing or the class does not implement UserAuthorization
      */
     private function setUserDAO(\SimpleXMLElement $xml): void
     {
@@ -74,9 +77,9 @@ final class ByDAO
     }
 
     /**
-     * Gets user DAO.
+     * Gets detected DAO\UserAuthorization class name
      *
-     * @return string
+     * @return class-string<UserAuthorization>
      */
     public function getUserDAO(): string
     {
@@ -84,9 +87,10 @@ final class ByDAO
     }
 
     /**
-     * Sets callback logged in.
+     * Detects authorization failure route for logged-in users based on 'logged_in_callback' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The by_dao XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setCallbackLoggedIn(\SimpleXMLElement $xml): void
     {
@@ -97,7 +101,7 @@ final class ByDAO
     }
 
     /**
-     * Gets callback logged in.
+     * Gets authorization failure route for logged-in users
      *
      * @return string
      */
@@ -107,9 +111,10 @@ final class ByDAO
     }
 
     /**
-     * Sets callback logged out.
+     * Detects authorization failure route for guests based on 'logged_out_callback' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The by_dao XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setCallbackLoggedOut(\SimpleXMLElement $xml): void
     {
@@ -120,7 +125,7 @@ final class ByDAO
     }
 
     /**
-     * Gets callback logged out.
+     * Gets authorization failure route for guests
      *
      * @return string
      */

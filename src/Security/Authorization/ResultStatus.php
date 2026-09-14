@@ -3,16 +3,30 @@
 namespace Lucinda\WebSecurity\Security\Authorization;
 
 /**
- * Enum that contains all available authorization statuses via following constants:
- * - OK: authorization was successful
- * - UNAUTHORIZED: authorization failed because user is not authenticated
- * - FORBIDDEN: authorization failed because authenticated user is not allowed access to requested resource
- * - NOT_FOUND: authorization failed because no authorization policy could be found for requested resource
+ * Defines decisions produced by resource-authorization checks
+ *
+ * These workflow values are not HTTP status codes. A corresponding result
+ * may include a failure callback for the enclosing wrapper to handle.
+ *
+ * @see Result
+ * @see \Lucinda\WebSecurity\Packets\Security
  */
 enum ResultStatus: int
 {
+    /**
+     * The requested resource is accessible to the current user or guest
+     */
     case OK = 6;
+    /**
+     * A guest does not satisfy the requested resource's access requirements
+     */
     case UNAUTHORIZED = 7;
+    /**
+     * An authenticated user does not satisfy the requested resource's access requirements
+     */
     case FORBIDDEN = 8;
+    /**
+     * The requested resource or its applicable route-role policy was not found
+     */
     case NOT_FOUND = 9;
 }

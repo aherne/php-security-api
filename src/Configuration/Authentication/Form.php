@@ -7,7 +7,7 @@ use Lucinda\WebSecurity\DAO\FormLogin;
 use Lucinda\WebSecurity\DAO\Throttler\FormLogin as FormLoginThrottler;
 
 /**
- * Encapsulates Form logic.
+ * Encapsulates parsing of the security > authentication > form XML tag
  */
 final class Form extends Generic
 {
@@ -25,9 +25,10 @@ final class Form extends Generic
     private string $parameterCsrf;
 
     /**
-     * Sets up object state.
+     * Sets up object state from the form XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The form XML tag
+     * @throws ConfigurationException If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -44,9 +45,10 @@ final class Form extends Generic
     }
 
     /**
-     * Sets DAO.
+     * Detects DAO\FormLogin class based on 'dao' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The form XML tag
+     * @throws ConfigurationException If missing or the class does not implement FormLogin
      */
     private function setDAO(\SimpleXMLElement $xml): void
     {
@@ -61,9 +63,9 @@ final class Form extends Generic
     }
 
     /**
-     * Gets DAO.
+     * Gets detected DAO\FormLogin class name
      *
-     * @return string
+     * @return class-string<FormLogin>
      */
     public function getDAO(): string
     {
@@ -71,9 +73,10 @@ final class Form extends Generic
     }
 
     /**
-     * Sets throttler DAO.
+     * Detects DAO\Throttler\FormLogin class based on 'throttler' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The form XML tag
+     * @throws ConfigurationException If missing or the class does not implement FormLoginThrottler
      */
     private function setThrottler(\SimpleXMLElement $xml): void
     {
@@ -88,9 +91,9 @@ final class Form extends Generic
     }
 
     /**
-     * Gets throttler DAO.
+     * Gets detected DAO\Throttler\FormLogin class name
      *
-     * @return string
+     * @return class-string<FormLoginThrottler>
      */
     public function getThrottler(): string
     {
@@ -98,9 +101,10 @@ final class Form extends Generic
     }
 
     /**
-     * Sets page source route
+     * Detects page source route based on 'page' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The form XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setPageSource(\SimpleXMLElement $xml): void
     {
@@ -121,9 +125,10 @@ final class Form extends Generic
     }
 
     /**
-     * Sets target throttled route
+     * Detects target throttled route based on 'target_throttled' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The form XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setTargetThrottled(\SimpleXMLElement $xml): void
     {
@@ -144,9 +149,11 @@ final class Form extends Generic
     }
 
     /**
-     * Sets parameter username.
+     * Detects the POST parameter holding the username based on 'parameter_username' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_PARAMETER_USERNAME when the attribute is missing or empty.
+     *
+     * @param \SimpleXMLElement $xml The form XML tag
      */
     private function setParameterUsername(\SimpleXMLElement $xml): void
     {
@@ -154,7 +161,7 @@ final class Form extends Generic
     }
 
     /**
-     * Gets parameter username.
+     * Gets the POST parameter name holding the username
      *
      * @return string
      */
@@ -164,9 +171,11 @@ final class Form extends Generic
     }
 
     /**
-     * Sets parameter password.
+     * Detects the POST parameter holding the password based on 'parameter_password' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_PARAMETER_PASSWORD when the attribute is missing or empty.
+     *
+     * @param \SimpleXMLElement $xml The form XML tag
      */
     private function setParameterPassword(\SimpleXMLElement $xml): void
     {
@@ -174,7 +183,7 @@ final class Form extends Generic
     }
 
     /**
-     * Gets parameter password.
+     * Gets the POST parameter name holding the password
      *
      * @return string
      */
@@ -184,9 +193,11 @@ final class Form extends Generic
     }
 
     /**
-     * Sets parameter remember me.
+     * Detects the POST parameter holding the remember-me flag based on 'parameter_remember_me' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_PARAMETER_REMEMBER_ME when the attribute is missing or empty.
+     *
+     * @param \SimpleXMLElement $xml The form XML tag
      */
     private function setParameterRememberMe(\SimpleXMLElement $xml): void
     {
@@ -194,7 +205,7 @@ final class Form extends Generic
     }
 
     /**
-     * Gets parameter remember me.
+     * Gets the POST parameter name holding the remember-me flag
      *
      * @return string
      */
@@ -204,9 +215,11 @@ final class Form extends Generic
     }
 
     /**
-     * Sets parameter CSRF.
+     * Detects the POST parameter holding the CSRF challenge based on 'csrf' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_PARAMETER_CSRF when the attribute is missing or empty.
+     *
+     * @param \SimpleXMLElement $xml The form XML tag
      */
     private function setParameterCsrf(\SimpleXMLElement $xml): void
     {
@@ -214,7 +227,7 @@ final class Form extends Generic
     }
 
     /**
-     * Gets parameter CSRF.
+     * Gets the POST parameter name holding the CSRF challenge
      *
      * @return string
      */

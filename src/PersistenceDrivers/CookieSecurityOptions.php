@@ -3,7 +3,16 @@
 namespace Lucinda\WebSecurity\PersistenceDrivers;
 
 /**
- * Configures cookies security and duration
+ * Carries cookie security attributes and lifetime settings for persistence drivers
+ *
+ * Defaults to HttpOnly and Secure disabled, SameSite Lax, and a zero duration.
+ * The duration is interpreted by each driver: sessions use it for cookie
+ * lifetime and idle expiration, while remember-me uses it for cookie and
+ * token expiration. Zero is not a universal unlimited-lifetime setting.
+ *
+ * @see CookieSameSiteOptions
+ * @see Session\PersistenceDriver
+ * @see RememberMe\PersistenceDriver
  */
 final class CookieSecurityOptions
 {
@@ -13,9 +22,9 @@ final class CookieSecurityOptions
     private int $expirationTime = 0;
 
     /**
-     * Sets elapsed time by which cookie expires
+     * Sets the lifetime or idle timeout used by the persistence driver
      *
-     * @param int $expirationTime
+     * @param int $expirationTime Duration in seconds, interpreted by the consuming driver
      */
     public function setExpirationTime(int $expirationTime): void
     {
@@ -23,9 +32,9 @@ final class CookieSecurityOptions
     }
 
     /**
-     * Gets elapsed time by which cookie expires
+     * Gets the lifetime or idle timeout used by the persistence driver
      *
-     * @return int
+     * @return int Duration in seconds; defaults to zero
      */
     public function getExpirationTime(): int
     {
@@ -33,9 +42,9 @@ final class CookieSecurityOptions
     }
 
     /**
-     * Sets if cookie is httponly
+     * Sets whether the cookie should carry the HttpOnly attribute
      *
-     * @param bool $isHttpOnly
+     * @param bool $isHttpOnly Whether browser script access to the cookie should be restricted
      */
     public function setIsHttpOnly(bool $isHttpOnly): void
     {
@@ -43,9 +52,9 @@ final class CookieSecurityOptions
     }
 
     /**
-     * Gets if cookie is httponly
+     * Gets whether the cookie should carry the HttpOnly attribute
      *
-     * @return bool
+     * @return bool True when HttpOnly is enabled; defaults to false
      */
     public function isHttpOnly(): bool
     {
@@ -53,9 +62,9 @@ final class CookieSecurityOptions
     }
 
     /**
-     * Sets if cookie is only accessible on HTTPS connections
+     * Sets whether the cookie should carry the Secure attribute
      *
-     * @param bool $isSecure
+     * @param bool $isSecure Whether the cookie should be restricted to secure transport
      */
     public function setIsSecure(bool $isSecure): void
     {
@@ -63,9 +72,9 @@ final class CookieSecurityOptions
     }
 
     /**
-     * Gets if cookie is only accessible on HTTPS connections
+     * Gets whether the cookie should carry the Secure attribute
      *
-     * @return bool
+     * @return bool True when Secure is enabled; defaults to false
      */
     public function isSecure(): bool
     {
@@ -73,9 +82,9 @@ final class CookieSecurityOptions
     }
 
     /**
-     * Sets if cookie SameSite options
+     * Sets the cookie SameSite policy
      *
-     * @param CookieSameSiteOptions $sameSite
+     * @param CookieSameSiteOptions $sameSite SameSite policy to apply
      */
     public function setSameSite(CookieSameSiteOptions $sameSite): void
     {
@@ -83,9 +92,9 @@ final class CookieSecurityOptions
     }
 
     /**
-     * Gets if cookie is restricted with SameSite flag
+     * Gets the cookie SameSite policy
      *
-     * @return CookieSameSiteOptions
+     * @return CookieSameSiteOptions Selected policy; defaults to LAX
      */
     public function getSameSite(): CookieSameSiteOptions
     {

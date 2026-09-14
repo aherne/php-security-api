@@ -3,24 +3,29 @@
 namespace Lucinda\WebSecurity\DAO\Throttler;
 
 /**
- * Guards multi-factor authentication against brute-force attacks
+ * Defines the DAO contract for throttling failed multi-factor authentication attempts
+ *
+ * Register the implementation class through the 'throttler' attribute
+ * of security > multi_factor_authentication.
+ *
+ * @see \Lucinda\WebSecurity\Configuration\MultiFactorAuthentication
  */
 interface MultiFactorAuthentication
 {
     /**
-     * Records a failed multi-factor attempt.
+     * Records a failed MFA setup or challenge attempt for a local user and client IP
      *
-     * @param int|string $userID
-     * @param string $ipAddress
+     * @param int|string $userID Non-empty local user ID
+     * @param string $ipAddress Client IP address
      */
     public function penalize(int|string $userID, string $ipAddress): void;
     
     /**
-     * Checks whether multi-factor authentication is throttled.
+     * Checks whether the current throttling policy blocks this user's MFA attempt
      *
-     * @param int|string $userID
-     * @param string $ipAddress
-     * @return bool
+     * @param int|string $userID Non-empty local user ID
+     * @param string $ipAddress Client IP address
+     * @return bool True when MFA is blocked; false when the attempt may proceed
      */
     public function isThrottled(int|string $userID, string $ipAddress): bool;
 }

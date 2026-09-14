@@ -5,7 +5,7 @@ namespace Lucinda\WebSecurity\Configuration\Authentication\Oauth2;
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 
 /**
- * Encapsulates Driver logic.
+ * Encapsulates parsing of the security > authentication > oauth2 > driver XML tag
  */
 final class Driver
 {
@@ -13,9 +13,10 @@ final class Driver
     private string $pageLogin;
     
     /**
-     * Sets up object state.
+     * Sets up object state from the driver XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The driver XML tag
+     * @throws ConfigurationException If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -24,9 +25,10 @@ final class Driver
     }
 
     /**
-     * Sets name.
+     * Detects the injected OAuth2 provider name based on 'name' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The driver XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setName(\SimpleXMLElement $xml): void
     {
@@ -37,7 +39,7 @@ final class Driver
     }
 
     /**
-     * Gets name.
+     * Gets the name used to select the injected OAuth2 provider
      *
      * @return string
      */
@@ -47,9 +49,10 @@ final class Driver
     }
 
     /**
-     * Sets page login.
+     * Detects the OAuth2 login and callback route based on 'login' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The driver XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setPageLogin(\SimpleXMLElement $xml): void
     {
@@ -60,7 +63,7 @@ final class Driver
     }
 
     /**
-     * Gets page login.
+     * Gets the OAuth2 login and callback route
      *
      * @return ?string
      */

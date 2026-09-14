@@ -6,16 +6,22 @@ use Lucinda\WebSecurity\Configuration\Persistence\SynchronizerToken as Configura
 use Lucinda\WebSecurity\PersistenceDrivers\Wrapper as AbstractWrapper;
 
 /**
- * Binds SynchronizerTokenPersistenceDriver @ SECURITY API with settings from configuration.xml @ SERVLETS-API and
- * sets up an object on which one can forward synchronizer token operations.
+ * Constructs a synchronizer-token persistence driver from its matching configuration
+ *
+ * Passes the configured encryption secret, token lifetime, renewal interval,
+ * and client IP to the driver. The constructed driver is available through
+ * getDriver(); this wrapper does not read request headers or emit a token.
+ *
+ * @see \Lucinda\WebSecurity\Configuration\Persistence\SynchronizerToken
+ * @see PersistenceDriver
  */
 final class Wrapper extends AbstractWrapper
 {
     /**
-     * Sets up object state.
+     * Creates the configured synchronizer-token persistence driver
      *
-     * @param Configuration $configuration
-     * @param string $ipAddress
+     * @param Configuration $configuration Parsed persistence settings
+     * @param string $ipAddress Client IP for binding, or an empty string when IP binding is disabled
      */
     public function __construct(Configuration $configuration, string $ipAddress)
     {
@@ -23,10 +29,10 @@ final class Wrapper extends AbstractWrapper
     }
 
     /**
-     * Sets up current persistence driver from configuration into driver property.
+     * Builds the synchronizer-token driver from configuration values
      *
-     * @param  Configuration $configuration Persistence driver configuration
-     * @param  string        $ipAddress     Detected client IP address
+     * @param Configuration $configuration Parsed persistence settings
+     * @param string $ipAddress Client IP for binding, or an empty string when IP binding is disabled
      */
     protected function setDriver(Configuration $configuration, string $ipAddress): void
     {

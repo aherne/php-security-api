@@ -3,23 +3,23 @@
 namespace Lucinda\WebSecurity\Configuration;
 
 /**
- * Detects roles from matching child tag or, if not found, gets default roles
+ * Parses comma-separated roles from XML child tags and indexes them by a configured attribute
  */
 final class RolesDetector
 {
-    /*
-     * @var array<string, string[]>
+    /**
+     * @var array<array-key, string[]>
      */
     private array $roles;
 
     /**
-     * Calls for roles detection
+     * Sets up the role map from the configured XML tags and identifying attribute
      *
-     * @param  \SimpleXMLElement $xml
-     * @param  string            $parentTag
-     * @param  string            $childTag
-     * @param  string            $requiredAttribute
-     * @throws Exception
+     * @param \SimpleXMLElement $xml XML document containing the role definitions
+     * @param string $parentTag Name of the parent tag, for example 'routes'
+     * @param string $childTag Name of each role-bearing child tag, for example 'route'
+     * @param string $requiredAttribute Attribute identifying each child, for example 'id'
+     * @throws Exception If a matching child is missing its identifying attribute or roles
      */
     public function __construct(
         \SimpleXMLElement $xml,
@@ -31,14 +31,13 @@ final class RolesDetector
     }
 
     /**
-     * etects roles from matching child tag or, if not found, gets default roles
+     * Detects each child's roles from its 'roles' attribute and stores them by the identifying attribute
      *
-     * @param  \SimpleXMLElement $xml
-     * @param  string            $parentTag
-     * @param  string            $childTag
-     * @param  string            $requiredAttribute
-     * @param  string   $matchingValue
-     * @throws Exception
+     * @param \SimpleXMLElement $xml XML document containing the role definitions
+     * @param string $parentTag Name of the parent tag, for example 'routes'
+     * @param string $childTag Name of each role-bearing child tag, for example 'route'
+     * @param string $requiredAttribute Attribute identifying each child, for example 'id'
+     * @throws Exception If a matching child is missing its identifying attribute or roles
      */
     private function setRoles(
         \SimpleXMLElement $xml,
@@ -70,9 +69,9 @@ final class RolesDetector
     }
 
     /**
-     * Gets roles detected
+     * Gets roles for an identifying attribute value, or an empty array when no match exists
      *
-     * @param string $matchingValue
+     * @param string $matchingValue Value of the identifying attribute to look up
      * @return string[]
      */
     public function getRoles(string $matchingValue): array

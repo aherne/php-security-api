@@ -6,7 +6,7 @@ use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 use Lucinda\WebSecurity\DAO\UserRoles;
 
 /**
- * Encapsulates ByXML logic.
+ * Encapsulates parsing of the security > authorization > by_route XML tag
  */
 final class ByXML
 {
@@ -15,9 +15,10 @@ final class ByXML
     private string $rolesDAO;
 
     /**
-     * Sets up object state.
+     * Sets up object state from the by_route XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The by_route XML tag
+     * @throws ConfigurationException If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -27,9 +28,10 @@ final class ByXML
     }
 
     /**
-     * Sets roles DAO.
+     * Detects DAO\UserRoles class based on 'roles_dao' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The by_route XML tag
+     * @throws ConfigurationException If missing or the class does not implement UserRoles
      */
     private function setRolesDAO(\SimpleXMLElement $xml): void
     {
@@ -44,9 +46,9 @@ final class ByXML
     }
 
     /**
-     * Gets roles DAO.
+     * Gets detected DAO\UserRoles class name
      *
-     * @return string
+     * @return class-string<UserRoles>
      */
     public function getRolesDAO(): string
     {
@@ -54,9 +56,10 @@ final class ByXML
     }
 
     /**
-     * Sets callback logged in.
+     * Detects authorization failure route for logged-in users based on 'logged_in_callback' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The by_route XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setCallbackLoggedIn(\SimpleXMLElement $xml): void
     {
@@ -67,7 +70,7 @@ final class ByXML
     }
 
     /**
-     * Gets callback logged in.
+     * Gets authorization failure route for logged-in users
      *
      * @return string
      */
@@ -77,9 +80,10 @@ final class ByXML
     }
 
     /**
-     * Sets callback logged out.
+     * Detects authorization failure route for guests based on 'logged_out_callback' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The by_route XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setCallbackLoggedOut(\SimpleXMLElement $xml): void
     {
@@ -90,7 +94,7 @@ final class ByXML
     }
 
     /**
-     * Gets callback logged out.
+     * Gets authorization failure route for guests
      *
      * @return string
      */

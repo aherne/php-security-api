@@ -7,7 +7,14 @@ use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
 use Lucinda\WebSecurity\Request;
 
 /**
- * Encapsulates Generic logic.
+ * Shares callback construction and packet composition for MFA implementations
+ *
+ * Concrete implementations supply the request, local user ID, and computed
+ * outcome. Packet composition does not perform redirects or persist login state.
+ *
+ * @internal
+ * @see \Lucinda\WebSecurity\Packets\MultiFactor
+ * @see \Lucinda\WebSecurity\Packets\Throttling
  */
 abstract class Generic
 {
@@ -16,10 +23,10 @@ abstract class Generic
     protected MultiFactorPacket|ThrottlingPacket|null $outcome = null;
 
     /**
-     * Gets callback.
+     * Builds a redirect path relative to the request's application context
      *
-     * @param string $route
-     * @return string
+     * @param string $route Configured route relative to the application context
+     * @return string Context-prefixed redirect path; no redirect is performed
      */
     protected function getCallback(string $route): string
     {
@@ -27,11 +34,11 @@ abstract class Generic
     }
 
     /**
-     * Compose.
+     * Composes an MFA outcome with the current user ID and callback
      *
-     * @param ResultStatus $status
-     * @param string $route
-     * @return MultiFactorPacket
+     * @param ResultStatus $status MFA workflow decision
+     * @param string $route Configured destination relative to the application context
+     * @return MultiFactorPacket MFA packet containing the status, user ID, and context-prefixed callback
      */
     protected function compose(ResultStatus $status, string $route): MultiFactorPacket
     {
@@ -43,10 +50,10 @@ abstract class Generic
     }
 
     /**
-     * Compose throttling.
+     * Composes a throttling outcome for the current MFA user
      *
-     * @param string $route
-     * @return ThrottlingPacket
+     * @param string $route Configured throttling route relative to the application context
+     * @return ThrottlingPacket THROTTLED packet containing the user ID and context-prefixed callback
      */
     protected function composeThrottling(string $route): ThrottlingPacket
     {
@@ -57,9 +64,9 @@ abstract class Generic
     }
 
     /**
-     * Gets outcome.
+     * Gets the outcome computed by the concrete MFA implementation
      *
-     * @return MultiFactorPacket|ThrottlingPacket|null
+     * @return MultiFactorPacket|ThrottlingPacket|null Computed outcome, or null when none was assigned
      */
     public function getOutcome(): MultiFactorPacket|ThrottlingPacket|null
     {

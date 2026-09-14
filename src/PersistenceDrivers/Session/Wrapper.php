@@ -8,16 +8,23 @@ use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 use Lucinda\WebSecurity\PersistenceDrivers\Wrapper as AbstractWrapper;
 
 /**
- * Binds SessionPersistenceDriver @ SECURITY API with settings from configuration.xml @ SERVLETS-API and sets up
- * an object on which one can forward session persistence operations.
+ * Constructs a session persistence driver from its matching configuration
+ *
+ * Maps configuration values to cookie security options and installs the
+ * configured session save handler, when provided. The constructed driver
+ * is available through getDriver().
+ *
+ * @see \Lucinda\WebSecurity\Configuration\Persistence\Session
+ * @see PersistenceDriver
  */
 final class Wrapper extends AbstractWrapper
 {
     /**
-     * Sets up object state.
+     * Creates the configured session persistence driver
      *
-     * @param Configuration $configuration
-     * @param string $ipAddress
+     * @param Configuration $configuration Parsed persistence settings
+     * @param string $ipAddress Client IP for binding, or an empty string when IP binding is disabled
+     * @throws \Throwable If the configured session handler throws during initialization
      */
     public function __construct(Configuration $configuration, string $ipAddress)
     {
@@ -25,10 +32,11 @@ final class Wrapper extends AbstractWrapper
     }
 
     /**
-     * Sets up current persistence driver from configuration into driver property.
+     * Builds the session driver and installs the configured session save handler
      *
-     * @param Configuration $configuration Persistence driver configuration
-     * @param string        $ipAddress     Detected client IP address
+     * @param Configuration $configuration Parsed persistence settings
+     * @param string $ipAddress Client IP for binding, or an empty string when IP binding is disabled
+     * @throws \Throwable If the configured session handler throws during initialization
      */
     protected function setDriver(Configuration $configuration, string $ipAddress): void
     {

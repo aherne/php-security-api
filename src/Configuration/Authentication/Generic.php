@@ -4,15 +4,19 @@ namespace Lucinda\WebSecurity\Configuration\Authentication;
 
 use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 
+/**
+ * Encapsulates common parsing of security > authentication XML tag children
+ */
 abstract class Generic
 {
     protected string $targetSuccess;
     protected string $targetFailure;
 
     /**
-     * Sets target success route
+     * Sets target success route based on 'target_success' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The authentication method XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     protected function setTargetSuccess(\SimpleXMLElement $xml): void
     {
@@ -33,9 +37,10 @@ abstract class Generic
     }
 
     /**
-     * Sets target failure route
+     * Sets target failure route based on 'target_failure' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The authentication method XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     protected function setTargetFailure(\SimpleXMLElement $xml): void
     {

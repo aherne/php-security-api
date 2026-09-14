@@ -8,7 +8,16 @@ use Lucinda\WebSecurity\Security\Authorization\Result;
 use Lucinda\WebSecurity\Security\Authorization\ResultStatus;
 
 /**
- * Encapsulates request authorization via DAOs.
+ * Evaluates resource existence, public access, and user permission through DAOs
+ *
+ * Missing resources produce NOT_FOUND. Public resources are permitted;
+ * other resources require an authenticated user and a positive permission
+ * decision for the request's HTTP method. Returns a decision and callback
+ * without performing a redirect.
+ *
+ * @internal
+ * @see \Lucinda\WebSecurity\Security\Authorization\ByDao
+ * @see Result
  */
 final class Authorization
 {
@@ -16,10 +25,10 @@ final class Authorization
     private string $loggedOutFailureCallback;
 
     /**
-     * Creates an object
+     * Stores callbacks for denied access without evaluating a request
      *
-     * @param string $loggedInFailureCallback  Callback page to use when authorization fails for logged in users.
-     * @param string $loggedOutFailureCallback Callback page to use when authorization fails for logged out (guest) users.
+     * @param string $loggedInFailureCallback Failure route for authenticated users
+     * @param string $loggedOutFailureCallback Failure route for guests
      */
     public function __construct(string $loggedInFailureCallback, string $loggedOutFailureCallback)
     {
@@ -28,12 +37,17 @@ final class Authorization
     }
 
     /**
-     * Performs an authorization task
+     * Evaluates whether the current user may access the requested resource
      *
-     * @param  PageAuthorization $page
-     * @param  UserAuthorization $user
-     * @param  string               $httpRequestMethod
-     * @return Result
+     * User-specific permission checks are skipped for public resources.
+     * Missing resources and denied access select a callback based on whether
+     * a non-empty user ID is available.
+     *
+     * @param PageAuthorization $page DAO representing the requested resource and its public-access policy
+     * @param UserAuthorization $user DAO representing the current user or guest and their permissions
+     * @param string $httpRequestMethod HTTP method used for the user-specific permission check
+     * @return Result Access decision with a failure callback, or an empty callback when access is allowed
+     * @throws \Throwable If an authorization DAO fails
      */
     public function authorize(PageAuthorization $page, UserAuthorization $user, string $httpRequestMethod): Result
     {

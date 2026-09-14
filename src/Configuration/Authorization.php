@@ -6,16 +6,20 @@ use Lucinda\WebSecurity\Configuration\Authorization\ByDAO;
 use Lucinda\WebSecurity\Configuration\Authorization\ByXML;
 
 /**
- * Encapsulates Authorization logic.
+ * Encapsulates parsing of the security > authorization XML tag
  */
 final class Authorization
 {
+    /**
+     * @var array<ByDAO|ByXML>
+     */
     private array $methods = [];
 
     /**
-     * Sets up object state.
+     * Sets up object state from the security XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The security XML tag
+     * @throws Exception If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -29,9 +33,10 @@ final class Authorization
     }
 
     /**
-     * Sets methods.
+     * Detects authorization configuration from 'by_dao' or 'by_route' child tags
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The authorization XML tag
+     * @throws Exception If neither method is configured or a child configuration is invalid
      */
     private function setMethods(\SimpleXMLElement $xml): void
     {
@@ -47,11 +52,10 @@ final class Authorization
     }
 
     /**
-     * Validates if XML logic obeys constraints
-     * 
-     * @param \SimpleXMLElement $xml
-     * @throws Exception
-     * @return void
+     * Validates that DAO and route authorization are not configured together
+     *
+     * @param \SimpleXMLElement $xml The authorization XML tag
+     * @throws Exception If both 'by_dao' and 'by_route' child tags are present
      */
     private function validate(\SimpleXMLElement $xml): void
     {
@@ -61,9 +65,9 @@ final class Authorization
     }
 
     /**
-     * Gets methods.
+     * Gets detected authorization method configurations
      *
-     * @return array
+     * @return array<ByDAO|ByXML>
      */
     public function getMethods(): array
     {

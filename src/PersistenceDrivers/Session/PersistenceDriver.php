@@ -7,7 +7,14 @@ use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\PersistenceDrivers\Exception as PersistenceException;
 
 /**
- * Encapsulates a driver that persists unique user identifier into sessions.
+ * Persists authentication state in a PHP session with IP and expiration checks
+ *
+ * Loading starts a session when necessary and refreshes its idle deadline.
+ * Saving requires an active session and regenerates its ID. Clearing empties
+ * the entire session, not only the authentication entry.
+ *
+ * @see Wrapper
+ * @see \Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo
  */
 final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver
 {
@@ -16,11 +23,11 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     private CookieSecurityOptions $securityOptions;
 
     /**
-     * Creates a persistence driver object.
+     * Creates a session persistence driver without starting a session
      *
-     * @param string                $parameterName   Name of SESSION parameter that holds unique user identifier.
-     * @param CookieSecurityOptions $securityOptions
-     * @param string                $ip              Value of REMOTE_ADDR parameter, unless ignored.
+     * @param string $parameterName Session entry containing serialized authentication state
+     * @param CookieSecurityOptions $securityOptions Cookie attributes and session lifetime settings
+     * @param string $ip Client IP for binding, or an empty string when IP binding is disabled
      */
     public function __construct(
         string $parameterName,
@@ -33,9 +40,13 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     }
 
     /**
-     * Saves user's unique identifier into driver (eg: on login).
+     * Stores authentication state in the active session and regenerates its ID
      *
-     * @param LoggedInUserInfo $authentication Encapsulated persistent authentication
+     * Records the client IP and sets a new idle deadline from the configured
+     * duration. The old session ID is deleted during regeneration.
+     *
+     * @param LoggedInUserInfo $authentication Authentication state to persist
+     * @throws PersistenceException If the session is inactive or its ID cannot be regenerated
      */
     public function save(LoggedInUserInfo $authentication): void
     {
@@ -53,10 +64,16 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     }
 
     /**
-     * Loads logged in user's unique identifier from driver.
+     * Restores authentication state from the session
      *
-     * @return ?LoggedInUserInfo Unique user identifier (usually an int) or NULL if none exists.
-     * @throws HijackException
+     * Starts the session if necessary. Validates stored metadata, checks the
+     * client IP and idle deadline, and refreshes the deadline before restoring
+     * the payload. Attempts to clear the entire session for invalid or expired
+     * state. A zero configured duration disables the driver's idle expiry check.
+     *
+     * @return LoggedInUserInfo|null Stored authentication state, or null when absent or expired
+     * @throws HijackException If the recorded IP differs from the current IP and cleanup succeeds
+     * @throws PersistenceException If session startup, payload validation, or cleanup fails
      */
     public function load(): ?LoggedInUserInfo
     {
@@ -119,7 +136,12 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     }
 
     /**
-     * Removes user's unique identifier from driver (eg: on logout).
+     * Empties the entire active session and regenerates its ID
+     *
+     * Removes all session entries, including application data unrelated to
+     * authentication, and deletes the old session ID during regeneration.
+     *
+     * @throws PersistenceException If the session is inactive or its ID cannot be regenerated
      */
     public function clear(): void
     {
@@ -139,10 +161,11 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
     }
 
     /**
-     * Starts session
-     * 
-     * @throws PersistenceException
-     * @return void
+     * Starts a session using the configured cookie security and lifetime settings
+     *
+     * A non-zero duration also sets the PHP session garbage-collection lifetime.
+     *
+     * @throws PersistenceException If PHP cannot start the session
      */
     private function start(): void
     {

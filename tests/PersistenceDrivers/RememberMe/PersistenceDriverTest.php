@@ -5,7 +5,6 @@ namespace Test\Lucinda\WebSecurity\PersistenceDrivers\RememberMe;
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver;
 use Lucinda\WebSecurity\Token\SaltGenerator;
-use Lucinda\UnitTest\Result;
 use Lucinda\UnitTest\Validator\Booleans;
 use Lucinda\UnitTest\Validator\Integers;
 

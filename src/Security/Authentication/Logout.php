@@ -11,19 +11,31 @@ use Lucinda\WebSecurity\DAO\Logout as LogoutDAO;
 use Lucinda\WebSecurity\Security\FailureReason;
 
 /**
- * Encapsulates logout logic.
+ * Validates logout requests and produces the logout DAO's outcome
+ *
+ * Construction processes the configured logout route. Existing users must
+ * submit a POST request with a valid user-bound CSRF token before the DAO
+ * is invoked. Guests are deferred to the success callback. Acceptance does
+ * not clear persistence here; that is handled by the enclosing wrapper.
+ *
+ * @see \Lucinda\WebSecurity\Configuration\Authentication\Logout
+ * @see \Lucinda\WebSecurity\DAO\Logout
+ * @see \Lucinda\WebSecurity\Wrapper\Authentication
  */
 final class Logout extends Generic
 {
     private LogoutDAO $dao;
 
     /**
-     * Sets up object state.
+     * Constructs the logout handler and evaluates a matching logout request
      *
-     * @param Configuration $configuration
-     * @param Request $request
-     * @param CsrfToken $csrfTokenDetector
-     * @param int|string|null $userID
+     * Leaves the outcome unset when the request does not target the logout route.
+     *
+     * @param Configuration $configuration Parsed logout route, CSRF parameter, and DAO class
+     * @param Request $request Current request to evaluate
+     * @param CsrfToken $csrfTokenDetector Validator for the user-bound logout CSRF token
+     * @param int|string|null $userID Current local user ID, or null for a guest
+     * @throws \Throwable If DAO initialization or logout processing fails
      */
     public function __construct(
         Configuration $configuration,
@@ -47,11 +59,15 @@ final class Logout extends Generic
     }
 
     /**
-     * Processes logout.
+     * Validates the matched logout request and invokes the logout DAO
      *
-     * @param Configuration $configuration
-     * @param CsrfToken $csrfTokenDetector
-     * @return SecurityPacket
+     * Expected request, CSRF, and DAO rejections become LOGOUT_FAILED packets
+     * with detailed failure reasons. A guest receives a DEFERRED outcome.
+     *
+     * @param Configuration $configuration Parsed logout settings and callbacks
+     * @param CsrfToken $csrfTokenDetector Validator for the user-bound logout CSRF token
+     * @return SecurityPacket Logout acceptance, rejection, or deferral outcome
+     * @throws \Throwable If the logout DAO fails outside an expected rejection
      */
     private function logout(Configuration $configuration, CsrfToken $csrfTokenDetector): SecurityPacket
     {

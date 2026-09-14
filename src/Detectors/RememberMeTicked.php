@@ -7,7 +7,7 @@ use Lucinda\WebSecurity\Configuration as SecurityConfiguration;
 use Lucinda\WebSecurity\Configuration\Authentication\Form as FormAuthentication;
 
 /**
- * Detects whether remember-me was selected during login.
+ * Checks if a request parameter matching 'parameter_remember_me' attribute of security > authentication > form XML tag was received
  */
 final class RememberMeTicked
 {

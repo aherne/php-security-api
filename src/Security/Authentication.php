@@ -15,21 +15,32 @@ use Lucinda\WebSecurity\Packets\Packet;
 use Lucinda\WebSecurity\Security\Exception as SecurityException;
 
 /**
- * Encapsulates Authentication logic.
+ * Selects and executes authentication handling for the current request
+ *
+ * Construction tries logout first, then the configured login methods until
+ * one produces an outcome. The computed packet is available through
+ * getOutcome(); invoking the getter does not execute authentication again.
+ * The enclosing wrapper handles authentication persistence and MFA staging.
+ *
+ * @see \Lucinda\WebSecurity\Configuration\Authentication
+ * @see \Lucinda\WebSecurity\Wrapper\Authentication
+ * @see \Lucinda\WebSecurity\Packets\Packet
  */
 final class Authentication
 {
     private ?Packet $outcome = null;
 
     /**
-     * Sets up object state.
+     * Constructs and executes the configured authentication workflow
      *
-     * @param ConfigurationAuthentication $configuration
-     * @param Request $request
-     * @param int|string|null $userID
-     * @param CsrfToken $csrfTokenDetector
-     * @param array $oauth2Drivers
-     * @param ?OAuth2State $oauth2State
+     * @param ConfigurationAuthentication $configuration Parsed login and logout configuration
+     * @param Request $request Current request to evaluate
+     * @param int|string|null $userID Current local user ID, or null for a guest
+     * @param CsrfToken $csrfTokenDetector CSRF token generator and validator
+     * @param array<string,\Lucinda\WebSecurity\OAuth2Service> $oauth2Drivers Provider services keyed by configured provider name
+     * @param OAuth2State|null $oauth2State OAuth2 state store, required when evaluating OAuth2 configuration
+     * @throws SecurityException If required OAuth2 services or state storage are missing
+     * @throws \Throwable If an invoked DAO, provider, state store, or token operation fails
      */
     public function __construct(
         ConfigurationAuthentication $configuration,
@@ -63,6 +74,16 @@ final class Authentication
         }
     }
 
+    /**
+     * Delegates the request to the configured logout handler
+     *
+     * @param ConfigurationAuthenticationLogout $configuration Parsed logout configuration
+     * @param Request $request Current request to evaluate
+     * @param int|string|null $userID Current local user ID, or null for a guest
+     * @param CsrfToken $csrfTokenDetector Validator for the logout CSRF token
+     * @return Packet|null Logout outcome, or null when the request does not target logout
+     * @throws \Throwable If logout processing fails outside an expected rejection
+     */
     private function logout(
         ConfigurationAuthenticationLogout $configuration,
         Request $request,
@@ -75,12 +96,14 @@ final class Authentication
     }
 
     /**
-     * Authenticate by form.
+     * Delegates the request to the configured form-login handler
      *
-     * @param ConfigurationAuthenticationForm $configuration
-     * @param Request $request
-     * @param int|string|null $userID
-     * @param ?CsrfToken $csrfTokenDetector
+     * @param ConfigurationAuthenticationForm $configuration Parsed form-login configuration
+     * @param Request $request Current request to evaluate
+     * @param int|string|null $userID Current local user ID, or null for a guest
+     * @param CsrfToken $csrfTokenDetector Generator and validator for guest login CSRF tokens
+     * @return Packet|null Form-login outcome, or null when the request does not target the login route
+     * @throws \Throwable If a DAO, throttler, or token operation fails
      */
     private function loginByForm(
         ConfigurationAuthenticationForm $configuration,
@@ -94,13 +117,16 @@ final class Authentication
     }
 
     /**
-     * Authenticate by OAuth2.
+     * Delegates the request to the configured OAuth2 login handler
      *
-     * @param ConfigurationAuthenticationOauth2 $configuration
-     * @param Request $request
-     * @param int|string|null $userID
-     * @param array $oauth2Drivers
-     * @param OAuth2State $oauth2State
+     * @param ConfigurationAuthenticationOauth2 $configuration Parsed OAuth2 configuration
+     * @param Request $request Current request to evaluate
+     * @param int|string|null $userID Current local user ID, or null for a guest
+     * @param array<string,\Lucinda\WebSecurity\OAuth2Service> $oauth2Drivers Provider services keyed by configured provider name
+     * @param OAuth2State $oauth2State Store used to save and consume provider-bound login state
+     * @return Packet|null OAuth2 outcome, or null when no configured provider route matches
+     * @throws SecurityException If a configured provider service was not supplied
+     * @throws \Throwable If a provider, state-store, or DAO operation fails
      */
     private function loginByOauth2(
         ConfigurationAuthenticationOauth2 $configuration,
@@ -115,9 +141,9 @@ final class Authentication
     }
 
     /**
-     * Gets outcome.
+     * Gets the authentication outcome computed during construction
      *
-     * @return ?Packet
+     * @return Packet|null Computed outcome, or null when no authentication handler produced one
      */
     public function getOutcome(): ?Packet
     {

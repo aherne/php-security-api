@@ -14,20 +14,34 @@ use Lucinda\WebSecurity\DAO\FormLogin as LoginDAO;
 use Lucinda\WebSecurity\Security\FailureReason;
 
 /**
- * Encapsulates Form logic.
+ * Executes form-login validation and produces an authentication outcome
+ *
+ * Construction processes requests matching the configured login route.
+ * Coordinates parameter checks, throttling, guest CSRF validation, and the
+ * credentials DAO. Successful credentials produce IDENTITY_VERIFIED; the
+ * enclosing wrapper handles MFA staging and authentication persistence.
+ * Non-POST login requests receive a guest packet with a CSRF token.
+ *
+ * @see \Lucinda\WebSecurity\Configuration\Authentication\Form
+ * @see \Lucinda\WebSecurity\DAO\FormLogin
+ * @see \Lucinda\WebSecurity\DAO\Throttler\FormLogin
  */
 final class Form extends Generic
 {
+    /**
+     * Guest context identifier used when generating and validating form-login CSRF tokens
+     */
     const GUEST_USER = "guest";
     private LoginDAO $dao;
 
     /**
-     * Sets up object state.
+     * Constructs the form-login handler and evaluates a matching login request
      *
-     * @param Configuration $configuration
-     * @param Request $request
-     * @param CsrfToken $csrfTokenDetector
-     * @param int|string|null $userID
+     * @param Configuration $configuration Parsed form-login routes, parameters, and DAO classes
+     * @param Request $request Current request to evaluate
+     * @param CsrfToken $csrfTokenDetector Generator and validator for guest login CSRF tokens
+     * @param int|string|null $userID Current local user ID, or null for a guest
+     * @throws \Throwable If DAO initialization, throttling, or token processing fails
      */
     public function __construct(
         Configuration $configuration,
@@ -54,12 +68,18 @@ final class Form extends Generic
     }
 
     /**
-     * Processes login.
+     * Evaluates the matched form-login request
      *
-     * @param Configuration $configuration
-     * @param CsrfToken $csrfTokenDetector
-     * @param FormLoginThrottler $throttler
-     * @return SecurityPacket|ThrottlingPacket|GuestUser
+     * An existing user is deferred to the success callback. For a guest POST,
+     * validates parameters, throttling, and CSRF before checking credentials.
+     * Rejected credentials are penalized; expected rejections become packets.
+     * For non-POST requests, generates a guest login CSRF token.
+     *
+     * @param Configuration $configuration Parsed form-login settings
+     * @param CsrfToken $csrfTokenDetector Generator and validator for guest login CSRF tokens
+     * @param FormLoginThrottler $throttler DAO controlling username-and-IP login throttling
+     * @return SecurityPacket|ThrottlingPacket|GuestUser Login decision, throttling outcome, or guest form state
+     * @throws \Throwable If a DAO, throttler, or token operation fails
      */
     private function login(Configuration $configuration, CsrfToken $csrfTokenDetector, FormLoginThrottler $throttler): SecurityPacket|ThrottlingPacket|GuestUser
     {
@@ -132,9 +152,10 @@ final class Form extends Generic
     }
 
     /**
-     * Composes a throttling packet to answer when user will be refused authentication
-     * 
-     * @return ThrottlingPacket
+     * Composes the form-login throttling outcome with its redirect destination
+     *
+     * @param string $callback Configured throttling route relative to the application context
+     * @return ThrottlingPacket LOGIN_THROTTLED packet with a context-prefixed callback
      */
     private function throttle(string $callback): ThrottlingPacket
     {
@@ -144,10 +165,12 @@ final class Form extends Generic
     }
 
     /**
-     * Validates if request parameters identified by keys are all existing and strings
-     * 
-     * @param array $keys
-     * @return bool
+     * Checks that all named request parameters contain non-empty strings
+     *
+     * Uses PHP empty(), so the string "0" is also rejected.
+     *
+     * @param string[] $keys Names of the required request parameters
+     * @return bool True when every named parameter is a string accepted by the emptiness check
      */
     private function validateParameters(array $keys): bool
     {

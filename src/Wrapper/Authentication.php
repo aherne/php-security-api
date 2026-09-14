@@ -14,10 +14,27 @@ use Lucinda\WebSecurity\Detectors\CsrfToken;
 use Lucinda\WebSecurity\OAuth2State;
 use Lucinda\WebSecurity\Packets\GuestUser;
 use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
-use Lucinda\WebSecurity\PersistenceDrivers\Coordinator;
 use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver as RememberMePersistenceDriver;
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 
+/**
+ * Binds authentication processing to request context and persistence updates
+ *
+ * Connects the main configuration, current user state, CSRF helper, and
+ * OAuth2 services/state store to Security\Authentication. Translates accepted
+ * identity and logout outcomes into persistence operations through Coordinator,
+ * including pending-MFA state and remember-me selection.
+ *
+ * Construction binds dependencies; run() executes authentication and may
+ * change persisted state. The parent Wrapper reads the resulting user state
+ * through getLoggedInUserInfo().
+ *
+ * @internal
+ * @see \Lucinda\WebSecurity\Wrapper
+ * @see \Lucinda\WebSecurity\Security\Authentication
+ * @see Coordinator
+ * @see LoggedInUserInfo
+ */
 final class Authentication
 {
     private Configuration $configuration;
@@ -25,9 +42,23 @@ final class Authentication
     private CsrfToken $csrfToken;
     private Coordinator $persistenceDrivers;
     private ?LoggedInUserInfo $userInfo;
+    /**
+     * @var array<string,\Lucinda\WebSecurity\OAuth2Service> Provider services keyed by configured provider name
+     */
     private array $oauth2Drivers = [];
     private ?OAuth2State $oauth2State = null;
 
+    /**
+     * Binds authentication dependencies without executing the workflow
+     *
+     * @param Configuration $configuration Main security configuration containing authentication and MFA settings
+     * @param Request $request Current request, including login parameters and remember-me selection
+     * @param CsrfToken $csrfToken Generator and validator for authentication CSRF tokens
+     * @param \Lucinda\WebSecurity\PersistenceDrivers\PersistenceDriver[] $persistenceDrivers Drivers used to save or clear authentication state
+     * @param array<string,\Lucinda\WebSecurity\OAuth2Service> $oauth2Drivers Provider services keyed by configured provider name
+     * @param OAuth2State|null $oauth2State State store required when OAuth2 configuration is evaluated
+     * @param LoggedInUserInfo|null $userInfo Existing authentication state, or null for a guest
+     */
     public function __construct(
         Configuration $configuration,
         Request $request,
@@ -48,9 +79,15 @@ final class Authentication
     }
     
     /**
-     * Runs authentication.
+     * Executes authentication and applies accepted outcomes to persistence
      *
-     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|GuestUser|null
+     * A verified identity becomes AUTHENTICATED when MFA is not configured,
+     * or PENDING_MFA when further MFA evaluation is needed. The latter returns
+     * null so the parent wrapper continues to MFA. Accepted logout clears the
+     * held user state and requests cleanup of every persistence driver.
+     *
+     * @return SecurityPacket|MultiFactorPacket|ThrottlingPacket|GuestUser|null Authentication outcome, or null for no matching handler or handoff to MFA
+     * @throws \Throwable If authentication processing, state creation, persistence, or cleanup fails
      */
     public function run(): SecurityPacket|MultiFactorPacket|ThrottlingPacket|GuestUser|null
     {
@@ -87,9 +124,13 @@ final class Authentication
     }
 
     /**
-     * Registers login.
+     * Creates and persists fully authenticated state from a successful login outcome
      *
-     * @param SecurityPacket $outcome
+     * Reads remember-me selection from the request and skips remember-me drivers
+     * when it was not requested. Assigns the new held state before saving it.
+     *
+     * @param SecurityPacket $outcome Accepted login outcome carrying a non-empty local user ID
+     * @throws \Throwable If authentication-state creation, persistence, or compensating cleanup fails
      */
     private function login(SecurityPacket $outcome): void
     {
@@ -105,10 +146,15 @@ final class Authentication
     }
 
     /**
-     * Registers pending MFA-validated login.
+     * Creates and persists pending-MFA state after primary identity verification
      *
-     * @param SecurityPacket $outcome
-     * @param int $pendingExpirationMFA
+     * Records the remember-me preference for use after MFA completion, but
+     * excludes remember-me drivers from the pending-state write. The pending
+     * deadline is calculated from the current time and supplied duration.
+     *
+     * @param SecurityPacket $outcome Verified-identity outcome carrying a non-empty local user ID
+     * @param int $pendingExpirationMFA Time allowed to complete MFA, in seconds from now
+     * @throws \Throwable If authentication-state creation, persistence, or compensating cleanup fails
      */
     private function loginWithMFA(SecurityPacket $outcome, int $pendingExpirationMFA): void
     {
@@ -125,7 +171,11 @@ final class Authentication
     }
 
     /**
-     * Processes logout.
+     * Requests cleanup of every authentication persistence driver
+     *
+     * Coordinator attempts all drivers and reports cleanup failures.
+     *
+     * @throws \Throwable If any driver fails to clear its authentication data
      */
     private function logout(): void
     {
@@ -133,9 +183,13 @@ final class Authentication
     }
 
     /**
-     * Gets authenticated user info
-     * 
-     * @return LoggedInUserInfo|null
+     * Gets the authentication state currently held by this helper
+     *
+     * Before run(), returns the supplied state. Afterwards, the state may
+     * represent completed authentication or pending MFA; this getter neither
+     * loads persistence nor checks whether a previous failed save was completed.
+     *
+     * @return LoggedInUserInfo|null Currently held state, or null for absent or cleared user state
      */
     public function getLoggedInUserInfo(): ?LoggedInUserInfo
     {

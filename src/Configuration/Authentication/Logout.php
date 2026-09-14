@@ -6,7 +6,7 @@ use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 use Lucinda\WebSecurity\DAO\Logout as LogoutDAO;
 
 /**
- * Encapsulates Logout logic.
+ * Encapsulates parsing of the security > authentication > logout XML tag
  */
 final class Logout extends Generic
 {
@@ -16,9 +16,10 @@ final class Logout extends Generic
     private string $parameterCsrf;
     
     /**
-     * Sets up object state.
+     * Sets up object state from the logout XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The logout XML tag
+     * @throws ConfigurationException If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -30,9 +31,10 @@ final class Logout extends Generic
     }
 
     /**
-     * Sets DAO.
+     * Detects DAO\Logout class based on 'dao' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The logout XML tag
+     * @throws ConfigurationException If missing or the class does not implement LogoutDAO
      */
     private function setDAO(\SimpleXMLElement $xml): void
     {
@@ -47,9 +49,9 @@ final class Logout extends Generic
     }
 
     /**
-     * Gets DAO.
+     * Gets detected DAO\Logout class name
      *
-     * @return string
+     * @return class-string<LogoutDAO>
      */
     public function getDAO(): string
     {
@@ -57,9 +59,10 @@ final class Logout extends Generic
     }
 
     /**
-     * Sets page source.
+     * Detects logout route based on 'page' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The logout XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setPageSource(\SimpleXMLElement $xml): void
     {
@@ -70,7 +73,7 @@ final class Logout extends Generic
     }
 
     /**
-     * Gets page source.
+     * Gets logout route
      *
      * @return string
      */
@@ -80,9 +83,11 @@ final class Logout extends Generic
     }
 
     /**
-     * Sets parameter CSRF.
+     * Detects the POST parameter holding the CSRF challenge based on 'csrf' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_PARAMETER_CSRF when the attribute is missing or empty.
+     *
+     * @param \SimpleXMLElement $xml The logout XML tag
      */
     private function setParameterCsrf(\SimpleXMLElement $xml): void
     {
@@ -90,7 +95,7 @@ final class Logout extends Generic
     }
 
     /**
-     * Gets parameter CSRF.
+     * Gets the POST parameter name holding the CSRF challenge
      *
      * @return string
      */

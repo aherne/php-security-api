@@ -8,16 +8,22 @@ use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 use Lucinda\WebSecurity\PersistenceDrivers\Wrapper as AbstractWrapper;
 
 /**
- * Binds RememberMePersistenceDriver @ SECURITY API with settings from configuration.xml @ SERVLETS-API and
- * sets up an object on which one can forward remember-me cookie operations.
+ * Constructs a remember-me persistence driver from its matching configuration
+ *
+ * Maps the configured encryption secret, cookie name, lifetime, security
+ * attributes, and client IP to the driver. The constructed driver is
+ * available through getDriver(); construction does not issue a cookie.
+ *
+ * @see \Lucinda\WebSecurity\Configuration\Persistence\RememberMe
+ * @see PersistenceDriver
  */
 final class Wrapper extends AbstractWrapper
 {
     /**
-     * Sets up object state.
+     * Creates the configured remember-me persistence driver
      *
-     * @param Configuration $configuration
-     * @param string $ipAddress
+     * @param Configuration $configuration Parsed persistence settings
+     * @param string $ipAddress Client IP for binding, or an empty string when IP binding is disabled
      */
     public function __construct(Configuration $configuration, string $ipAddress)
     {
@@ -25,10 +31,10 @@ final class Wrapper extends AbstractWrapper
     }
 
     /**
-     * Sets up current persistence driver from configuration into driver property.
+     * Builds the remember-me driver from configuration values
      *
-     * @param  Configuration $configuration Persistence driver configuration
-     * @param  string        $ipAddress     Detected client IP address
+     * @param Configuration $configuration Parsed persistence settings
+     * @param string $ipAddress Client IP for binding, or an empty string when IP binding is disabled
      */
     protected function setDriver(Configuration $configuration, string $ipAddress): void
     {

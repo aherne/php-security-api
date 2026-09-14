@@ -3,16 +3,21 @@
 namespace Lucinda\WebSecurity\PersistenceDrivers;
 
 /**
- * Defines an abstract persistence mechanism that works with PersistenceDriver objects.
+ * Provides access to a persistence driver built from its matching configuration
+ *
+ * Concrete wrappers translate configuration objects into driver constructor
+ * arguments. Persistence operations are performed on the exposed driver.
+ *
+ * @see PersistenceDriver
  */
 abstract class Wrapper
 {
     protected PersistenceDriver $driver;
 
     /**
-     * Gets current persistence driver.
+     * Gets the configured persistence driver
      *
-     * @return PersistenceDriver
+     * @return PersistenceDriver Constructed driver on which persistence operations can be performed
      */
     public function getDriver(): PersistenceDriver
     {

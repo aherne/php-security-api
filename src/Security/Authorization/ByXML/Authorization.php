@@ -8,11 +8,17 @@ use Lucinda\WebSecurity\Security\Authorization\ResultStatus;
 use Lucinda\WebSecurity\DAO\UserRoles;
 
 /**
- * Encapsulates request authorization via XML that must have routes configured as:
- * <routes>
- *     <route id="{PAGE_TO_AUTHORIZE" access="ROLE_GUEST|ROLE_USER" ... />
- *     ...
- * </routes>
+ * Compares user roles with the access roles declared for a requested route
+ *
+ * Uses a preconfigured roles detector rather than parsing XML. Access is
+ * allowed when at least one route role matches a user role. Missing or empty
+ * route-role policies produce NOT_FOUND; other denials distinguish guests
+ * from authenticated users. Returns a decision without performing a redirect.
+ *
+ * @internal
+ * @see \Lucinda\WebSecurity\Security\Authorization\ByXML
+ * @see RolesDetector
+ * @see UserRoles
  */
 final class Authorization
 {
@@ -20,10 +26,10 @@ final class Authorization
     private string $loggedOutFailureCallback;
 
     /**
-     * Creates an object
+     * Stores callbacks for denied access without evaluating a request
      *
-     * @param string $loggedInFailureCallback
-     * @param string $loggedOutFailureCallback
+     * @param string $loggedInFailureCallback Failure route for authenticated users
+     * @param string $loggedOutFailureCallback Failure route for guests
      */
     public function __construct(string $loggedInFailureCallback, string $loggedOutFailureCallback)
     {
@@ -32,13 +38,17 @@ final class Authorization
     }
 
     /**
-     * Performs an authorization task.
+     * Evaluates access by comparing the route's roles with the user's roles
      *
-     * @param  RolesDetector     $rolesDetector
-     * @param  string            $routeToAuthorize
-     * @param  int|string|null   $userID
-     * @param  UserRoles         $userAuthorizationRoles
-     * @return Result
+     * The user-roles DAO receives null for a guest. Matching any configured
+     * route role grants access; a missing policy is not treated as public access.
+     *
+     * @param RolesDetector $rolesDetector Pre-parsed access roles indexed by route
+     * @param string $routeToAuthorize Requested route identifier
+     * @param int|string|null $userID Authenticated local user ID, or null for a guest
+     * @param UserRoles $userAuthorizationRoles DAO returning roles for the current user or guest
+     * @return Result Access decision with a failure callback, or an empty callback when access is allowed
+     * @throws \Throwable If the user-roles DAO fails
      */
     public function authorize(
         RolesDetector $rolesDetector,

@@ -7,7 +7,7 @@ use Lucinda\WebSecurity\DAO\MultiFactorAuthentication as MultiFactorAuthenticati
 use Lucinda\WebSecurity\DAO\Throttler\MultiFactorAuthentication as MFALoginThrottler;
 
 /**
- * Encapsulates MultiFactorAuthentication logic.
+ * Encapsulates parsing of the security > multi_factor_authentication XML tag
  */
 final class MultiFactorAuthentication
 {
@@ -23,9 +23,10 @@ final class MultiFactorAuthentication
     private Totp $method;
 
     /**
-     * Sets up object state.
+     * Sets up object state from the security XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The security XML tag
+     * @throws Exception If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -47,9 +48,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets DAO.
+     * Detects DAO\MultiFactorAuthentication class based on 'dao' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If missing or the class does not implement MultiFactorAuthenticationDAO
      */
     private function setDAO(\SimpleXMLElement $xml): void
     {
@@ -64,9 +66,9 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets DAO.
+     * Gets detected DAO\MultiFactorAuthentication class name
      *
-     * @return string
+     * @return class-string<MultiFactorAuthenticationDAO>
      */
     public function getDAO(): string
     {
@@ -74,9 +76,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets throttler DAO.
+     * Detects DAO\Throttler\MultiFactorAuthentication class based on 'throttler' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If missing or the class does not implement MFALoginThrottler
      */
     private function setThrottler(\SimpleXMLElement $xml): void
     {
@@ -91,9 +94,9 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets throttler DAO.
+     * Gets detected DAO\Throttler\MultiFactorAuthentication class name
      *
-     * @return string
+     * @return class-string<MFALoginThrottler>
      */
     public function getThrottler(): string
     {
@@ -101,9 +104,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets time (in seconds) for which successful MFA will be considered fresh
-     * 
-     * @param \SimpleXMLElement $xml
+     * Detects successful MFA lifetime in seconds based on 'expiration' tag attribute
+     *
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If missing or not a positive integer
      */
     private function setExpiration(\SimpleXMLElement $xml): void
     {
@@ -116,8 +120,8 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets time (in seconds) for which successful MFA will be considered fresh
-     * 
+     * Gets the lifetime in seconds for which successful MFA remains fresh
+     *
      * @return int
      */
     public function getExpiration(): int
@@ -126,9 +130,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets time (in seconds) for which MFA pending attempts will be allowed until expired
-     * 
-     * @param \SimpleXMLElement $xml
+     * Detects pending MFA lifetime in seconds based on 'pending_expiration' tag attribute
+     *
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If missing or not a positive integer
      */
     private function setPendingExpiration(\SimpleXMLElement $xml): void
     {
@@ -141,8 +146,8 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets time (in seconds) for which MFA pending attempts will be allowed until expired
-     * 
+     * Gets the time in seconds allowed to complete pending MFA
+     *
      * @return int
      */
     public function getPendingExpiration(): int
@@ -151,9 +156,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets challenge route.
+     * Detects MFA challenge route based on 'challenge_route' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If the attribute is missing or empty
      */
     private function setChallengeRoute(\SimpleXMLElement $xml): void
     {
@@ -164,7 +170,7 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets challenge route.
+     * Gets MFA challenge route
      *
      * @return string
      */
@@ -174,9 +180,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets setup route.
+     * Detects MFA enrollment route based on 'setup_route' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If the attribute is missing or empty
      */
     private function setSetupRoute(\SimpleXMLElement $xml): void
     {
@@ -187,7 +194,7 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets setup route.
+     * Gets MFA enrollment route
      *
      * @return string
      */
@@ -197,9 +204,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets success route.
+     * Detects MFA success route based on 'success_route' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If the attribute is missing or empty
      */
     private function setSuccessRoute(\SimpleXMLElement $xml): void
     {
@@ -210,7 +218,7 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets success route.
+     * Gets MFA success route
      *
      * @return string
      */
@@ -220,9 +228,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets failure route.
+     * Detects MFA failure route based on 'failure_route' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If the attribute is missing or empty
      */
     private function setFailureRoute(\SimpleXMLElement $xml): void
     {
@@ -233,7 +242,7 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets failure route.
+     * Gets MFA failure route
      *
      * @return string
      */
@@ -243,9 +252,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets throttled route.
+     * Detects MFA throttling route based on 'throttled_route' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If the attribute is missing or empty
      */
     private function setThrottledRoute(\SimpleXMLElement $xml): void
     {
@@ -256,7 +266,7 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets throttled route.
+     * Gets MFA throttling route
      *
      * @return string
      */
@@ -266,9 +276,10 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Sets method.
+     * Detects TOTP configuration from the required 'totp' child tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If the child tag is missing or its configuration is invalid
      */
     private function setMethod(\SimpleXMLElement $xml): void
     {
@@ -279,7 +290,7 @@ final class MultiFactorAuthentication
     }
 
     /**
-     * Gets method.
+     * Gets detected TOTP configuration
      *
      * @return Totp
      */

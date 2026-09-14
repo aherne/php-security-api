@@ -3,72 +3,91 @@
 namespace Lucinda\WebSecurity\DAO;
 
 /**
- * Defines multi-factor authentication DAO contract.
+ * Defines the DAO contract for MFA policy, TOTP enrollment and replay protection
+ *
+ * Register the implementation class through the 'dao' attribute
+ * of security > multi_factor_authentication.
+ *
+ * @see \Lucinda\WebSecurity\Configuration\MultiFactorAuthentication
  */
 interface MultiFactorAuthentication
 {
     /**
-     * Checks whether multi-factor authentication is required.
+     * Checks whether application policy requires MFA for this local user
      *
-     * @param int|string $userID
-     * @return bool
+     * This is independent of enrollment: a user who requires MFA but has no enrolled
+     * secret is directed to setup.
+     *
+     * @param int|string $userID Non-empty local user ID
+     * @return bool True when MFA must be completed; false when it is not required
      */
     public function isRequired(int|string $userID): bool;
     /**
-     * Gets account name.
+     * Gets the account label used in the authenticator provisioning URI
      *
-     * @param int|string $userID
-     * @return string
+     * @param int|string $userID Non-empty local user ID
+     * @return string Account label, such as a username or email address
      */
     public function getAccountName(int|string $userID): string;
     /**
-     * Gets secret.
+     * Gets the user's enrolled TOTP secret
      *
-     * @param int|string $userID
-     * @return ?string
+     * @param int|string $userID Non-empty local user ID
+     * @return string|null Base32-encoded secret, or null when TOTP is not enrolled
      */
     public function getSecret(int|string $userID): ?string;
     /**
-     * Gets setup secret.
+     * Gets the temporary TOTP secret awaiting enrollment confirmation
      *
-     * @param int|string $userID
-     * @return ?string
+     * @param int|string $userID Non-empty local user ID
+     * @return string|null Base32-encoded setup secret, or null when none has been stored
      */
     public function getSetupSecret(int|string $userID): ?string;
     /**
-     * Saves setup secret.
+     * Stores a temporary TOTP secret for a later enrollment attempt
      *
-     * @param int|string $userID
-     * @param string $secret
+     * Keep this separate from the enrolled secret; storing it must not enable MFA.
+     *
+     * @param int|string $userID Non-empty local user ID
+     * @param string $secret Base32-encoded secret generated for setup
      */
     public function saveSetupSecret(int|string $userID, string $secret): void;
     /**
-     * Enables multi-factor authentication.
+     * Stores the confirmed setup secret as the user's enrolled TOTP secret
      *
-     * @param int|string $userID
-     * @param string $secret
+     * Called after a setup code has been verified and its counter consumed.
+     * Preserve that consumed counter so the confirmation code cannot be replayed.
+     *
+     * @param int|string $userID Non-empty local user ID
+     * @param string $secret Base32-encoded secret confirmed during setup
      */
     public function enable(int|string $userID, string $secret): void;
     /**
-     * Clears setup secret.
+     * Removes the temporary setup secret after successful enrollment
      *
-     * @param int|string $userID
+     * The enrolled secret must remain available through getSecret().
+     *
+     * @param int|string $userID Non-empty local user ID
      */
     public function clearSetupSecret(int|string $userID): void;
 
     /**
-     * Atomically consumes a successfully verified TOTP counter.
+     * Atomically records a successfully verified TOTP counter to prevent replay
      *
-     * Implementations must return false when the counter is less than or equal
-     * to the last counter consumed for this user. The comparison and update
-     * must happen atomically to prevent concurrent replay.
-     * 
+     * Return false when the counter is less than or equal to the last counter
+     * consumed for this user. The comparison and update must be atomic so concurrent
+     * attempts cannot both succeed. Accept the first counter when none is stored.
+     * This operation is also called during setup, before enable().
+     *
+     * Example conditional update:
+     * <code>
      * UPDATE user_mfa SET last_totp_counter = :counter WHERE
      * user_id = :user_id AND (last_totp_counter IS NULL OR last_totp_counter < :counter)
+     * </code>
      *
-     * @param int|string $userID
-     * @param int $counter
-     * @return bool Whether the counter was consumed
+     * @param int|string $userID Non-empty local user ID
+     * @param int $counter Verified TOTP time-step counter, not the submitted code
+     * @return bool True when the counter was recorded; false when it was already consumed or is older
      */
     public function consumeTotpCounter(int|string $userID, int $counter): bool;
 }

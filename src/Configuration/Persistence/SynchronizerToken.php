@@ -6,7 +6,7 @@ use Lucinda\WebSecurity\Configuration\Exception as ConfigurationException;
 use Lucinda\WebSecurity\Configuration\FieldValidator;
 
 /**
- * Encapsulates SynchronizerToken logic.
+ * Encapsulates parsing of the security > persistence > synchronizer_token XML tag
  */
 final class SynchronizerToken extends AbstractPersistence
 {
@@ -16,9 +16,10 @@ final class SynchronizerToken extends AbstractPersistence
     private int $regeneration;
 
     /**
-     * Sets up object state.
+     * Sets up object state from the synchronizer_token XML tag
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The synchronizer_token XML tag
+     * @throws ConfigurationException If a required setting is missing or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -28,9 +29,10 @@ final class SynchronizerToken extends AbstractPersistence
     }
 
     /**
-     * Sets secret.
+     * Detects the token encryption secret based on 'secret' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * @param \SimpleXMLElement $xml The synchronizer_token XML tag
+     * @throws ConfigurationException If the attribute is missing or empty
      */
     private function setSecret(\SimpleXMLElement $xml): void
     {
@@ -41,7 +43,7 @@ final class SynchronizerToken extends AbstractPersistence
     }
 
     /**
-     * Gets secret.
+     * Gets the token encryption secret
      *
      * @return string
      */
@@ -51,9 +53,12 @@ final class SynchronizerToken extends AbstractPersistence
     }
 
     /**
-     * Sets expiration time.
+     * Detects token lifetime in seconds based on 'expiration' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_EXPIRATION_TIME when the attribute is absent.
+     *
+     * @param \SimpleXMLElement $xml The synchronizer_token XML tag
+     * @throws ConfigurationException If provided but not a positive integer
      */
     protected function setExpirationTime(\SimpleXMLElement $xml): void
     {
@@ -66,13 +71,16 @@ final class SynchronizerToken extends AbstractPersistence
     }
 
     /**
-     * Sets regeneration time.
+     * Detects token refresh age in seconds based on 'regeneration' tag attribute
      *
-     * @param \SimpleXMLElement $xml
+     * Uses DEFAULT_REGENERATION_TIME when the attribute is absent.
+     *
+     * @param \SimpleXMLElement $xml The synchronizer_token XML tag
+     * @throws ConfigurationException If provided but not a positive integer
      */
     private function setRegenerationTime(\SimpleXMLElement $xml): void
     {
-        if (empty($xml["regeneration"])) {
+        if (!isset($xml["regeneration"])) {
             $this->regeneration = self::DEFAULT_REGENERATION_TIME;
         } else {
             $validator = new FieldValidator();
@@ -81,7 +89,7 @@ final class SynchronizerToken extends AbstractPersistence
     }
 
     /**
-     * Gets regeneration time.
+     * Gets the token age in seconds after which regeneration is required
      *
      * @return int
      */
