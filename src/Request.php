@@ -3,24 +3,58 @@
 namespace Lucinda\WebSecurity;
 
 /**
- * Encapsulates user request information
+ * Holds the normalized request data consumed by the security workflow
+ *
+ * The host application creates this transport object from its HTTP framework
+ * and supplies route, context path, client IP, method, parameters, and an
+ * optional bearer token. The security package deliberately does not read PHP
+ * request superglobals through this object.
+ *
+ * URI, context path, IP address, and method must be assigned before their
+ * getters—or Wrapper—are used. Parameters and access token default to an empty
+ * array and empty string respectively.
+ *
+ * @see Wrapper::__construct()
  */
 final class Request
 {
-    private string $uri;
-    private string $contextPath;
-    private string $ipAddress;
-    private string $method;
-    private string $accessToken = "";
     /**
-     * @var array<string,mixed>
+     * Application-relative route being processed
+     */
+    private string $uri;
+
+    /**
+     * URL path prefix prepended to locally configured callbacks
+     */
+    private string $contextPath;
+
+    /**
+     * Normalized client IP used by token binding, sessions, and throttlers
+     */
+    private string $ipAddress;
+
+    /**
+     * HTTP request method, conventionally supplied in uppercase
+     */
+    private string $method;
+
+    /**
+     * Explicit bearer token, or an empty string when none was supplied
+     */
+    private string $accessToken = "";
+
+    /**
+     * @var array<string,mixed> Normalized request parameters keyed by field name
      */
     private array $parameters=[];
 
     /**
-     * Sets relative URI (page) requested by client
+     * Sets the application-relative route requested by the client
      *
-     * @param string $uri
+     * The value is compared directly with configured authentication, MFA, and
+     * authorization routes; it should therefore use the same normalization.
+     *
+     * @param string $uri Route without the external application context path
      */
     public function setUri(string $uri): void
     {
@@ -28,9 +62,9 @@ final class Request
     }
 
     /**
-     * Sets context path that prefixes page requested by client,
+     * Sets the application context path used to build callback URLs
      *
-     * @param string $contextPath
+     * @param string $contextPath URL path prefix, without a required trailing slash
      */
     public function setContextPath(string $contextPath): void
     {
@@ -38,9 +72,12 @@ final class Request
     }
 
     /**
-     * Sets ip address used by client
+     * Sets the normalized client IP address
      *
-     * @param string $ipAddress
+     * The host application remains responsible for safely resolving trusted
+     * proxy headers before assigning this value.
+     *
+     * @param string $ipAddress Client IPv4 or IPv6 textual representation
      */
     public function setIpAddress(string $ipAddress): void
     {
@@ -48,9 +85,9 @@ final class Request
     }
 
     /**
-     * Sets HTTP request method used by client in request
+     * Sets the HTTP request method
      *
-     * @param string $method
+     * @param string $method Normalized method such as `GET` or `POST`
      */
     public function setMethod(string $method): void
     {
@@ -58,9 +95,9 @@ final class Request
     }
 
     /**
-     * Sets request parameters that came along with http method
+     * Sets request parameters available to authentication and MFA handlers
      *
-     * @param array<string,mixed> $parameters
+     * @param array<string,mixed> $parameters Parameters keyed by their configured field names
      */
     public function setParameters(array $parameters): void
     {
@@ -68,9 +105,11 @@ final class Request
     }
 
     /**
-     * Sets access token value based on contents of HTTP authorization header of "bearer" type
+     * Sets the authentication token extracted from a Bearer authorization header
      *
-     * @param string $accessToken
+     * Supply only the token value, without the `Bearer` scheme prefix.
+     *
+     * @param string $accessToken Encoded persistence token, or an empty string when absent
      */
     public function setAccessToken(string $accessToken): void
     {
@@ -78,9 +117,9 @@ final class Request
     }
 
     /**
-     * Gets relative URI (page) requested by client
+     * Gets the application-relative route requested by the client
      *
-     * @return string
+     * @return string Route previously assigned through setUri()
      */
     public function getUri(): string
     {
@@ -88,9 +127,9 @@ final class Request
     }
 
     /**
-     * Gets context path that prefixes page requested by client,
+     * Gets the application context path used for local callback URLs
      *
-     * @return string
+     * @return string Context path previously assigned through setContextPath()
      */
     public function getContextPath(): string
     {
@@ -98,9 +137,9 @@ final class Request
     }
 
     /**
-     * Gets ip address used by client
+     * Gets the normalized client IP address
      *
-     * @return string
+     * @return string Address previously assigned through setIpAddress()
      */
     public function getIpAddress(): string
     {
@@ -108,9 +147,9 @@ final class Request
     }
 
     /**
-     * Gets HTTP request method used by client in request
+     * Gets the normalized HTTP request method
      *
-     * @return string
+     * @return string Method previously assigned through setMethod()
      */
     public function getMethod(): string
     {
@@ -118,9 +157,9 @@ final class Request
     }
 
     /**
-     * Gets request parameters that came along with http method
+     * Gets normalized request parameters
      *
-     * @return array<string,mixed>
+     * @return array<string,mixed> Parameters supplied through setParameters(), or an empty array by default
      */
     public function getParameters(): array
     {
@@ -128,9 +167,9 @@ final class Request
     }
 
     /**
-     * Gets access token value.
+     * Gets the explicit bearer authentication token
      *
-     * @return string
+     * @return string Token supplied through setAccessToken(), or an empty string by default
      */
     public function getAccessToken(): string
     {

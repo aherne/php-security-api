@@ -10,20 +10,58 @@ use Lucinda\WebSecurity\Configuration\Authorization;
 use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication;
 
 /**
- * Encapsulates web security configuration.
+ * Parses and exposes the complete XML security configuration
+ *
+ * The supplied document must contain a top-level `security` element. Its
+ * persistence, CSRF, authentication, and authorization sections are parsed
+ * eagerly during construction. Multi-factor authentication is optional and
+ * is represented by null when its section is absent.
+ *
+ * This object contains immutable configuration value objects only. It does
+ * not construct application DAOs, inspect a request, or execute any security
+ * workflow.
+ *
+ * @see Wrapper
+ * @see \Lucinda\WebSecurity\Configuration\Persistence
+ * @see \Lucinda\WebSecurity\Configuration\Authentication
+ * @see \Lucinda\WebSecurity\Configuration\MultiFactorAuthentication
+ * @see \Lucinda\WebSecurity\Configuration\Authorization
  */
 final class Configuration
 {
+    /**
+     * Parsed authenticated-state persistence configuration
+     */
     private Persistence $persistence;
+
+    /**
+     * Parsed CSRF-token configuration
+     */
     private Csrf $csrf;
+
+    /**
+     * Parsed primary-authentication configuration
+     */
     private Authentication $authentication;
+
+    /**
+     * Parsed resource-authorization configuration
+     */
     private Authorization $authorization;
+
+    /**
+     * Parsed MFA configuration, or null when MFA is not configured
+     */
     private ?MultiFactorAuthentication $multiFactorAuthentication = null;
 
     /**
-     * Sets up object state.
+     * Parses all configured security sections
      *
-     * @param \SimpleXMLElement $xml
+     * Child configuration objects validate their required tags, attributes,
+     * class contracts, and numeric options as they are constructed.
+     *
+     * @param \SimpleXMLElement $xml Complete application XML document containing a `security` child
+     * @throws ConfigurationException If `security` or any mandatory security setting is absent or invalid
      */
     public function __construct(\SimpleXMLElement $xml)
     {
@@ -41,9 +79,9 @@ final class Configuration
     }
 
     /**
-     * Gets persistence.
+     * Gets authenticated-state persistence configuration
      *
-     * @return Persistence
+     * @return Persistence Parsed persistence drivers in configured precedence order
      */
     public function getPersistence(): Persistence
     {
@@ -51,9 +89,9 @@ final class Configuration
     }
 
     /**
-     * Gets CSRF.
+     * Gets CSRF-token configuration
      *
-     * @return Csrf
+     * @return Csrf Parsed CSRF secret and expiration policy
      */
     public function getCsrf(): Csrf
     {
@@ -61,9 +99,9 @@ final class Configuration
     }
 
     /**
-     * Gets authentication.
+     * Gets primary-authentication configuration
      *
-     * @return Authentication
+     * @return Authentication Parsed form and/or OAuth2 authentication methods
      */
     public function getAuthentication(): Authentication
     {
@@ -71,9 +109,9 @@ final class Configuration
     }
 
     /**
-     * Gets authorization.
+     * Gets resource-authorization configuration
      *
-     * @return Authorization
+     * @return Authorization Parsed DAO-based or route-role authorization method
      */
     public function getAuthorization(): Authorization
     {
@@ -81,9 +119,9 @@ final class Configuration
     }
 
     /**
-     * Gets multi-factor authentication.
+     * Gets optional multi-factor-authentication configuration
      *
-     * @return ?MultiFactorAuthentication
+     * @return MultiFactorAuthentication|null Parsed MFA policy, or null when no MFA section was supplied
      */
     public function getMultiFactorAuthentication(): ?MultiFactorAuthentication
     {
