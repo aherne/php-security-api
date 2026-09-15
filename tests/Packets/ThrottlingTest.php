@@ -1,83 +1,69 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Packets;
 
-use Lucinda\UnitTest\Validator\Integers;
-use Lucinda\UnitTest\Validator\Booleans;
-use Lucinda\UnitTest\Validator\Objects;
-use Lucinda\UnitTest\Validator\Strings;
-use Lucinda\WebSecurity\Packets\Exception;
+use Lucinda\UnitTest\Validator\Arrays;
+use Lucinda\WebSecurity\Packets\Packet;
 use Lucinda\WebSecurity\Packets\Throttling;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus;
-use Lucinda\WebSecurity\Security\MultiFactorAuthentication\ResultStatus as MultiFactorResultStatus;
+use Test\Lucinda\WebSecurity\Support\PacketTestCase;
 
-class ThrottlingTest
+final class ThrottlingTest extends PacketTestCase
 {
-    private function packet(): Throttling
+    protected function packet(): Packet
     {
         return new Throttling(ResultStatus::LOGIN_THROTTLED);
     }
 
     public function setStatus()
     {
-        $packet = $this->packet();
-        $packet->setStatus(MultiFactorResultStatus::THROTTLED);
+        $packet = new Throttling(ResultStatus::LOGIN_THROTTLED);
 
-        return (new Booleans($packet->getStatus() === MultiFactorResultStatus::THROTTLED))->assertTrue();
+        return (new Arrays([$packet->getStatus()]))->assertIdentical([ResultStatus::LOGIN_THROTTLED]);
     }
 
     public function getStatus()
     {
-        return (new Booleans($this->packet()->getStatus() === ResultStatus::LOGIN_THROTTLED))->assertTrue();
-    }
-
-    public function setTimePenalty()
-    {
-        $packet = $this->packet();
-        $packet->setTimePenalty(9);
-        return (new Integers($packet->getTimePenalty()))->assertEquals(9);
-    }
-
-    public function getTimePenalty()
-    {
-        try {
-            $this->packet()->getTimePenalty();
-            return (new Booleans(false))->assertTrue();
-        } catch (Exception $exception) {
-            return (new Objects($exception))->assertInstanceOf(Exception::class);
-        }
+        return $this->setStatus();
     }
 
     public function setUserID()
     {
-        $packet = $this->packet();
-        $packet->setUserID(7);
-        return (new Integers((int) $packet->getUserID()))->assertEquals(7);
+        return $this->assertUserID();
     }
 
     public function getUserID()
     {
-        return (new Booleans($this->packet()->getUserID() === null))->assertTrue();
+        return $this->assertUserID();
     }
 
     public function setCallback()
     {
-        $packet = $this->packet();
-        $packet->setCallback("wait");
-        return (new Strings($packet->getCallback() ?? ""))->assertEquals("wait");
+        return $this->assertCallback();
     }
 
     public function getCallback()
     {
-        return (new Booleans($this->packet()->getCallback() === null))->assertTrue();
+        return $this->assertCallback();
     }
+
+    public function setFailureReason()
+    {
+        return $this->assertFailureReason();
+    }
+
+    public function getFailureReason()
+    {
+        return $this->assertFailureReason();
+    }
+
     public function setAccessToken()
     {
+        return $this->assertAccessToken();
     }
-        
 
     public function getAccessToken()
     {
+        return $this->assertAccessToken();
     }
-        
-
 }

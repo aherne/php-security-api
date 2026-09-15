@@ -2,44 +2,57 @@
 
 namespace Test\Lucinda\WebSecurity\PersistenceDrivers\Session;
 
+use Lucinda\UnitTest\Validator\Arrays;
+use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
+use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\PersistenceDrivers\Session\PersistenceDriver;
-use Lucinda\UnitTest\Result;
-use Lucinda\UnitTest\Validator\Booleans;
-use Lucinda\UnitTest\Validator\Integers;
 
-class PersistenceDriverTest
+final class PersistenceDriverTest
 {
-    private PersistenceDriver $object;
+    private const SESSION_KEY = "security_test_user";
 
-    public function __construct()
+    private function driver(): PersistenceDriver
     {
-        $securityOptions = new CookieSecurityOptions();
-        $securityOptions->setExpirationTime(3600);
-        $this->object = new PersistenceDriver(
-            "uid",
-            $securityOptions,
-            "192.168.1.9"
-        );
+        $options = new CookieSecurityOptions();
+        $options->setExpirationTime(3600);
+
+        return new PersistenceDriver(self::SESSION_KEY, $options, "127.0.0.1");
     }
 
+    private function startSession(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+    }
 
     public function save()
     {
-        session_start();
-        $this->object->save(1);
-        return (new Integers((int) $this->object->load()))->assertEquals(1);
+        $this->startSession();
+        $driver = $this->driver();
+        $driver->save(new LoggedInUserInfo(7, AuthenticationStage::AUTHENTICATED));
+
+        return (new Arrays($_SESSION))->assertContainsKey(self::SESSION_KEY);
     }
 
     public function load()
     {
-        return (new Integers((int) $this->object->load()))->assertEquals(1);
-    }
+        $this->startSession();
+        $driver = $this->driver();
+        $driver->save(new LoggedInUserInfo(7, AuthenticationStage::AUTHENTICATED));
+        $actual = $driver->load();
 
+        return (new Arrays([$actual->getUserID(), $actual->getAuthenticatedStage()]))
+            ->assertIdentical([7, AuthenticationStage::AUTHENTICATED]);
+    }
 
     public function clear()
     {
-        $this->object->clear();
-        return (new Booleans($this->object->load() === null))->assertTrue();
+        $this->startSession();
+        $_SESSION["application_data"] = "value";
+        $this->driver()->clear();
+
+        return (new Arrays($_SESSION))->assertEmpty();
     }
 }

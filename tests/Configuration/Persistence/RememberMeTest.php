@@ -1,44 +1,51 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Configuration\Persistence;
 
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\UnitTest\Validator\Booleans;
 use Lucinda\UnitTest\Validator\Integers;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\Configuration\Persistence\RememberMe;
+use Lucinda\WebSecurity\PersistenceDrivers\CookieSameSiteOptions;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class RememberMeTest
+final class RememberMeTest
 {
-    private function subject(): \Lucinda\WebSecurity\Configuration\Persistence\RememberMe
+    private function configuration(): RememberMe
     {
-        return new \Lucinda\WebSecurity\Configuration\Persistence\RememberMe(simplexml_load_string('<remember_me parameter_name="remember" secret="secret" expiration="70" is_http_only="1" is_https_only="1" same_site="Lax"/>'));
+        return new RememberMe(Fixture::node("remember-me"));
     }
 
     public function getParameterName()
     {
-        return (new Strings($this->subject()->getParameterName()))->assertEquals("remember");
+        return (new Strings($this->configuration()->getParameterName()))->assertEquals("remembered_user");
     }
 
     public function getSecret()
     {
-        return (new Strings($this->subject()->getSecret()))->assertEquals("secret");
-    }
-
-    public function getExpirationTime()
-    {
-        return (new Integers($this->subject()->getExpirationTime()))->assertEquals(70);
+        return (new Strings($this->configuration()->getSecret()))->assertEquals("secret");
     }
 
     public function getIsHttpOnly()
     {
-        return (new Booleans($this->subject()->getIsHttpOnly() === true))->assertTrue();
+        return (new Booleans($this->configuration()->getIsHttpOnly()))->assertTrue();
     }
 
     public function getIsHttpsOnly()
     {
-        return (new Booleans($this->subject()->getIsHttpsOnly() === true))->assertTrue();
+        return (new Booleans($this->configuration()->getIsHttpsOnly()))->assertFalse();
     }
 
     public function getSameSite()
     {
-        return (new Strings($this->subject()->getSameSite()))->assertEquals("Lax");
+        $actual = $this->configuration()->getSameSite();
+
+        return (new Arrays([$actual]))->assertIdentical([CookieSameSiteOptions::LAX]);
+    }
+
+    public function getExpirationTime()
+    {
+        return (new Integers($this->configuration()->getExpirationTime()))->assertEquals(86400);
     }
 }

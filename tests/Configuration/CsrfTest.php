@@ -1,24 +1,30 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Configuration;
 
-use Lucinda\UnitTest\Validator\Booleans;
 use Lucinda\UnitTest\Validator\Integers;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\Configuration\Csrf;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class CsrfTest
+final class CsrfTest
 {
-    private function subject(): \Lucinda\WebSecurity\Configuration\Csrf
+    private function configuration(): Csrf
     {
-        return new \Lucinda\WebSecurity\Configuration\Csrf(simplexml_load_string('<xml><csrf secret="secret" expiration="42"/></xml>'));
+        return new Csrf(Fixture::node("csrf"));
     }
 
     public function getSecret()
     {
-        return (new Strings($this->subject()->getSecret()))->assertEquals("secret");
+        $actual = $this->configuration()->getSecret();
+
+        return (new Strings($actual))->assertEquals("secret");
     }
 
     public function getExpirationTime()
     {
-        return (new Integers($this->subject()->getExpirationTime()))->assertEquals(42);
+        $actual = $this->configuration()->getExpirationTime();
+
+        return (new Integers($actual))->assertEquals(720);
     }
 }

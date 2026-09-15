@@ -2,15 +2,15 @@
 
 namespace Test\Lucinda\WebSecurity\Token;
 
-use Lucinda\WebSecurity\Token\SaltGenerator;
-use Lucinda\UnitTest\Result;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\Token\SaltGenerator;
 
-class SaltGeneratorTest
+final class SaltGeneratorTest
 {
     public function getSalt()
     {
-        $object = new SaltGenerator(12);
-        return (new Strings($object->getSalt()))->assertSize(12);
+        $salt = (new SaltGenerator(32))->getSalt();
+
+        return (new Strings($salt))->assertSize(32);
     }
 }

@@ -1,36 +1,31 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Configuration;
 
 use Lucinda\UnitTest\Validator\Arrays;
+use Lucinda\UnitTest\Validator\Objects;
 use Lucinda\WebSecurity\Configuration\Authentication;
+use Lucinda\WebSecurity\Configuration\Authentication\Logout;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class AuthenticationTest
+final class AuthenticationTest
 {
-
-    public function getMethods()
+    private function configuration(): Authentication
     {
-        $object = new Authentication(\simplexml_load_string('
-        <security>
-                <authentication>
-                    <form dao="Test\Lucinda\WebSecurity\mocks\Authentication\MockUsersAuthentication">
-                        <login page="login" target_success="index" target_failure="login_failed"/>
-                        <logout page="logout" target_success="login" target_failure="logout_failed"/>
-                    </form>
-                </authentication>
-        </security>
-        '));
-        return (new Arrays($object->getMethods()))->assertNotEmpty();
+        return Fixture::configuration()->getAuthentication();
     }
-        
 
     public function getLoginMethods()
     {
+        $methods = $this->configuration()->getLoginMethods();
+
+        return (new Arrays($methods))->assertSize(1);
     }
-        
 
     public function getLogoutMethod()
     {
-    }
-        
+        $method = $this->configuration()->getLogoutMethod();
 
+        return (new Objects($method))->assertInstanceOf(Logout::class);
+    }
 }

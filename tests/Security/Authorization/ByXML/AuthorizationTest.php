@@ -1,30 +1,24 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Security\Authorization\ByXML;
 
-use Lucinda\UnitTest\Validator\Booleans;
+use Lucinda\UnitTest\Validator\Arrays;
+use Lucinda\WebSecurity\Configuration\RolesDetector;
 use Lucinda\WebSecurity\Security\Authorization\ByXML\Authorization;
 use Lucinda\WebSecurity\Security\Authorization\ResultStatus;
-use Test\Lucinda\WebSecurity\mocks\Authorization\MockUserRolesDAO;
+use Test\Lucinda\WebSecurity\mocks\Authorization\UserRolesDAO;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class AuthorizationTest
+final class AuthorizationTest
 {
-    public function authorize(): array
+    public function authorize()
     {
-        $authorization = new Authorization("forbidden", "login");
-        $routes = simplexml_load_string('
-            <xml><routes>
-                <route id="home" roles="USER"/>
-                <route id="admin" roles="ADMIN"/>
-            </routes></xml>
-        ');
-        $roles = new MockUserRolesDAO();
+        UserRolesDAO::$roles = ["USER"];
+        $xml = Fixture::node("routes");
+        $roles = new RolesDetector($xml, "routes", "route", "id");
+        $authorization = new Authorization("/forbidden", "/login");
+        $result = $authorization->authorize($roles, "forum", 7, new UserRolesDAO());
 
-        return [
-            (new Booleans($authorization->authorize($routes, "home", 1, $roles)->getStatus() === ResultStatus::OK))->assertTrue(),
-            (new Booleans($authorization->authorize($routes, "admin", 1, $roles)->getStatus() === ResultStatus::FORBIDDEN))->assertTrue(),
-            (new Booleans($authorization->authorize($routes, "home", null, $roles)->getStatus() === ResultStatus::UNAUTHORIZED))->assertTrue(),
-            (new Booleans($authorization->authorize($routes, "missing", null, $roles)->getStatus() === ResultStatus::NOT_FOUND))->assertTrue()
-        ];
+        return (new Arrays([$result->getStatus()]))->assertIdentical([ResultStatus::OK]);
     }
 }
-

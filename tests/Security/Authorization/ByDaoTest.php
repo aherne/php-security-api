@@ -1,26 +1,22 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Security\Authorization;
 
-use Lucinda\UnitTest\Validator\Booleans;
-use Lucinda\WebSecurity\Configuration\Authorization\ByDAO as ByDAOConfiguration;
-use Lucinda\WebSecurity\Request;
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\WebSecurity\Security\Authorization\ByDao;
 use Lucinda\WebSecurity\Security\Authorization\ResultStatus;
+use Test\Lucinda\WebSecurity\mocks\Authorization\PageAuthorizationDAO;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class ByDaoTest
+final class ByDaoTest
 {
     public function getResult()
     {
-        $configuration = new ByDAOConfiguration(simplexml_load_string(
-            '<by_dao page_dao="Test\\Lucinda\\WebSecurity\\mocks\\Authorization\\MockPageAuthorizationDAO"
-                user_dao="Test\\Lucinda\\WebSecurity\\mocks\\Authorization\\MockUserAuthorizationDAO"
-                logged_in_callback="forbidden" logged_out_callback="login"/>'
-        ));
-        $request = new Request();
-        $request->setUri("index");
-        $request->setMethod("GET");
-        $authorizer = new ByDao($configuration, $request, 1);
+        PageAuthorizationDAO::$pageID = 10;
+        PageAuthorizationDAO::$public = true;
+        $configuration = Fixture::configuration()->getAuthorization()->getMethods()[0];
+        $result = (new ByDao($configuration, Fixture::request("forum"), null))->getResult();
 
-        return (new Booleans($authorizer->getResult()->getStatus() === ResultStatus::OK))->assertTrue();
+        return (new Arrays([$result->getStatus()]))->assertIdentical([ResultStatus::OK]);
     }
 }

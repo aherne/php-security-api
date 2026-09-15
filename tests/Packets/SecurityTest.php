@@ -1,63 +1,70 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Packets;
 
-use Lucinda\UnitTest\Validator\Strings;
-use Lucinda\UnitTest\Validator\Booleans;
+use Lucinda\UnitTest\Validator\Arrays;
+use Lucinda\WebSecurity\Packets\Packet;
 use Lucinda\WebSecurity\Packets\Security;
 use Lucinda\WebSecurity\Security\Authentication\ResultStatus;
+use Test\Lucinda\WebSecurity\Support\PacketTestCase;
 
-class SecurityTest
+final class SecurityTest extends PacketTestCase
 {
-    private function packet(): Security
+    protected function packet(): Packet
     {
         return new Security(ResultStatus::LOGIN_FAILED);
     }
 
     public function setStatus()
     {
-        $packet = $this->packet();
-        $packet->setStatus(ResultStatus::LOGIN_OK);
-        return (new Booleans($packet->getStatus() === ResultStatus::LOGIN_OK))->assertTrue();
+        $packet = new Security(ResultStatus::LOGIN_FAILED);
+        $packet->setStatus(ResultStatus::IDENTITY_VERIFIED);
+
+        return (new Arrays([$packet->getStatus()]))->assertIdentical([ResultStatus::IDENTITY_VERIFIED]);
     }
 
     public function getStatus()
     {
-        return (new Booleans($this->packet()->getStatus() === ResultStatus::LOGIN_FAILED))->assertTrue();
-    }
-
-    public function setAccessToken()
-    {
-        $packet = $this->packet();
-        $packet->setAccessToken("token");
-        return (new Strings($packet->getAccessToken() ?? ""))->assertEquals("token");
-    }
-
-    public function getAccessToken()
-    {
-        return (new Booleans($this->packet()->getAccessToken() === null))->assertTrue();
+        return $this->setStatus();
     }
 
     public function setUserID()
     {
-        $packet = $this->packet();
-        $packet->setUserID("abc");
-        return (new Strings((string) $packet->getUserID()))->assertEquals("abc");
+        return $this->assertUserID();
     }
 
     public function getUserID()
     {
-        return (new Booleans($this->packet()->getUserID() === null))->assertTrue();
+        return $this->assertUserID();
     }
 
     public function setCallback()
     {
-        $packet = $this->packet();
-        $packet->setCallback("/next");
-        return (new Strings($packet->getCallback() ?? ""))->assertEquals("/next");
+        return $this->assertCallback();
     }
 
     public function getCallback()
     {
-        return (new Booleans($this->packet()->getCallback() === null))->assertTrue();
+        return $this->assertCallback();
+    }
+
+    public function setFailureReason()
+    {
+        return $this->assertFailureReason();
+    }
+
+    public function getFailureReason()
+    {
+        return $this->assertFailureReason();
+    }
+
+    public function setAccessToken()
+    {
+        return $this->assertAccessToken();
+    }
+
+    public function getAccessToken()
+    {
+        return $this->assertAccessToken();
     }
 }

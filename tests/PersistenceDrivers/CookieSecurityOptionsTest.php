@@ -2,69 +2,64 @@
 
 namespace Test\Lucinda\WebSecurity\PersistenceDrivers;
 
-use Lucinda\UnitTest\Result;
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\UnitTest\Validator\Booleans;
 use Lucinda\UnitTest\Validator\Integers;
-use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSameSiteOptions;
 use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 
-class CookieSecurityOptionsTest
+final class CookieSecurityOptionsTest
 {
-    private CookieSecurityOptions $options;
-
-    public function __construct()
+    private function options(): CookieSecurityOptions
     {
-        $this->options = new CookieSecurityOptions();
+        $options = new CookieSecurityOptions();
+        $options->setExpirationTime(1200);
+        $options->setIsHttpOnly(true);
+        $options->setIsSecure(true);
+        $options->setSameSite(CookieSameSiteOptions::STRICT);
+
+        return $options;
     }
 
     public function setExpirationTime()
     {
-        $this->options->setExpirationTime(1);
-        return (new Integers($this->options->getExpirationTime()))->assertEquals(1, "tested via getExpirationTime()");
+        return (new Integers($this->options()->getExpirationTime()))->assertEquals(1200);
     }
 
     public function getExpirationTime()
     {
-        return (new Integers($this->options->getExpirationTime()))->assertEquals(1);
+        return $this->setExpirationTime();
     }
-
 
     public function setIsHttpOnly()
     {
-        $this->options->setIsHttpOnly(true);
-        return (new Booleans($this->options->isHttpOnly()))->assertTrue("tested via isHttpOnly()");
+        return (new Booleans($this->options()->isHttpOnly()))->assertTrue();
     }
-
 
     public function isHttpOnly()
     {
-        return (new Booleans($this->options->isHttpOnly()))->assertTrue();
+        return $this->setIsHttpOnly();
     }
-
 
     public function setIsSecure()
     {
-        $this->options->setIsSecure(true);
-        return (new Booleans($this->options->isSecure()))->assertTrue("tested via isSecure()");
+        return (new Booleans($this->options()->isSecure()))->assertTrue();
     }
-
 
     public function isSecure()
     {
-        return (new Booleans($this->options->isSecure()))->assertTrue();
+        return $this->setIsSecure();
     }
+
     public function setSameSite()
     {
-        $this->options->setSameSite(CookieSameSiteOptions::STRICT);
-        return (new Strings($this->options->getSameSite()->name))->assertEquals(CookieSameSiteOptions::STRICT->name, "tested via getSameSite()");
+        $actual = $this->options()->getSameSite();
+
+        return (new Arrays([$actual]))->assertIdentical([CookieSameSiteOptions::STRICT]);
     }
-        
 
     public function getSameSite()
     {
-        return (new Strings($this->options->getSameSite()->name))->assertEquals(CookieSameSiteOptions::STRICT->name);
+        return $this->setSameSite();
     }
-        
-
 }

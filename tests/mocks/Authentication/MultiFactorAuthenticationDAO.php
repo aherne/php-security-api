@@ -1,62 +1,67 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\mocks\Authentication;
 
 use Lucinda\WebSecurity\DAO\MultiFactorAuthentication;
 
-class MockMultiFactorAuthentication implements MultiFactorAuthentication
+final class MultiFactorAuthenticationDAO implements MultiFactorAuthentication
 {
-    /** @var array<int|string,int> */
-    private static array $consumedCounters = [];
+    public static bool $required = true;
+    public static ?string $secret = "JBSWY3DPEHPK3PXP";
+    public static ?string $setupSecret = null;
+    public static ?int $consumedCounter = null;
 
     public function isRequired(int|string $userID): bool
     {
-        return true;
+        return self::$required;
     }
 
     public function getAccountName(int|string $userID): string
     {
-        return "user";
+        return "user-".$userID;
     }
 
     public function getSecret(int|string $userID): ?string
     {
-        return null;
+        return self::$secret;
     }
 
     public function getSetupSecret(int|string $userID): ?string
     {
-        return null;
+        return self::$setupSecret;
     }
 
     public function saveSetupSecret(int|string $userID, string $secret): void
     {
+        self::$setupSecret = $secret;
     }
 
     public function enable(int|string $userID, string $secret): void
     {
+        self::$secret = $secret;
+        self::$setupSecret = null;
     }
 
     public function clearSetupSecret(int|string $userID): void
     {
+        self::$setupSecret = null;
     }
 
     public function consumeTotpCounter(int|string $userID, int $counter): bool
     {
-        $lastCounter = self::$consumedCounters[$userID] ?? null;
-        if ($lastCounter !== null && $counter <= $lastCounter) {
+        if (self::$consumedCounter === $counter) {
             return false;
         }
+        self::$consumedCounter = $counter;
 
-        self::$consumedCounters[$userID] = $counter;
         return true;
     }
 
-    public function penalize(int|string $userID): void
+    public static function reset(): void
     {
-    }
-
-    public function isThrottled(int|string $userID): bool
-    {
-        return false;
+        self::$required = true;
+        self::$secret = "JBSWY3DPEHPK3PXP";
+        self::$setupSecret = null;
+        self::$consumedCounter = null;
     }
 }

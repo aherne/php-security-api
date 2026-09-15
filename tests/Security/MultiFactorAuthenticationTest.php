@@ -1,36 +1,36 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Security;
 
-use Lucinda\UnitTest\Validator\Booleans;
-use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication as MultiFactorConfiguration;
-use Lucinda\WebSecurity\Request;
+use Lucinda\UnitTest\Validator\Arrays;
+use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
+use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\Security\MultiFactorAuthentication;
 use Lucinda\WebSecurity\Security\MultiFactorAuthentication\ResultStatus;
+use Test\Lucinda\WebSecurity\Support\Fixture;
+use Test\Lucinda\WebSecurity\mocks\Authentication\MultiFactorAuthenticationDAO;
 
-class MultiFactorAuthenticationTest
+final class MultiFactorAuthenticationTest
 {
-    public function getOutcome(): array
+    public function getOutcome()
     {
-        $configuration = new MultiFactorConfiguration(simplexml_load_string(
-            '<xml><multi_factor_authentication
-                dao="Test\\Lucinda\\WebSecurity\\mocks\\Authentication\\MockMultiFactorAuthentication"
-                challenge_route="challenge" setup_route="setup" success_route="home"
-                failure_route="retry" throttled_route="wait">
-                <totp issuer="App"/>
-            </multi_factor_authentication></xml>'
-        ));
-        $request = new Request();
-        $request->setUri("home");
-        $request->setContextPath("");
-        $request->setParameters([]);
+        $configuration = Fixture::configuration(true)->getMultiFactorAuthentication();
+        $expiredPending = new LoggedInUserInfo(7, AuthenticationStage::PENDING_MFA, false, time() - 1);
+        $expiredOutcome = (new MultiFactorAuthentication($configuration, Fixture::request("home"), $expiredPending))->getOutcome();
 
-        $guest = new MultiFactorAuthentication($configuration, $request, null);
-        $user = new MultiFactorAuthentication($configuration, $request, 1);
+        $freshAuthenticated = new LoggedInUserInfo(7, AuthenticationStage::AUTHENTICATED, false, time() + 300);
+        $freshOutcome = (new MultiFactorAuthentication($configuration, Fixture::request("home"), $freshAuthenticated))->getOutcome();
+
+        MultiFactorAuthenticationDAO::reset();
+        $staleAuthenticated = new LoggedInUserInfo(7, AuthenticationStage::AUTHENTICATED, false, time() - 1);
+        $staleOutcome = (new MultiFactorAuthentication($configuration, Fixture::request("home"), $staleAuthenticated))->getOutcome();
 
         return [
-            (new Booleans($guest->getOutcome() === null))->assertTrue(),
-            (new Booleans($user->getOutcome()->getStatus() === ResultStatus::SETUP_REQUIRED))->assertTrue()
+            (new Arrays([$expiredOutcome->getStatus(), $expiredOutcome->getUserID()]))
+                ->assertIdentical([ResultStatus::EXPIRED, 7]),
+            (new Arrays([$freshOutcome]))->assertIdentical([null]),
+            (new Arrays([$staleOutcome->getStatus(), $staleOutcome->getUserID()]))
+                ->assertIdentical([ResultStatus::REQUIRED, 7])
         ];
     }
 }
-

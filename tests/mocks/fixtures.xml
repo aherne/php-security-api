@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fixtures>
+  <application fixture="application">
+    <security>
+      <persistence>
+        <synchronizer_token secret="token-secret" expiration="3600" regeneration="60" />
+      </persistence>
+      <csrf secret="csrf-secret" expiration="900" />
+      <authentication>
+        <form
+          dao="Test\Lucinda\WebSecurity\mocks\Authentication\FormLoginDAO"
+          throttler="Test\Lucinda\WebSecurity\mocks\Authentication\FormLoginThrottler"
+          page="login"
+          target_success="home"
+          target_failure="login-failed"
+          target_throttled="login-throttled"
+        />
+        <logout
+          dao="Test\Lucinda\WebSecurity\mocks\Authentication\LogoutDAO"
+          page="logout"
+          target_success="goodbye"
+          target_failure="logout-failed"
+        />
+      </authentication>
+      <authorization>
+        <by_dao
+          page_dao="Test\Lucinda\WebSecurity\mocks\Authorization\PageAuthorizationDAO"
+          user_dao="Test\Lucinda\WebSecurity\mocks\Authorization\UserAuthorizationDAO"
+          logged_in_callback="forbidden"
+          logged_out_callback="login"
+        />
+      </authorization>
+    </security>
+  </application>
+
+  <application fixture="application-mfa">
+    <security>
+      <persistence>
+        <synchronizer_token secret="token-secret" expiration="3600" regeneration="60" />
+      </persistence>
+      <csrf secret="csrf-secret" expiration="900" />
+      <authentication>
+        <form
+          dao="Test\Lucinda\WebSecurity\mocks\Authentication\FormLoginDAO"
+          throttler="Test\Lucinda\WebSecurity\mocks\Authentication\FormLoginThrottler"
+          page="login"
+          target_success="home"
+          target_failure="login-failed"
+          target_throttled="login-throttled"
+        />
+        <logout
+          dao="Test\Lucinda\WebSecurity\mocks\Authentication\LogoutDAO"
+          page="logout"
+          target_success="goodbye"
+          target_failure="logout-failed"
+        />
+      </authentication>
+      <authorization>
+        <by_dao
+          page_dao="Test\Lucinda\WebSecurity\mocks\Authorization\PageAuthorizationDAO"
+          user_dao="Test\Lucinda\WebSecurity\mocks\Authorization\UserAuthorizationDAO"
+          logged_in_callback="forbidden"
+          logged_out_callback="login"
+        />
+      </authorization>
+      <multi_factor_authentication
+        dao="Test\Lucinda\WebSecurity\mocks\Authentication\MultiFactorAuthenticationDAO"
+        throttler="Test\Lucinda\WebSecurity\mocks\Authentication\MultiFactorAuthenticationThrottler"
+        expiration="600"
+        pending_expiration="120"
+        challenge_route="mfa/challenge"
+        setup_route="mfa/setup"
+        success_route="mfa/success"
+        failure_route="mfa/failure"
+        throttled_route="mfa/throttled"
+      >
+        <totp issuer="Lucinda" code_param="otp" period="30" digits="6" window="1" />
+      </multi_factor_authentication>
+    </security>
+  </application>
+
+  <components>
+    <form
+      fixture="form"
+      dao="Test\Lucinda\WebSecurity\mocks\Authentication\FormLoginDAO"
+      throttler="Test\Lucinda\WebSecurity\mocks\Authentication\FormLoginThrottler"
+      page="sign-in"
+      target_success="dashboard"
+      target_failure="denied"
+      target_throttled="slow-down"
+      parameter_username="email"
+      parameter_password="passphrase"
+      parameter_remember_me="remember"
+      csrf="token"
+    />
+    <logout
+      fixture="logout"
+      dao="Test\Lucinda\WebSecurity\mocks\Authentication\LogoutDAO"
+      page="sign-out"
+      target_success="goodbye"
+      target_failure="denied"
+      csrf="token"
+    />
+    <oauth2
+      fixture="oauth-approval"
+      provisioning="approval_required"
+      dao="Test\Lucinda\WebSecurity\mocks\OAuth2\ApprovalDAO"
+      target_success="home"
+      target_failure="denied"
+      target_pending="pending"
+      state_expiration="300"
+    >
+      <driver name="example" login="oauth/callback" />
+    </oauth2>
+    <oauth2
+      fixture="oauth-existing"
+      provisioning="existing_only"
+      dao="Test\Lucinda\WebSecurity\mocks\OAuth2\LoginDAO"
+      target_success="home"
+      target_failure="denied"
+      state_expiration="300"
+    >
+      <driver name="example" login="oauth/callback" />
+    </oauth2>
+    <driver fixture="oauth-driver" name="example" login="oauth/callback" />
+    <by_dao
+      fixture="authorization-dao"
+      page_dao="Test\Lucinda\WebSecurity\mocks\Authorization\PageAuthorizationDAO"
+      user_dao="Test\Lucinda\WebSecurity\mocks\Authorization\UserAuthorizationDAO"
+      logged_in_callback="forbidden"
+      logged_out_callback="login"
+    />
+    <by_route
+      fixture="authorization-xml"
+      roles_dao="Test\Lucinda\WebSecurity\mocks\Authorization\UserRolesDAO"
+      logged_in_callback="forbidden"
+      logged_out_callback="login"
+    />
+    <security fixture="csrf">
+      <csrf secret="secret" expiration="720" />
+    </security>
+    <session
+      fixture="session"
+      parameter_name="authentication"
+      expiration="1800"
+      is_http_only="1"
+      is_https_only="1"
+      same_site="Strict"
+      handler="ExampleHandler"
+    />
+    <session fixture="session-wrapper" expiration="3600" />
+    <remember_me
+      fixture="remember-me"
+      parameter_name="remembered_user"
+      secret="secret"
+      expiration="86400"
+      is_http_only="1"
+      is_https_only="0"
+      same_site="Lax"
+    />
+    <remember_me fixture="remember-me-wrapper" secret="secret" />
+    <synchronizer_token
+      fixture="synchronizer-token"
+      secret="secret"
+      expiration="3600"
+      regeneration="90"
+    />
+    <synchronizer_token
+      fixture="synchronizer-token-wrapper"
+      secret="secret"
+      expiration="3600"
+      regeneration="60"
+    />
+    <multi_factor_authentication
+      fixture="mfa"
+      dao="Test\Lucinda\WebSecurity\mocks\Authentication\MultiFactorAuthenticationDAO"
+      throttler="Test\Lucinda\WebSecurity\mocks\Authentication\MultiFactorAuthenticationThrottler"
+      expiration="600"
+      pending_expiration="120"
+      challenge_route="mfa/challenge"
+      setup_route="mfa/setup"
+      success_route="mfa/success"
+      failure_route="mfa/failure"
+      throttled_route="mfa/throttled"
+    >
+      <totp issuer="Lucinda" code_param="otp" period="30" digits="6" window="1" />
+    </multi_factor_authentication>
+    <totp
+      fixture="totp"
+      issuer="Example"
+      code_param="verification_code"
+      period="60"
+      digits="8"
+      window="2"
+    />
+  </components>
+
+  <validation>
+    <value fixture="valid-integer" count="12" />
+    <value fixture="valid-boolean" enabled="1" />
+    <value fixture="valid-enum" policy="automatic" />
+  </validation>
+
+  <routes_document fixture="routes">
+    <routes>
+      <route id="admin" roles="ADMIN, EDITOR" />
+      <route id="forum" roles="GUEST, USER" />
+    </routes>
+  </routes_document>
+</fixtures>

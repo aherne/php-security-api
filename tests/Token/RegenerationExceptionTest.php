@@ -2,28 +2,21 @@
 
 namespace Test\Lucinda\WebSecurity\Token;
 
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\WebSecurity\Token\RegenerationException;
-use Lucinda\UnitTest\Result;
-use Lucinda\UnitTest\Validator\Strings;
 
-class RegenerationExceptionTest
+final class RegenerationExceptionTest
 {
-    private RegenerationException $object;
-
-    public function __construct()
-    {
-        $this->object = new RegenerationException();
-    }
-
     public function setPayload()
     {
-        $this->object->setPayload("asdfgh");
-        return (new Strings($this->object->getPayload()))->assertEquals("asdfgh");
-    }
+        $exception = new RegenerationException();
+        $exception->setPayload(["user" => 7]);
 
+        return (new Arrays($exception->getPayload()))->assertIdentical(["user" => 7]);
+    }
 
     public function getPayload()
     {
-        return (new Strings($this->object->getPayload()))->assertEquals("asdfgh");
+        return $this->setPayload();
     }
 }

@@ -1,44 +1,51 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Configuration\Persistence;
 
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\UnitTest\Validator\Booleans;
 use Lucinda\UnitTest\Validator\Integers;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\Configuration\Persistence\Session;
+use Lucinda\WebSecurity\PersistenceDrivers\CookieSameSiteOptions;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class SessionTest
+final class SessionTest
 {
-    private function subject(): \Lucinda\WebSecurity\Configuration\Persistence\Session
+    private function configuration(): Session
     {
-        return new \Lucinda\WebSecurity\Configuration\Persistence\Session(simplexml_load_string('<session parameter_name="sid" expiration="50" is_http_only="1" is_https_only="0" same_site="Strict" handler="Handler"/>'));
+        return new Session(Fixture::node("session"));
     }
 
     public function getParameterName()
     {
-        return (new Strings($this->subject()->getParameterName()))->assertEquals("sid");
-    }
-
-    public function getExpirationTime()
-    {
-        return (new Integers($this->subject()->getExpirationTime()))->assertEquals(50);
+        return (new Strings($this->configuration()->getParameterName()))->assertEquals("authentication");
     }
 
     public function getIsHttpOnly()
     {
-        return (new Booleans($this->subject()->getIsHttpOnly() === true))->assertTrue();
+        return (new Booleans($this->configuration()->getIsHttpOnly()))->assertTrue();
     }
 
     public function getIsHttpsOnly()
     {
-        return (new Booleans($this->subject()->getIsHttpsOnly() === false))->assertTrue();
+        return (new Booleans($this->configuration()->getIsHttpsOnly()))->assertTrue();
     }
 
     public function getSameSite()
     {
-        return (new Strings($this->subject()->getSameSite()))->assertEquals("Strict");
+        $actual = $this->configuration()->getSameSite();
+
+        return (new Arrays([$actual]))->assertIdentical([CookieSameSiteOptions::STRICT]);
     }
 
     public function getHandler()
     {
-        return (new Strings($this->subject()->getHandler()))->assertEquals("Handler");
+        return (new Strings($this->configuration()->getHandler()))->assertEquals("ExampleHandler");
+    }
+
+    public function getExpirationTime()
+    {
+        return (new Integers($this->configuration()->getExpirationTime()))->assertEquals(1800);
     }
 }

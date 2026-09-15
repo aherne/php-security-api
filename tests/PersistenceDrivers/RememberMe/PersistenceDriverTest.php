@@ -2,43 +2,51 @@
 
 namespace Test\Lucinda\WebSecurity\PersistenceDrivers\RememberMe;
 
-use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
-use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver;
-use Lucinda\WebSecurity\Token\SaltGenerator;
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\UnitTest\Validator\Booleans;
-use Lucinda\UnitTest\Validator\Integers;
+use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
+use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
+use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
+use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver;
 
-class PersistenceDriverTest
+final class PersistenceDriverTest
 {
-    private PersistenceDriver $object;
+    private const COOKIE_NAME = "security_test_remember_me";
 
-    public function __construct()
+    private function driver(): PersistenceDriver
     {
-        $securityOptions = new CookieSecurityOptions();
-        $securityOptions->setExpirationTime(3600);
-        $this->object = new PersistenceDriver(
-            (new SaltGenerator(10))->getSalt(),
-            "remember_me",
-            $securityOptions,
-            "192.168.1.9"
-        );
+        $options = new CookieSecurityOptions();
+        $options->setExpirationTime(3600);
+
+        return new PersistenceDriver("secret", self::COOKIE_NAME, $options, "127.0.0.1");
     }
 
     public function save()
     {
-        $this->object->save(1);
-        return (new Integers((int) $this->object->load()))->assertEquals(1);
+        unset($_COOKIE[self::COOKIE_NAME]);
+        $driver = $this->driver();
+        $driver->save(new LoggedInUserInfo(7, AuthenticationStage::AUTHENTICATED));
+
+        return (new Arrays($_COOKIE))->assertContainsKey(self::COOKIE_NAME);
     }
 
     public function load()
     {
-        return (new Integers((int) $this->object->load()))->assertEquals(1);
-    }
+        $driver = $this->driver();
+        $driver->save(new LoggedInUserInfo(7, AuthenticationStage::AUTHENTICATED));
+        $actual = $driver->load();
 
+        return (new Arrays([$actual->getUserID(), $actual->getAuthenticatedStage()]))
+            ->assertIdentical([7, AuthenticationStage::AUTHENTICATED]);
+    }
 
     public function clear()
     {
-        $this->object->clear();
-        return (new Booleans($this->object->load() === null))->assertTrue();
+        $driver = $this->driver();
+        $driver->save(new LoggedInUserInfo(7, AuthenticationStage::AUTHENTICATED));
+        $driver->clear();
+        $cookieExists = array_key_exists(self::COOKIE_NAME, $_COOKIE);
+
+        return (new Booleans($cookieExists))->assertFalse();
     }
 }

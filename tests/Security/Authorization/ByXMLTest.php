@@ -1,26 +1,25 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Security\Authorization;
 
-use Lucinda\UnitTest\Validator\Booleans;
-use Lucinda\WebSecurity\Configuration\Authorization\ByXML;
-use Lucinda\WebSecurity\Request;
-use Lucinda\WebSecurity\Security\Authorization\ByXML as ByXMLAuthorizer;
+use Lucinda\UnitTest\Validator\Arrays;
+use Lucinda\WebSecurity\Configuration\Authorization\ByXML as Configuration;
+use Lucinda\WebSecurity\Configuration\RolesDetector;
+use Lucinda\WebSecurity\Security\Authorization\ByXML;
 use Lucinda\WebSecurity\Security\Authorization\ResultStatus;
+use Test\Lucinda\WebSecurity\mocks\Authorization\UserRolesDAO;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class ByXMLTest
+final class ByXMLTest
 {
     public function getResult()
     {
-        $configuration = new ByXML(simplexml_load_string(
-            '<by_route roles_dao="Test\\Lucinda\\WebSecurity\\mocks\\Authorization\\MockUserRolesDAO"
-                logged_in_callback="forbidden" logged_out_callback="login"/>'
-        ));
-        $request = new Request();
-        $request->setUri("home");
-        $routes = simplexml_load_string('<xml><routes><route id="home" roles="USER"/></routes></xml>');
-        $authorizer = new ByXMLAuthorizer($configuration, $request, 1, $routes);
+        UserRolesDAO::$roles = ["USER"];
+        $configuration = new Configuration(Fixture::node("authorization-xml"));
+        $xml = Fixture::node("routes");
+        $roles = new RolesDetector($xml, "routes", "route", "id");
+        $result = (new ByXML($configuration, Fixture::request("forum"), 7, $roles))->getResult();
 
-        return (new Booleans($authorizer->getResult()->getStatus() === ResultStatus::OK))->assertTrue();
+        return (new Arrays([$result->getStatus()]))->assertIdentical([ResultStatus::OK]);
     }
 }
-

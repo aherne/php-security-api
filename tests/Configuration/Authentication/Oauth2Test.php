@@ -1,70 +1,68 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Configuration\Authentication;
 
 use Lucinda\UnitTest\Validator\Arrays;
+use Lucinda\UnitTest\Validator\Integers;
 use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\Configuration\Authentication\Oauth2;
-use Test\Lucinda\WebSecurity\mocks\Authentication\MockVendorAuthenticationDAO;
+use Lucinda\WebSecurity\Configuration\Authentication\Oauth2\Provisioning;
+use Test\Lucinda\WebSecurity\mocks\OAuth2\ApprovalDAO;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class Oauth2Test
+final class Oauth2Test
 {
-    private function subject(): Oauth2
+    private function configuration(): Oauth2
     {
-        return new Oauth2(simplexml_load_string('<oauth2 dao="Test\\Lucinda\\WebSecurity\\mocks\\Authentication\\MockVendorAuthenticationDAO" logout="logout" target_login_success="home" target_login_failure="retry" target_logout_success="bye" target_logout_failure="error"><driver name="github" login="login/github"/></oauth2>'));
+        return new Oauth2(Fixture::node("oauth-approval"));
+    }
+
+    public function getProvisioning()
+    {
+        $actual = $this->configuration()->getProvisioning();
+
+        return (new Arrays([$actual]))->assertIdentical([Provisioning::APPROVAL_REQUIRED]);
     }
 
     public function getDAO()
     {
-        return (new Strings($this->subject()->getDAO()))->assertEquals(MockVendorAuthenticationDAO::class);
+        $actual = $this->configuration()->getDAO();
+
+        return (new Strings($actual))->assertEquals(ApprovalDAO::class);
     }
 
     public function getDrivers()
     {
-        return (new Arrays($this->subject()->getDrivers()))->assertSize(1);
+        $actual = $this->configuration()->getDrivers();
+
+        return (new Arrays($actual))->assertSize(1);
     }
 
-    public function getPageLogout()
+    public function getTargetPending()
     {
-        return (new Strings($this->subject()->getPageLogout()))->assertEquals("logout");
+        $actual = $this->configuration()->getTargetPending();
+
+        return (new Strings($actual))->assertEquals("pending");
     }
 
-    public function getTargetLoginSuccess()
+    public function getStateExpiration()
     {
-        return (new Strings($this->subject()->getTargetLoginSuccess()))->assertEquals("home");
-    }
+        $actual = $this->configuration()->getStateExpiration();
 
-    public function getTargetLoginFailure()
-    {
-        return (new Strings($this->subject()->getTargetLoginFailure()))->assertEquals("retry");
+        return (new Integers($actual))->assertEquals(300);
     }
-
-    public function getTargetLogoutSuccess()
-    {
-        return (new Strings($this->subject()->getTargetLogoutSuccess()))->assertEquals("bye");
-    }
-
-    public function getTargetLogoutFailure()
-    {
-        return (new Strings($this->subject()->getTargetLogoutFailure()))->assertEquals("error");
-    }
-    public function getParameterCsrf()
-    {
-    }
-        
 
     public function getTargetSuccess()
     {
+        $actual = $this->configuration()->getTargetSuccess();
+
+        return (new Strings($actual))->assertEquals("home");
     }
-        
 
     public function getTargetFailure()
     {
-    }
-        
+        $actual = $this->configuration()->getTargetFailure();
 
-    public function getProvisioning()
-    {
+        return (new Strings($actual))->assertEquals("denied");
     }
-        
-
 }

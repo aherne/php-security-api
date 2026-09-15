@@ -4,14 +4,12 @@ namespace Test\Lucinda\WebSecurity\mocks\Authorization;
 
 use Lucinda\WebSecurity\DAO\UserRoles;
 
-class MockUserRolesDAO implements UserRoles
+final class UserRolesDAO implements UserRoles
 {
+    public static array $roles = ["USER"];
+
     public function getRoles(int|string|null $userID): array
     {
-        if ($userID) {
-            return ["USER"];
-        } else {
-            return ["GUEST"];
-        }
+        return self::$roles;
     }
 }

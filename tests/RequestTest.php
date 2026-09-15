@@ -2,94 +2,94 @@
 
 namespace Test\Lucinda\WebSecurity;
 
-use Lucinda\WebSecurity\Request;
-use Lucinda\UnitTest\Result;
 use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\Request;
 
-class RequestTest
+final class RequestTest
 {
-    private Request $object;
-
-    public function __construct()
+    private function request(): Request
     {
-        $this->object = new Request();
-    }
+        $request = new Request();
+        $request->setUri("account");
+        $request->setContextPath("/application/");
+        $request->setIpAddress("192.0.2.10");
+        $request->setMethod("POST");
+        $request->setParameters(["field" => "value"]);
+        $request->setAccessToken("access-token");
 
+        return $request;
+    }
 
     public function setUri()
     {
-        $this->object->setUri("login");
-        return (new Strings($this->object->getUri()))->assertEquals("login");
-    }
+        $request = $this->request();
 
+        return (new Strings($request->getUri()))->assertEquals("account");
+    }
 
     public function setContextPath()
     {
-        $this->object->setContextPath("test");
-        return (new Strings($this->object->getContextPath()))->assertEquals("test");
-    }
+        $request = $this->request();
 
+        return (new Strings($request->getContextPath()))->assertEquals("/application/");
+    }
 
     public function setIpAddress()
     {
-        $this->object->setIpAddress("127.0.0.1");
-        return (new Strings($this->object->getIpAddress()))->assertEquals("127.0.0.1");
-    }
+        $request = $this->request();
 
+        return (new Strings($request->getIpAddress()))->assertEquals("192.0.2.10");
+    }
 
     public function setMethod()
     {
-        $this->object->setMethod("POST");
-        return (new Strings($this->object->getMethod()))->assertEquals("POST");
-    }
+        $request = $this->request();
 
+        return (new Strings($request->getMethod()))->assertEquals("POST");
+    }
 
     public function setParameters()
     {
-        $this->object->setParameters(["username"=>"test", "password"=>"me"]);
-        return (new Arrays($this->object->getParameters()))->assertEquals(["username"=>"test", "password"=>"me"]);
-    }
+        $request = $this->request();
 
+        return (new Arrays($request->getParameters()))->assertIdentical(["field" => "value"]);
+    }
 
     public function setAccessToken()
     {
-        $this->object->setAccessToken("qwerty");
-        return (new Strings($this->object->getAccessToken()))->assertEquals("qwerty");
+        $request = $this->request();
+
+        return (new Strings($request->getAccessToken()))->assertEquals("access-token");
     }
 
     public function getUri()
     {
-        return (new Strings($this->object->getUri()))->assertEquals("login");
+        return $this->setUri();
     }
-
 
     public function getContextPath()
     {
-        return (new Strings($this->object->getContextPath()))->assertEquals("test");
+        return $this->setContextPath();
     }
-
 
     public function getIpAddress()
     {
-        return (new Strings($this->object->getIpAddress()))->assertEquals("127.0.0.1");
+        return $this->setIpAddress();
     }
-
 
     public function getMethod()
     {
-        return (new Strings($this->object->getMethod()))->assertEquals("POST");
+        return $this->setMethod();
     }
-
 
     public function getParameters()
     {
-        return (new Arrays($this->object->getParameters()))->assertEquals(["username"=>"test", "password"=>"me"]);
+        return $this->setParameters();
     }
-
 
     public function getAccessToken()
     {
-        return (new Strings($this->object->getAccessToken()))->assertEquals("qwerty");
+        return $this->setAccessToken();
     }
 }

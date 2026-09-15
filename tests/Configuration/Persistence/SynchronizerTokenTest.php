@@ -1,29 +1,31 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Configuration\Persistence;
 
-use Lucinda\UnitTest\Validator\Booleans;
 use Lucinda\UnitTest\Validator\Integers;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\Configuration\Persistence\SynchronizerToken;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class SynchronizerTokenTest
+final class SynchronizerTokenTest
 {
-    private function subject(): \Lucinda\WebSecurity\Configuration\Persistence\SynchronizerToken
+    private function configuration(): SynchronizerToken
     {
-        return new \Lucinda\WebSecurity\Configuration\Persistence\SynchronizerToken(simplexml_load_string('<synchronizer_token secret="secret" expiration="80" regeneration="9"/>'));
+        return new SynchronizerToken(Fixture::node("synchronizer-token"));
     }
 
     public function getSecret()
     {
-        return (new Strings($this->subject()->getSecret()))->assertEquals("secret");
-    }
-
-    public function getExpirationTime()
-    {
-        return (new Integers($this->subject()->getExpirationTime()))->assertEquals(80);
+        return (new Strings($this->configuration()->getSecret()))->assertEquals("secret");
     }
 
     public function getRegenerationTime()
     {
-        return (new Integers($this->subject()->getRegenerationTime()))->assertEquals(9);
+        return (new Integers($this->configuration()->getRegenerationTime()))->assertEquals(90);
+    }
+
+    public function getExpirationTime()
+    {
+        return (new Integers($this->configuration()->getExpirationTime()))->assertEquals(3600);
     }
 }

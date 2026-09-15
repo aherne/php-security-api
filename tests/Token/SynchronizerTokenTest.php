@@ -2,31 +2,25 @@
 
 namespace Test\Lucinda\WebSecurity\Token;
 
-use Lucinda\WebSecurity\Token\SynchronizerToken;
-use Lucinda\WebSecurity\Token\SaltGenerator;
-use Lucinda\UnitTest\Result;
 use Lucinda\UnitTest\Validator\Integers;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\Token\SynchronizerToken;
 
-class SynchronizerTokenTest
+final class SynchronizerTokenTest
 {
-    private SynchronizerToken $object;
-    private ?string $value = null;
-
-    public function __construct()
-    {
-        $this->object = new SynchronizerToken("127.0.0.1", (new SaltGenerator(12))->getSalt());
-    }
-
     public function encode()
     {
-        $this->value = $this->object->encode(1);
-        return (new Strings($this->value))->assertNotEmpty();
-    }
+        $encoded = (new SynchronizerToken("127.0.0.1", "shared-secret"))->encode(7);
 
+        return (new Strings($encoded))->assertContains("v2.");
+    }
 
     public function decode()
     {
-        return (new Integers((int) $this->object->decode($this->value)))->assertEquals(1);
+        $token = new SynchronizerToken("127.0.0.1", "shared-secret");
+        $encoded = $token->encode(7);
+        $decoded = $token->decode($encoded);
+
+        return (new Integers($decoded))->assertEquals(7);
     }
 }

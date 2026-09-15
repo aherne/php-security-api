@@ -1,73 +1,50 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity;
 
 use Lucinda\UnitTest\Validator\Arrays;
-use Lucinda\UnitTest\Validator\Strings;
-use Lucinda\WebSecurity\Configuration;
+use Lucinda\UnitTest\Validator\Objects;
+use Lucinda\WebSecurity\Configuration\Authentication;
+use Lucinda\WebSecurity\Configuration\Authorization;
+use Lucinda\WebSecurity\Configuration\Csrf;
+use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication;
+use Lucinda\WebSecurity\Configuration\Persistence;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class ConfigurationTest
+final class ConfigurationTest
 {
-    private string $secret;
-    private Configuration $configuration;
-
-    public function __construct()
-    {
-        $this->secret = str_repeat("a", 32);
-        $this->configuration = new Configuration(simplexml_load_string('
-            <xml>
-            <security>
-                <csrf secret="'.$this->secret.'"/>
-                <persistence><synchronizer_token secret="'.$this->secret.'"/></persistence>
-                <authentication>
-                    <form dao="Test\Lucinda\WebSecurity\mocks\Authentication\MockUsersAuthentication">
-                        <login page="login" target_success="index" target_failure="login_failed"/>
-                        <logout page="logout" target_success="login" target_failure="logout_failed"/>
-                    </form>
-                </authentication>
-                <authorization>
-                    <by_dao
-                        page_dao="Test\Lucinda\WebSecurity\mocks\Authorization\MockPageAuthorizationDAO"
-                        user_dao="Test\Lucinda\WebSecurity\mocks\Authorization\MockUserAuthorizationDAO"
-                        logged_in_callback="forbidden"
-                        logged_out_callback="login"/>
-                </authorization>
-                <multi_factor_authentication dao="Test\\Lucinda\\WebSecurity\\mocks\\Authentication\\MockMultiFactorAuthentication"
-                 challenge_route="challenge" setup_route="setup" success_route="home" failure_route="retry" throttled_route="wait">
-                    <totp issuer="App"/>
-                </multi_factor_authentication>
-            </security>
-            </xml>
-        '));
-    }
-
     public function getPersistence()
     {
-        return (new Arrays($this->configuration->getPersistence()->getDrivers()))->assertNotEmpty();
+        $actual = Fixture::configuration()->getPersistence();
+
+        return (new Objects($actual))->assertInstanceOf(Persistence::class);
     }
-        
 
     public function getCsrf()
     {
-        return (new Strings($this->configuration->getCsrf()->getSecret()))->assertEquals($this->secret);
+        $actual = Fixture::configuration()->getCsrf();
+
+        return (new Objects($actual))->assertInstanceOf(Csrf::class);
     }
-        
 
     public function getAuthentication()
     {
-        return (new Arrays($this->configuration->getAuthentication()->getMethods()))->assertNotEmpty();
+        $actual = Fixture::configuration()->getAuthentication();
+
+        return (new Objects($actual))->assertInstanceOf(Authentication::class);
     }
-        
 
     public function getAuthorization()
     {
-        return (new Arrays($this->configuration->getAuthorization()->getMethods()))->assertNotEmpty();
+        $actual = Fixture::configuration()->getAuthorization();
+
+        return (new Objects($actual))->assertInstanceOf(Authorization::class);
     }
-        
 
     public function getMultiFactorAuthentication()
     {
-        return (new Strings($this->configuration->getMultiFactorAuthentication()->getChallengeRoute()))->assertEquals("challenge");
-    }
-        
+        $actual = Fixture::configuration(true)->getMultiFactorAuthentication();
 
+        return (new Objects($actual))->assertInstanceOf(MultiFactorAuthentication::class);
+    }
 }

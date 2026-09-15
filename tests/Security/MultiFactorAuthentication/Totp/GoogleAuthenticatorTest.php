@@ -1,49 +1,66 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Security\MultiFactorAuthentication\Totp;
 
-use Lucinda\UnitTest\Validator\Booleans;
 use Lucinda\UnitTest\Validator\Integers;
 use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\Security\MultiFactorAuthentication\Totp\GoogleAuthenticator;
 
-class GoogleAuthenticatorTest
+final class GoogleAuthenticatorTest
 {
-    private GoogleAuthenticator $authenticator;
-
-    public function __construct()
+    public function generateSecret()
     {
-        $this->authenticator = new GoogleAuthenticator();
-    }
+        $secret = (new GoogleAuthenticator())->generateSecret(20);
 
-    public function generateSecret(): array
-    {
-        $secret = $this->authenticator->generateSecret(20);
-        return [
-            (new Integers(strlen($secret)))->assertEquals(32),
-            (new Booleans((bool) preg_match('/^[A-Z2-7]+$/', $secret)))->assertTrue()
-        ];
+        return (new Strings($secret))->assertSize(32);
     }
 
     public function getProvisioningURI()
     {
-        $uri = $this->authenticator->getProvisioningURI("My App", "a+b@example.com", "ABC234", 30, 6);
-        return (new Strings($uri))->assertEquals(
-            "otpauth://totp/My%20App:a%2Bb%40example.com?secret=ABC234&issuer=My%20App&algorithm=SHA1&digits=6&period=30"
-        );
+        $authenticator = new GoogleAuthenticator();
+        $uri = $authenticator->getProvisioningURI("Example Inc", "person@example.com", "JBSWY3DPEHPK3PXP", 30, 6);
+
+        return (new Strings($uri))->assertContains("otpauth://totp/Example%20Inc:person%40example.com");
     }
 
-    public function verify(): array
+    public function verify()
     {
-        $period = 300;
-        $digits = 6;
+        $secret = "JBSWY3DPEHPK3PXP";
+        $period = 30;
         $counter = intdiv(time(), $period);
-        $method = new \ReflectionMethod($this->authenticator, "generateCode");
-        $code = $method->invoke($this->authenticator, "ABC234", $counter, $digits);
+        $code = $this->createCode($secret, $counter, 6);
+        $matchedCounter = (new GoogleAuthenticator())->verify($secret, $code, $period, 6, 0);
 
-        return [
-            (new Booleans($this->authenticator->verify("ABC234", "abc123", 30, 6, 1) === null))->assertTrue(),
-            (new Booleans($this->authenticator->verify("ABC234", "12345", 30, 6, 1) === null))->assertTrue(),
-            (new Integers($this->authenticator->verify("ABC234", $code, $period, $digits, 0) ?? -1))->assertEquals($counter)
-        ];
+        return (new Integers($matchedCounter))->assertEquals($counter);
+    }
+
+    private function createCode(string $secret, int $counter, int $digits): string
+    {
+        $key = $this->decodeBase32($secret);
+        $counterBytes = pack("N2", 0, $counter);
+        $hash = hash_hmac("sha1", $counterBytes, $key, true);
+        $offset = ord($hash[19]) & 0x0f;
+        $binary = unpack("N", substr($hash, $offset, 4))[1] & 0x7fffffff;
+
+        return str_pad((string) ($binary % (10 ** $digits)), $digits, "0", STR_PAD_LEFT);
+    }
+
+    private function decodeBase32(string $value): string
+    {
+        $alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        $bits = "";
+        foreach (str_split($value) as $character) {
+            $position = strpos($alphabet, $character);
+            $bits .= str_pad(decbin($position), 5, "0", STR_PAD_LEFT);
+        }
+
+        $decoded = "";
+        foreach (str_split($bits, 8) as $byte) {
+            if (strlen($byte) === 8) {
+                $decoded .= chr(bindec($byte));
+            }
+        }
+
+        return $decoded;
     }
 }

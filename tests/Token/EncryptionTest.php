@@ -2,30 +2,24 @@
 
 namespace Test\Lucinda\WebSecurity\Token;
 
-use Lucinda\WebSecurity\Token\Encryption;
-use Lucinda\WebSecurity\Token\SaltGenerator;
-use Lucinda\UnitTest\Result;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\Token\Encryption;
 
-class EncryptionTest
+final class EncryptionTest
 {
-    private Encryption $object;
-    private ?string $value = null;
-
-    public function __construct()
-    {
-        $this->object = new Encryption((new SaltGenerator(12))->getSalt());
-    }
-
     public function encrypt()
     {
-        $this->value = $this->object->encrypt("asdfgh");
-        return (new Strings($this->value))->assertNotEmpty();
-    }
+        $encrypted = (new Encryption("shared-secret"))->encrypt("sensitive payload");
 
+        return (new Strings($encrypted))->assertNotEquals("sensitive payload");
+    }
 
     public function decrypt()
     {
-        return (new Strings($this->object->decrypt($this->value)))->assertEquals("asdfgh");
+        $encryption = new Encryption("shared-secret");
+        $encrypted = $encryption->encrypt("sensitive payload");
+        $decrypted = $encryption->decrypt($encrypted);
+
+        return (new Strings($decrypted))->assertEquals("sensitive payload");
     }
 }

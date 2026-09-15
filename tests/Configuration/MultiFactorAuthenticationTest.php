@@ -1,65 +1,90 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Configuration;
 
+use Lucinda\UnitTest\Validator\Integers;
 use Lucinda\UnitTest\Validator\Objects;
 use Lucinda\UnitTest\Validator\Strings;
 use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication;
-use Test\Lucinda\WebSecurity\mocks\Authentication\MockMultiFactorAuthentication;
+use Lucinda\WebSecurity\Configuration\MultiFactorAuthentication\Totp;
+use Test\Lucinda\WebSecurity\mocks\Authentication\MultiFactorAuthenticationDAO;
+use Test\Lucinda\WebSecurity\mocks\Authentication\MultiFactorAuthenticationThrottler;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class MultiFactorAuthenticationTest
+final class MultiFactorAuthenticationTest
 {
-    private function subject(): MultiFactorAuthentication
+    private function configuration(): MultiFactorAuthentication
     {
-        return new MultiFactorAuthentication(simplexml_load_string('<xml><multi_factor_authentication dao="Test\\Lucinda\\WebSecurity\\mocks\\Authentication\\MockMultiFactorAuthentication" challenge_route="challenge" setup_route="setup" success_route="home" failure_route="retry" throttled_route="wait"><totp issuer="App"/></multi_factor_authentication></xml>'));
+        return Fixture::configuration(true)->getMultiFactorAuthentication();
     }
 
     public function getDAO()
     {
-        return (new Strings($this->subject()->getDAO()))->assertEquals(MockMultiFactorAuthentication::class);
+        $actual = $this->configuration()->getDAO();
+
+        return (new Strings($actual))->assertEquals(MultiFactorAuthenticationDAO::class);
+    }
+
+    public function getThrottler()
+    {
+        $actual = $this->configuration()->getThrottler();
+
+        return (new Strings($actual))->assertEquals(MultiFactorAuthenticationThrottler::class);
+    }
+
+    public function getExpiration()
+    {
+        $actual = $this->configuration()->getExpiration();
+
+        return (new Integers($actual))->assertEquals(600);
+    }
+
+    public function getPendingExpiration()
+    {
+        $actual = $this->configuration()->getPendingExpiration();
+
+        return (new Integers($actual))->assertEquals(120);
     }
 
     public function getChallengeRoute()
     {
-        return (new Strings($this->subject()->getChallengeRoute()))->assertEquals("challenge");
+        $actual = $this->configuration()->getChallengeRoute();
+
+        return (new Strings($actual))->assertEquals("mfa/challenge");
     }
 
     public function getSetupRoute()
     {
-        return (new Strings($this->subject()->getSetupRoute()))->assertEquals("setup");
+        $actual = $this->configuration()->getSetupRoute();
+
+        return (new Strings($actual))->assertEquals("mfa/setup");
     }
 
     public function getSuccessRoute()
     {
-        return (new Strings($this->subject()->getSuccessRoute()))->assertEquals("home");
+        $actual = $this->configuration()->getSuccessRoute();
+
+        return (new Strings($actual))->assertEquals("mfa/success");
     }
 
     public function getFailureRoute()
     {
-        return (new Strings($this->subject()->getFailureRoute()))->assertEquals("retry");
+        $actual = $this->configuration()->getFailureRoute();
+
+        return (new Strings($actual))->assertEquals("mfa/failure");
     }
 
     public function getThrottledRoute()
     {
-        return (new Strings($this->subject()->getThrottledRoute()))->assertEquals("wait");
+        $actual = $this->configuration()->getThrottledRoute();
+
+        return (new Strings($actual))->assertEquals("mfa/throttled");
     }
 
     public function getMethod()
     {
-        return (new Objects($this->subject()->getMethod()))->assertInstanceOf(MultiFactorAuthentication\Totp::class);
-    }
-    public function getThrottler()
-    {
-    }
-        
+        $actual = $this->configuration()->getMethod();
 
-    public function getExpiration()
-    {
+        return (new Objects($actual))->assertInstanceOf(Totp::class);
     }
-        
-
-    public function getPendingExpiration()
-    {
-    }
-        
-
 }

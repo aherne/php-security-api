@@ -1,24 +1,29 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\Configuration\Authentication\Oauth2;
 
-use Lucinda\UnitTest\Validator\Booleans;
-use Lucinda\UnitTest\Validator\Integers;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\Configuration\Authentication\Oauth2\Driver;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class DriverTest
+final class DriverTest
 {
-    private function subject(): \Lucinda\WebSecurity\Configuration\Authentication\Oauth2\Driver
+    private function configuration(): Driver
     {
-        return new \Lucinda\WebSecurity\Configuration\Authentication\Oauth2\Driver(simplexml_load_string('<driver name="github" login="login/github"/>'));
+        return new Driver(Fixture::node("oauth-driver"));
     }
 
     public function getName()
     {
-        return (new Strings($this->subject()->getName()))->assertEquals("github");
+        $actual = $this->configuration()->getName();
+
+        return (new Strings($actual))->assertEquals("example");
     }
 
     public function getPageLogin()
     {
-        return (new Strings($this->subject()->getPageLogin()))->assertEquals("login/github");
+        $actual = $this->configuration()->getPageLogin();
+
+        return (new Strings($actual))->assertEquals("oauth/callback");
     }
 }

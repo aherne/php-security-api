@@ -1,20 +1,20 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\PersistenceDrivers\RememberMe;
 
 use Lucinda\UnitTest\Validator\Objects;
 use Lucinda\WebSecurity\Configuration\Persistence\RememberMe;
 use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver;
 use Lucinda\WebSecurity\PersistenceDrivers\RememberMe\Wrapper;
+use Test\Lucinda\WebSecurity\Support\Fixture;
 
-class WrapperTest
+final class WrapperTest
 {
     public function getDriver()
     {
-        $configuration = new RememberMe(
-            simplexml_load_string('<remember_me secret="abcdefghijklmnopqrstuvwxyz123456"/>')
-        );
-        $wrapper = new Wrapper($configuration, "127.0.0.1");
+        $configuration = new RememberMe(Fixture::node("remember-me-wrapper"));
+        $driver = (new Wrapper($configuration, "127.0.0.1"))->getDriver();
 
-        return (new Objects($wrapper->getDriver()))->assertInstanceOf(PersistenceDriver::class);
+        return (new Objects($driver))->assertInstanceOf(PersistenceDriver::class);
     }
 }

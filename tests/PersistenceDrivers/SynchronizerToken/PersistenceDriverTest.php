@@ -1,53 +1,62 @@
 <?php
+
 namespace Test\Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken;
 
-use Lucinda\UnitTest\Validator\Booleans;
-use Lucinda\UnitTest\Validator\Integers;
+use Lucinda\UnitTest\Validator\Arrays;
 use Lucinda\UnitTest\Validator\Strings;
+use Lucinda\WebSecurity\PersistenceDrivers\AuthenticationStage;
+use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
 use Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\PersistenceDriver;
 
-class PersistenceDriverTest
+final class PersistenceDriverTest
 {
-    private PersistenceDriver $driver;
-
-    public function __construct()
+    private function driver(): PersistenceDriver
     {
-        $this->driver = new PersistenceDriver(
-            "abcdefghijklmnopqrstuvwxyz123456",
-            "127.0.0.1",
-            3600,
-            60
-        );
+        return new PersistenceDriver("secret", "127.0.0.1", 3600, 60);
     }
 
     public function setAccessToken()
     {
-        $this->driver->setAccessToken("token");
-        return (new Strings($this->driver->getAccessToken() ?? ""))->assertEquals("token");
+        $driver = $this->driver();
+        $driver->setAccessToken("incoming-token");
+
+        return (new Strings($driver->getAccessToken()))->assertEquals("incoming-token");
     }
 
     public function getAccessToken()
     {
-        $driver = new PersistenceDriver("abcdefghijklmnopqrstuvwxyz123456", "127.0.0.1");
-        return (new Booleans($driver->getAccessToken() === null))->assertTrue();
+        $driver = $this->driver();
+        $driver->setAccessToken("incoming-token");
+
+        return (new Strings($driver->getAccessToken()))->assertEquals("incoming-token");
     }
 
     public function save()
     {
-        $this->driver->save(15);
-        return (new Strings($this->driver->getAccessToken() ?? ""))->assertNotEmpty();
+        $driver = $this->driver();
+        $userInfo = new LoggedInUserInfo(7, AuthenticationStage::AUTHENTICATED);
+        $driver->save($userInfo);
+
+        return (new Strings($driver->getAccessToken()))->assertNotEmpty();
     }
 
     public function load()
     {
-        $this->driver->save(15);
-        return (new Integers((int) $this->driver->load()))->assertEquals(15);
+        $driver = $this->driver();
+        $expected = new LoggedInUserInfo(7, AuthenticationStage::AUTHENTICATED);
+        $driver->save($expected);
+        $actual = $driver->load();
+
+        return (new Arrays([$actual->getUserID(), $actual->getAuthenticatedStage()]))
+            ->assertIdentical([7, AuthenticationStage::AUTHENTICATED]);
     }
 
     public function clear()
     {
-        $this->driver->save(15);
-        $this->driver->clear();
-        return (new Booleans($this->driver->load() === null))->assertTrue();
+        $driver = $this->driver();
+        $driver->setAccessToken("incoming-token");
+        $driver->clear();
+
+        return (new Strings($driver->getAccessToken()))->assertEmpty();
     }
 }
