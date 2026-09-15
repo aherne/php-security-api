@@ -43,19 +43,27 @@ final class Authorization
      * Missing resources and denied access select a callback based on whether
      * a non-empty user ID is available.
      *
-     * @param PageAuthorization $page DAO representing the requested resource and its public-access policy
+     * @param string $pageURL Requested route supplied by Request::getUri()
+     * @param int|string|null $userID Authenticated local user ID, or null for a guest
+     * @param PageAuthorization $pageDAO DAO representing the requested resource and its public-access policy
      * @param UserAuthorization $user DAO representing the current user or guest and their permissions
      * @param string $httpRequestMethod HTTP method used for the user-specific permission check
      * @return Result Access decision with a failure callback, or an empty callback when access is allowed
      * @throws \Throwable If an authorization DAO fails
      */
-    public function authorize(PageAuthorization $page, UserAuthorization $user, string $httpRequestMethod): Result
+    public function authorize(
+        string $pageURL,
+        int|string|null $userID,
+        PageAuthorization $pageDAO,
+        UserAuthorization $userDAO,
+        string $httpRequestMethod
+        ): Result
     {
         $callbackURI = "";
-        if ($page->getID()) {
-            if (!$page->isPublic()) {
-                if (!empty($user->getID())) {
-                    if (!$user->isAllowed($page, $httpRequestMethod)) {
+        if ($pageID = $pageDAO->getID($pageURL)) {
+            if (!$pageDAO->isPublic($pageID)) {
+                if (!empty($userID)) {
+                    if (!$userDAO->isAllowed($userID, $pageID, $httpRequestMethod)) {
                         $callbackURI = $this->loggedInFailureCallback;
                         $status = ResultStatus::FORBIDDEN;
                     } else {
@@ -71,7 +79,7 @@ final class Authorization
                 $status = ResultStatus::OK;
             }
         } else {
-            if (!empty($user->getID())) {
+            if (!empty($userID)) {
                 $callbackURI = $this->loggedInFailureCallback;
             } else {
                 $callbackURI = $this->loggedOutFailureCallback;

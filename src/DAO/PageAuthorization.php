@@ -11,45 +11,24 @@ namespace Lucinda\WebSecurity\DAO;
  *
  * @see \Lucinda\WebSecurity\Configuration\Authorization\ByDAO
  */
-abstract class PageAuthorization
+interface PageAuthorization
 {
-    protected ?int $pageID;
-
-    /**
-     * Resolves and stores the database ID of the requested page
-     *
-     * @param string $pageURL Requested route supplied by Request::getUri()
-     */
-    public function __construct(string $pageURL)
-    {
-        $this->pageID = $this->detectID($pageURL);
-    }
-
-    /**
-     * Looks up the database ID of the requested page
-     *
-     * @param string $pageURL Requested route to look up
-     * @return int|null Non-zero page ID when found; null when the route has no matching page
-     */
-    abstract protected function detectID(string $pageURL): ?int;
-
     /**
      * Checks whether the resolved page permits access without authentication
      *
      * The authorization workflow calls this after a page ID has been found.
      * Public pages bypass the user-specific permission check.
      *
+     * @param int $pageID ID of the respective page already detected.
      * @return bool True for a public page; false when authentication and permission checks are required
      */
-    abstract public function isPublic(): bool;
+    public function isPublic(int $pageID): bool;
 
     /**
-     * Gets the resolved database ID of the requested page
+     * Gets the database ID of the requested page
      *
+     * @param string $pageURL Requested route supplied by Request::getUri()
      * @return int|null Page ID, or null when the page was not found
      */
-    public function getID(): ?int
-    {
-        return $this->pageID;
-    }
+    public function getID(string $pageURL): ?int;
 }

@@ -31,12 +31,18 @@ final class ByDao extends Generic
     public function __construct(Configuration $configuration, Request $request, int|string|null $userID)
     {
         $daoClass = $configuration->getUserDAO();
-        $userDAO = new $daoClass($userID);
+        $userDAO = new $daoClass();
 
         $daoClass = $configuration->getPageDAO();
-        $pageDAO = new $daoClass($request->getUri());
+        $pageDAO = new $daoClass();
 
         $authorization = new Authorization($configuration->getCallbackLoggedIn(), $configuration->getCallbackLoggedOut());
-        $this->setResult($authorization->authorize($pageDAO, $userDAO, $request->getMethod()));
+        $this->setResult($authorization->authorize(
+            $request->getUri(),
+            $userID,
+            $pageDAO,
+            $userDAO,
+            $request->getMethod()
+            ));
     }
 }
