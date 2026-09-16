@@ -14,6 +14,6 @@ namespace Lucinda\WebSecurity\Token;
  * @see ExpiredException
  * @see RegenerationException
  */
-class Exception extends \Exception
+final class Exception extends \Exception
 {
 }

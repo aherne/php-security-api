@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application>
+    <security>
+        <persistence>
+            <session
+                parameter_name="lucinda_session"
+                is_http_only="1"
+                is_https_only="1"
+                same_site="Lax"
+            />
+        </persistence>
+        <!-- Replace this placeholder using private deployment configuration. -->
+        <csrf secret="REPLACE_WITH_A_PRIVATE_CSRF_SECRET" expiration="600" />
+        <authentication>
+            <form
+                dao="App\Security\FormLoginDAO"
+                throttler="App\Security\FormLoginThrottler"
+                page="login"
+                target_success="home"
+                target_failure="login"
+                target_throttled="login-throttled"
+            />
+            <logout
+                dao="App\Security\LogoutDAO"
+                page="logout"
+                target_success="login"
+                target_failure="logout-failed"
+            />
+        </authentication>
+        <authorization>
+            <by_dao
+                page_dao="App\Security\PageAuthorizationDAO"
+                user_dao="App\Security\UserAuthorizationDAO"
+                logged_in_callback="forbidden"
+                logged_out_callback="login"
+            />
+        </authorization>
+    </security>
+</application>

@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="790" viewBox="0 0 1000 790" role="img" aria-labelledby="title description">
+  <title id="title">Wrapper request workflow and short-circuit paths</title>
+  <desc id="description">Construction prepares dependencies and restores identity. Authentication, MFA, and authorization run in order only while previous results are null. Any packet joins the final outcome builder, called by getOutcome. Numbered paths are documented in workflow.md.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#64748b"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .heading { font-size: 26px; font-weight: 700; text-anchor: start; }
+      .sub { font-size: 15px; fill: #475569; text-anchor: start; }
+      .box { fill: #fff; stroke: #cbd5e1; stroke-width: 2; }
+      .core { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; }
+      .label { font-size: 19px; font-weight: 700; }
+      .detail { font-size: 14px; fill: #475569; }
+      .edge { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+      .number { fill: #0369a1; }
+      .index { fill: #fff; font-size: 14px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1000" height="790" rx="16" fill="#f8fafc"/>
+  <text x="40" y="49" class="heading">Continue on null. Stop later stages on a packet.</text>
+  <text x="40" y="77" class="sub">All normal paths finish in public outcome building; a stage packet is not always the final packet</text>
+  <rect x="100" y="115" width="420" height="70" rx="12" class="core"/>
+  <text x="310" y="145" class="label">Prepare and restore identity</text><text x="310" y="169" class="detail">Wrapper construction</text>
+  <circle cx="124" cy="139" r="13" class="number"/><text x="124" y="144" class="index">1</text>
+  <path d="M310 185V225" class="edge"/>
+  <rect x="100" y="225" width="420" height="70" rx="12" class="box"/>
+  <text x="310" y="267" class="label">Authentication</text>
+  <circle cx="124" cy="249" r="13" class="number"/><text x="124" y="254" class="index">2</text>
+  <path d="M310 295V350" class="edge"/><text x="340" y="327" class="detail">null</text>
+  <rect x="100" y="350" width="420" height="70" rx="12" class="box"/>
+  <text x="310" y="392" class="label">Optional MFA</text>
+  <circle cx="124" cy="374" r="13" class="number"/><text x="124" y="379" class="index">3</text>
+  <path d="M310 420V475" class="edge"/><text x="340" y="452" class="detail">null</text>
+  <rect x="100" y="475" width="420" height="70" rx="12" class="box"/>
+  <text x="310" y="517" class="label">Authorization</text>
+  <circle cx="124" cy="499" r="13" class="number"/><text x="124" y="504" class="index">4</text>
+  <path d="M520 260H750V350" class="edge"/><text x="625" y="246" class="detail">Packet</text>
+  <path d="M520 385H645" class="edge"/><text x="582" y="371" class="detail">Packet</text>
+  <path d="M520 510H750V420" class="edge"/><text x="625" y="535" class="detail">Packet</text>
+  <rect x="645" y="350" width="210" height="70" rx="12" class="box"/>
+  <text x="750" y="382" class="label">Stage outcome</text><text x="750" y="406" class="detail">Skip remaining stages</text>
+  <circle cx="876" cy="385" r="13" class="number"/><text x="876" y="390" class="index">5</text>
+  <path d="M310 545V595H450V630" class="edge"/><text x="340" y="578" class="detail">null</text>
+  <path d="M750 420V595H550V630" class="edge"/>
+  <path d="M40 605H960" stroke="#cbd5e1" stroke-dasharray="6 5"/>
+  <text x="817" y="627" class="detail">getOutcome() boundary</text>
+  <rect x="280" y="630" width="440" height="80" rx="12" class="core"/>
+  <text x="500" y="663" class="label">Build public outcome</text><text x="500" y="691" class="detail">Select packet · preserve callback · enrich tokens</text>
+  <circle cx="304" cy="654" r="13" class="number"/><text x="304" y="659" class="index">6</text>
+  <path d="M500 710V747" class="edge"/><text x="500" y="774" class="label">Packet | null → application handling</text>
+</svg>

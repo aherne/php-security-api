@@ -11,7 +11,7 @@ namespace Lucinda\WebSecurity\PersistenceDrivers;
  * @see \Lucinda\WebSecurity\Wrapper\Coordinator
  * @see Session\HijackException
  */
-class Exception extends \Exception
+final class Exception extends \Exception
 {
     
 }

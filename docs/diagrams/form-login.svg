@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="690" viewBox="0 0 1000 690" role="img" aria-labelledby="title description">
+  <title id="title">Guest form-login processing</title>
+  <desc id="description">On the login route, a non-POST guest request receives a CSRF token. POST requests validate fields, throttling, and CSRF, then invoke the credentials DAO. Success stages identity for optional MFA; rejected credentials are penalized.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#64748b"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .heading { font-size: 26px; font-weight: 700; text-anchor: start; }
+      .sub { font-size: 15px; fill: #475569; text-anchor: start; }
+      .box { fill: #fff; stroke: #cbd5e1; stroke-width: 2; }
+      .core { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; }
+      .label { font-size: 19px; font-weight: 700; }
+      .detail { font-size: 14px; fill: #475569; }
+      .edge { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+      .number { fill: #0369a1; }
+      .index { fill: #fff; font-size: 14px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1000" height="690" rx="16" fill="#f8fafc"/>
+  <text x="40" y="49" class="heading">The login form supplies its own guest CSRF token.</text>
+  <text x="40" y="77" class="sub">This view covers guest requests matching the configured form-login route.</text>
+  <rect x="40" y="125" width="250" height="85" rx="12" class="box"/>
+  <text x="165" y="161" class="label">Non-POST login</text><text x="165" y="188" class="detail">Usually GET</text>
+  <path d="M290 167H700" class="edge"/>
+  <text x="500" y="151" class="detail">Generate for "guest"</text>
+  <circle cx="500" cy="167" r="13" class="number"/><text x="500" y="172" class="index">1</text>
+  <rect x="700" y="125" width="260" height="85" rx="12" class="core"/>
+  <text x="830" y="161" class="label">GuestUser</text><text x="830" y="188" class="detail">Render hidden CSRF field</text>
+  <path d="M40 260H960" stroke="#cbd5e1" stroke-dasharray="6 5"/>
+  <rect x="40" y="315" width="250" height="85" rx="12" class="box"/>
+  <text x="165" y="351" class="label">POST login</text><text x="165" y="378" class="detail">Credentials and guest CSRF</text>
+  <path d="M290 357H350" class="edge"/>
+  <rect x="350" y="315" width="260" height="85" rx="12" class="box"/>
+  <text x="480" y="351" class="label">Preconditions</text><text x="480" y="378" class="detail">Fields → throttle → CSRF</text>
+  <circle cx="374" cy="339" r="13" class="number"/><text x="374" y="344" class="index">2</text>
+  <path d="M480 400V475" class="edge"/><text x="516" y="441" class="detail">valid</text>
+  <rect x="350" y="475" width="260" height="85" rx="12" class="box"/>
+  <text x="480" y="511" class="label">Credentials DAO</text><text x="480" y="538" class="detail">login(username, password)</text>
+  <circle cx="374" cy="499" r="13" class="number"/><text x="374" y="504" class="index">3</text>
+  <path d="M610 357H700" class="edge"/>
+  <rect x="700" y="315" width="260" height="85" rx="12" class="box"/>
+  <text x="830" y="351" class="label">Rejected / throttled</text><text x="830" y="378" class="detail">Caller handles packet</text>
+  <path d="M610 495H655V380H700" class="edge"/>
+  <text x="830" y="437" class="detail">Credential rejection: penalize + recheck</text>
+  <path d="M610 530H700" class="edge"/>
+  <rect x="700" y="475" width="260" height="85" rx="12" class="core"/>
+  <text x="830" y="511" class="label">IDENTITY_VERIFIED</text><text x="830" y="538" class="detail">Internal result with local ID</text>
+  <path d="M830 560V610" class="edge"/>
+  <circle cx="830" cy="585" r="13" class="number"/><text x="830" y="590" class="index">4</text>
+  <rect x="40" y="610" width="920" height="50" rx="10" class="core"/>
+  <text x="500" y="642" class="detail">Wrapper saves AUTHENTICATED without MFA, or PENDING_MFA and continues to MFA.</text>
+</svg>

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="820" viewBox="0 0 1000 820" role="img" aria-labelledby="title description">
+  <title id="title">Security XML tag hierarchy</title>
+  <desc id="description">Security contains required persistence, csrf, authentication, and authorization sections, and optional multi_factor_authentication. Lines mean containment, not execution. Numbered branch rules are documented in configuration.md.</desc>
+  <defs>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .heading { font-size: 26px; font-weight: 700; text-anchor: start; }
+      .sub { font-size: 15px; fill: #475569; text-anchor: start; }
+      .box { fill: #fff; stroke: #cbd5e1; stroke-width: 2; }
+      .branch { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; }
+      .tag { font-size: 16px; font-family: Consolas, 'Liberation Mono', monospace; }
+      .detail { font-size: 13px; fill: #475569; }
+      .edge { fill: none; stroke: #94a3b8; stroke-width: 2; }
+      .number { fill: #0369a1; }
+      .index { fill: #fff; font-size: 14px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1000" height="820" rx="16" fill="#f8fafc"/>
+  <text x="40" y="49" class="heading">Configuration is a tree, not a workflow.</text>
+  <text x="40" y="77" class="sub">Lines mean containment · numbered branch rules explain choices and requirements</text>
+  <path d="M210 402H250M250 160V730M250 160H300M250 280H300M250 410H300M250 580H300M250 730H300" class="edge"/>
+  <g id="security">
+    <rect x="40" y="370" width="170" height="64" rx="12" class="branch"/>
+    <text x="125" y="407" class="tag">security</text>
+  </g>
+  <g id="persistence">
+    <rect x="300" y="130" width="270" height="60" rx="10" class="branch"/>
+    <text x="435" y="166" class="tag">persistence</text>
+    <path d="M570 160H610M610 127V211M610 127H650M610 169H650M610 211H650" class="edge"/>
+    <rect x="650" y="110" width="310" height="34" rx="7" class="box"/><text x="805" y="133" class="tag">session</text>
+    <rect x="650" y="152" width="310" height="34" rx="7" class="box"/><text x="805" y="175" class="tag">remember_me</text>
+    <rect x="650" y="194" width="310" height="34" rx="7" class="box"/><text x="805" y="217" class="tag">synchronizer_token</text>
+    <circle cx="280" cy="160" r="13" class="number"/><text x="280" y="165" class="index">1</text>
+  </g>
+  <g id="csrf">
+    <rect x="300" y="250" width="270" height="60" rx="10" class="branch"/>
+    <text x="435" y="286" class="tag">csrf</text>
+    <text x="805" y="285" class="detail">Required leaf: secret and lifetime</text>
+    <circle cx="280" cy="280" r="13" class="number"/><text x="280" y="285" class="index">2</text>
+  </g>
+  <g id="authentication">
+    <rect x="300" y="380" width="270" height="60" rx="10" class="branch"/>
+    <text x="435" y="416" class="tag">authentication</text>
+    <path d="M570 410H610M610 353V473M610 353H650M610 405H650M610 473H650" class="edge"/>
+    <rect x="650" y="336" width="180" height="34" rx="7" class="box"/><text x="740" y="359" class="tag">form</text>
+    <rect x="650" y="388" width="180" height="34" rx="7" class="box"/><text x="740" y="411" class="tag">oauth2</text>
+    <path d="M830 405H854V438H875" class="edge"/>
+    <rect x="875" y="421" width="85" height="34" rx="7" class="box"/><text x="917" y="444" class="tag">driver</text>
+    <text x="917" y="477" class="detail">1..*</text>
+    <rect x="650" y="456" width="180" height="34" rx="7" class="box"/><text x="740" y="479" class="tag">logout</text>
+    <text x="745" y="519" class="detail">form and/or oauth2; logout required</text>
+    <circle cx="280" cy="410" r="13" class="number"/><text x="280" y="415" class="index">3</text>
+  </g>
+  <g id="authorization">
+    <rect x="300" y="550" width="270" height="60" rx="10" class="branch"/>
+    <text x="435" y="586" class="tag">authorization</text>
+    <path d="M570 580H610M610 557V603M610 557H650M610 603H650" class="edge"/>
+    <rect x="650" y="540" width="310" height="34" rx="7" class="box"/><text x="805" y="563" class="tag">by_dao</text>
+    <rect x="650" y="586" width="310" height="34" rx="7" class="box"/><text x="805" y="609" class="tag">by_route</text>
+    <text x="805" y="646" class="detail">Exactly one policy</text>
+    <circle cx="280" cy="580" r="13" class="number"/><text x="280" y="585" class="index">4</text>
+  </g>
+  <g id="mfa">
+    <rect x="300" y="700" width="270" height="60" rx="10" class="branch" stroke-dasharray="6 5"/>
+    <text x="435" y="736" class="tag">multi_factor_authentication</text>
+    <path d="M570 730H650" class="edge"/>
+    <rect x="650" y="713" width="310" height="34" rx="7" class="box"/><text x="805" y="736" class="tag">totp</text>
+    <circle cx="280" cy="730" r="13" class="number"/><text x="280" y="735" class="index">5</text>
+  </g>
+  <text x="500" y="795" class="detail">Dashed section: optional MFA. XML implementation-class bindings are documented separately.</text>
+</svg>

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="650" viewBox="0 0 1000 650" role="img" aria-labelledby="title description">
+  <title id="title">Persisted identity lifecycle and MFA reevaluation</title>
+  <desc id="description">Guest means no identity. Primary login without MFA authenticates directly; with MFA it creates pending identity. Completion promotes pending identity, expiry/logout clears it. Authenticated MFA freshness can trigger request-level reevaluation without automatically persisting a pending stage.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#64748b"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .heading { font-size: 26px; font-weight: 700; text-anchor: start; }
+      .sub { font-size: 15px; fill: #475569; text-anchor: start; }
+      .state { fill: #fff; stroke: #cbd5e1; stroke-width: 2; }
+      .auth { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; }
+      .label { font-size: 19px; font-weight: 700; }
+      .detail { font-size: 14px; fill: #475569; }
+      .edge { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+      .number { fill: #0369a1; }
+      .index { fill: #fff; font-size: 14px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1000" height="650" rx="16" fill="#f8fafc"/>
+  <text x="40" y="49" class="heading">Stored identity is smaller than the request state machine.</text>
+  <text x="40" y="77" class="sub">Two persisted enum stages; guest is absence. Numbered transitions are explained in the MFA guide.</text>
+  <path d="M170 225V145H830V225" class="edge"/>
+  <circle cx="500" cy="145" r="13" class="number"/><text x="500" y="150" class="index">1</text>
+  <rect x="40" y="225" width="260" height="100" rx="20" class="state"/>
+  <text x="170" y="267" class="label">Guest</text><text x="170" y="297" class="detail">No LoggedInUserInfo</text>
+  <rect x="370" y="225" width="260" height="100" rx="20" class="state"/>
+  <text x="500" y="267" class="label">PENDING_MFA</text><text x="500" y="297" class="detail">Completion deadline</text>
+  <rect x="700" y="225" width="260" height="100" rx="20" class="auth"/>
+  <text x="830" y="267" class="label">AUTHENTICATED</text><text x="830" y="297" class="detail">Optional MFA freshness deadline</text>
+  <path d="M300 275H370" class="edge"/><circle cx="335" cy="275" r="13" class="number"/><text x="335" y="280" class="index">2</text>
+  <path d="M630 275H700" class="edge"/><circle cx="665" cy="275" r="13" class="number"/><text x="665" y="280" class="index">3</text>
+  <path d="M475 325V375H340V305H370" class="edge"/>
+  <circle cx="405" cy="375" r="13" class="number"/><text x="405" y="380" class="index">4</text>
+  <path d="M500 225V195H170V225" class="edge"/>
+  <circle cx="335" cy="195" r="13" class="number"/><text x="335" y="200" class="index">5</text>
+  <path d="M900 225V112H95V225" class="edge"/>
+  <text x="840" y="134" class="detail">logout</text>
+  <circle cx="95" cy="170" r="13" class="number"/><text x="95" y="175" class="index">5</text>
+  <path d="M865 325V440" class="edge" stroke-dasharray="6 5"/>
+  <circle cx="865" cy="385" r="13" class="number"/><text x="865" y="390" class="index">6</text>
+  <path d="M760 440V325" class="edge" stroke-dasharray="6 5"/>
+  <circle cx="760" cy="385" r="13" class="number"/><text x="760" y="390" class="index">7</text>
+  <rect x="650" y="440" width="310" height="100" rx="12" class="state" stroke-dasharray="6 5"/>
+  <text x="805" y="478" class="label">MFA reevaluation</text><text x="805" y="507" class="detail">Request decision, not a stored stage</text>
+  <text x="365" y="474" class="detail">Freshness expiry evaluates policy again.</text>
+  <text x="365" y="500" class="detail">Challenge/failure packets block this request;</text>
+  <text x="365" y="526" class="detail">they do not automatically persist PENDING_MFA.</text>
+  <text x="500" y="599" class="detail">FAILED, REQUIRED, SETUP_REQUIRED, and THROTTLED are outcomes, not extra persisted identity stages.</text>
+  <text x="500" y="624" class="detail">Persistence-token expiry can also remove identity; it is separate from the two MFA deadline meanings.</text>
+</svg>

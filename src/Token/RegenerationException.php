@@ -13,7 +13,7 @@ namespace Lucinda\WebSecurity\Token;
  * @see SynchronizerToken::decode()
  * @see SynchronizerToken::encode()
  */
-class RegenerationException extends \Exception
+final class RegenerationException extends \Exception
 {
     /**
      * @var mixed Original payload to carry into a replacement token; assigned before retrieval

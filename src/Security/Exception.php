@@ -12,5 +12,5 @@ namespace Lucinda\WebSecurity\Security;
  * @see Authorization
  * @see \Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo
  */
-class Exception extends \Exception
+final class Exception extends \Exception
 {}

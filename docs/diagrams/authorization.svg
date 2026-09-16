@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="620" viewBox="0 0 1000 620" role="img" aria-labelledby="title description">
+  <title id="title">DAO authorization with public guest access</title>
+  <desc id="description">Resolve the page, allow public pages, require identity for private pages, and check authenticated user permission for the HTTP method. Missing pages, guests on private pages, and rejected permissions produce distinct outcomes.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#64748b"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .heading { font-size: 26px; font-weight: 700; text-anchor: start; }
+      .sub { font-size: 15px; fill: #475569; text-anchor: start; }
+      .box { fill: #fff; stroke: #cbd5e1; stroke-width: 2; }
+      .core { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; }
+      .label { font-size: 18px; font-weight: 700; }
+      .detail { font-size: 14px; fill: #475569; }
+      .edge { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+      .number { fill: #0369a1; }
+      .index { fill: #fff; font-size: 14px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1000" height="620" rx="16" fill="#f8fafc"/>
+  <text x="40" y="49" class="heading">Public resources do not require a logged-in user.</text>
+  <text x="40" y="77" class="sub">DAO mode · authorization runs only when earlier security stages allow it to continue.</text>
+  <rect x="40" y="140" width="250" height="90" rx="12" class="box"/>
+  <text x="165" y="177" class="label">Resolve page ID</text><text x="165" y="204" class="detail">PageAuthorization.getID()</text>
+  <circle cx="64" cy="164" r="13" class="number"/><text x="64" y="169" class="index">1</text>
+  <path d="M290 185H370" class="edge"/><text x="330" y="170" class="detail">found</text>
+  <rect x="370" y="140" width="260" height="90" rx="12" class="box"/>
+  <text x="500" y="177" class="label">Public page?</text><text x="500" y="204" class="detail">PageAuthorization.isPublic()</text>
+  <circle cx="394" cy="164" r="13" class="number"/><text x="394" y="169" class="index">2</text>
+  <path d="M630 185H710" class="edge"/><text x="670" y="170" class="detail">no</text>
+  <rect x="710" y="140" width="250" height="90" rx="12" class="box"/>
+  <text x="835" y="177" class="label">Authenticated?</text><text x="835" y="204" class="detail">Held completed identity</text>
+  <circle cx="734" cy="164" r="13" class="number"/><text x="734" y="169" class="index">3</text>
+  <path d="M165 230V400" class="edge"/><text x="218" y="320" class="detail">missing</text>
+  <rect x="40" y="400" width="250" height="70" rx="12" class="box"/><text x="165" y="443" class="label">NOT_FOUND</text>
+  <path d="M500 230V505" class="edge"/><text x="530" y="337" class="detail">yes</text>
+  <path d="M835 230V290" class="edge"/><text x="867" y="264" class="detail">yes</text>
+  <rect x="710" y="290" width="250" height="90" rx="12" class="box"/>
+  <text x="835" y="327" class="label">User permission?</text><text x="835" y="354" class="detail">User + page ID + HTTP method</text>
+  <circle cx="734" cy="314" r="13" class="number"/><text x="734" y="319" class="index">4</text>
+  <path d="M960 185H980V435H960" class="edge"/>
+  <text x="927" y="265" class="detail">no identity</text>
+  <rect x="710" y="400" width="250" height="70" rx="12" class="box"/><text x="835" y="431" class="label">Denied</text><text x="835" y="455" class="detail">UNAUTHORIZED / FORBIDDEN</text>
+  <path d="M875 380V400" class="edge"/>
+  <path d="M710 335H665V535H630" class="edge"/><text x="662" y="407" class="detail">allowed</text>
+  <rect x="370" y="505" width="260" height="65" rx="12" class="core"/><text x="500" y="545" class="label">Continue · no denial packet</text>
+  <circle cx="310" cy="538" r="13" class="number"/><text x="310" y="543" class="index">5</text>
+  <text x="500" y="598" class="detail">Denials return Security packets. Route-role mode instead compares route roles with user/guest roles.</text>
+</svg>

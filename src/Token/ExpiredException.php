@@ -11,6 +11,6 @@ namespace Lucinda\WebSecurity\Token;
  * @see SynchronizerToken::decode()
  * @see RegenerationException
  */
-class ExpiredException extends \Exception
+final class ExpiredException extends \Exception
 {
 }

@@ -10,6 +10,6 @@ namespace Lucinda\WebSecurity\PersistenceDrivers\Session;
  *
  * @see PersistenceDriver::load()
  */
-class HijackException extends \Exception
+final class HijackException extends \Exception
 {
 }

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="570" viewBox="0 0 1000 570" role="img" aria-labelledby="title description">
+  <title id="title">CSRF identity contexts and delivery</title>
+  <desc id="description">The guest login form generates and validates tokens for the guest string context. LoggedInUser provides a local-ID-bound token. Logout validates that ID; application-specific mutations need their own CSRF integration.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#64748b"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .heading { font-size: 26px; font-weight: 700; text-anchor: start; }
+      .sub { font-size: 15px; fill: #475569; text-anchor: start; }
+      .box { fill: #fff; stroke: #cbd5e1; stroke-width: 2; }
+      .core { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; }
+      .label { font-size: 18px; font-weight: 700; }
+      .detail { font-size: 14px; fill: #475569; }
+      .edge { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+      .number { fill: #0369a1; }
+      .index { fill: #fff; font-size: 14px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1000" height="570" rx="16" fill="#f8fafc"/>
+  <text x="40" y="49" class="heading">Generate and validate against the same identity context.</text>
+  <text x="40" y="77" class="sub">Token delivery belongs to packets. CSRF tokens are not authentication bearer tokens.</text>
+  <rect x="40" y="135" width="260" height="100" rx="12" class="box"/>
+  <text x="170" y="173" class="label">Non-POST login route</text><text x="170" y="202" class="detail">Generate for "guest"</text>
+  <circle cx="64" cy="159" r="13" class="number"/><text x="64" y="164" class="index">1</text>
+  <path d="M300 185H370" class="edge"/>
+  <rect x="370" y="135" width="260" height="100" rx="12" class="core"/>
+  <text x="500" y="173" class="label">GuestUser token</text><text x="500" y="202" class="detail">Render hidden login field</text>
+  <path d="M630 185H700" class="edge"/>
+  <rect x="700" y="135" width="260" height="100" rx="12" class="box"/>
+  <text x="830" y="173" class="label">POST login</text><text x="830" y="202" class="detail">Validate against "guest"</text>
+  <circle cx="724" cy="159" r="13" class="number"/><text x="724" y="164" class="index">2</text>
+  <path d="M40 290H960" stroke="#cbd5e1" stroke-dasharray="6 5"/>
+  <rect x="40" y="345" width="260" height="100" rx="12" class="box"/>
+  <text x="170" y="383" class="label">Authenticated outcome</text><text x="170" y="412" class="detail">Generate for local user ID</text>
+  <circle cx="64" cy="369" r="13" class="number"/><text x="64" y="374" class="index">3</text>
+  <path d="M300 395H370" class="edge"/>
+  <rect x="370" y="345" width="260" height="100" rx="12" class="core"/>
+  <text x="500" y="383" class="label">LoggedInUser token</text><text x="500" y="412" class="detail">Render authenticated form field</text>
+  <path d="M630 395H700" class="edge"/>
+  <rect x="700" y="345" width="260" height="100" rx="12" class="box"/>
+  <text x="830" y="383" class="label">POST logout / mutation</text><text x="830" y="412" class="detail">Validate against local user ID</text>
+  <circle cx="724" cy="369" r="13" class="number"/><text x="724" y="374" class="index">4</text>
+  <text x="500" y="505" class="detail">Logout validation is built in. Other mutations and MFA endpoints need application-owned protection.</text>
+  <text x="500" y="534" class="detail">Token lifetime, secret, request-IP binding, and strict identity-type comparison all participate in validation.</text>
+</svg>

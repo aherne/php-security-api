@@ -13,6 +13,6 @@ namespace Lucinda\WebSecurity\Token;
  * @see \Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\PersistenceDriver
  * @see \Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver
  */
-class EncryptionException extends \Exception
+final class EncryptionException extends \Exception
 {
 }

@@ -12,7 +12,7 @@ namespace Lucinda\WebSecurity\Security\Authorization;
  * @see ResultStatus
  * @see \Lucinda\WebSecurity\Wrapper\Authorization
  */
-class Result
+final class Result
 {
     private ResultStatus $status;
     private string $callbackURI;

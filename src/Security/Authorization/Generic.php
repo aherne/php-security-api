@@ -11,7 +11,7 @@ namespace Lucinda\WebSecurity\Security\Authorization;
  * @internal
  * @see Result
  */
-class Generic
+abstract class Generic
 {
     private Result $result;
 

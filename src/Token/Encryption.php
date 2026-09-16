@@ -16,7 +16,7 @@ namespace Lucinda\WebSecurity\Token;
  * @see SynchronizerToken
  * @see EncryptionException
  */
-class Encryption
+final class Encryption
 {
     /**
      * OpenSSL cipher used to encrypt and authenticate the plaintext

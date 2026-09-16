@@ -16,7 +16,7 @@ use Lucinda\WebSecurity\Packets\Throttling as ThrottlingPacket;
  * @internal
  * @see \Lucinda\WebSecurity\Security\Authentication
  */
-class Generic
+abstract class Generic
 {
     protected int|string|null $userID;
     protected Request $request;

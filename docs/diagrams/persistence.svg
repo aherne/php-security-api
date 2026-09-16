@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="670" viewBox="0 0 1000 670" role="img" aria-labelledby="title description">
+  <title id="title">Stage-aware identity persistence</title>
+  <desc id="description">Restore the first available identity. Pending MFA is saved without remember-me. Completed identity saves to selected drivers. The current bearer token is attached to a packet for application-owned delivery. Renewal does not refresh MFA approval.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#64748b"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .heading { font-size: 26px; font-weight: 700; text-anchor: start; }
+      .sub { font-size: 15px; fill: #475569; text-anchor: start; }
+      .box { fill: #fff; stroke: #cbd5e1; stroke-width: 2; }
+      .core { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; }
+      .label { font-size: 18px; font-weight: 700; }
+      .detail { font-size: 14px; fill: #475569; }
+      .edge { fill: none; stroke: #64748b; stroke-width: 2; marker-end: url(#arrow); }
+      .number { fill: #0369a1; }
+      .index { fill: #fff; font-size: 14px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect width="1000" height="670" rx="16" fill="#f8fafc"/>
+  <text x="40" y="49" class="heading">Persist the identity stage, not just the account ID.</text>
+  <text x="40" y="77" class="sub">Choose session (+ optional remember-me) OR bearer-token persistence.</text>
+  <rect x="40" y="130" width="260" height="90" rx="12" class="box"/>
+  <text x="170" y="167" class="label">Incoming persistence</text><text x="170" y="194" class="detail">Cookies / explicit bearer token</text>
+  <path d="M300 175H370" class="edge"/>
+  <rect x="370" y="130" width="260" height="90" rx="12" class="core"/>
+  <text x="500" y="167" class="label">Restore identity</text><text x="500" y="194" class="detail">First non-null driver result</text>
+  <circle cx="394" cy="154" r="13" class="number"/><text x="394" y="159" class="index">1</text>
+  <path d="M630 175H700" class="edge"/>
+  <rect x="700" y="130" width="260" height="90" rx="12" class="box"/>
+  <text x="830" y="167" class="label">Security workflow</text><text x="830" y="194" class="detail">May change held identity</text>
+  <path d="M780 220V305H630" class="edge"/>
+  <path d="M880 220V455H630" class="edge"/>
+  <rect x="370" y="265" width="260" height="90" rx="12" class="box"/>
+  <text x="500" y="302" class="label">Save PENDING_MFA</text><text x="500" y="329" class="detail">Never write remember-me</text>
+  <circle cx="394" cy="289" r="13" class="number"/><text x="394" y="294" class="index">2</text>
+  <rect x="370" y="415" width="260" height="90" rx="12" class="core"/>
+  <text x="500" y="452" class="label">Save AUTHENTICATED</text><text x="500" y="479" class="detail">Remember-me only if requested</text>
+  <circle cx="394" cy="439" r="13" class="number"/><text x="394" y="444" class="index">3</text>
+  <path d="M370 310H300" class="edge"/><path d="M370 460H300" class="edge"/>
+  <rect x="40" y="280" width="260" height="200" rx="12" class="box"/>
+  <text x="170" y="323" class="label">Configured drivers</text>
+  <text x="170" y="361" class="detail">Session</text><text x="170" y="389" class="detail">Session + remember-me</text><text x="170" y="417" class="detail">Bearer token</text>
+  <text x="170" y="455" class="detail">One allowed combination</text>
+  <path d="M170 480V565H370" class="edge" stroke-dasharray="6 5"/>
+  <text x="190" y="551" class="detail">Bearer mode only</text>
+  <rect x="370" y="525" width="590" height="90" rx="12" class="core"/>
+  <text x="665" y="561" class="label">Current token → outcome packet → client</text>
+  <text x="665" y="590" class="detail">Application delivers issued/renewed tokens and removes them on logout.</text>
+  <circle cx="394" cy="549" r="13" class="number"/><text x="394" y="554" class="index">4</text>
+  <text x="500" y="645" class="detail">Bearer renewal preserves MFA deadlines. Clearing the driver does not revoke previously issued token copies.</text>
+</svg>

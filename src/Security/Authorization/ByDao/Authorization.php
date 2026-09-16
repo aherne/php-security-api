@@ -46,7 +46,7 @@ final class Authorization
      * @param string $pageURL Requested route supplied by Request::getUri()
      * @param int|string|null $userID Authenticated local user ID, or null for a guest
      * @param PageAuthorization $pageDAO DAO representing the requested resource and its public-access policy
-     * @param UserAuthorization $user DAO representing the current user or guest and their permissions
+     * @param UserAuthorization $userDAO DAO representing the current user or guest and their permissions
      * @param string $httpRequestMethod HTTP method used for the user-specific permission check
      * @return Result Access decision with a failure callback, or an empty callback when access is allowed
      * @throws \Throwable If an authorization DAO fails

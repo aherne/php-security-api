@@ -13,7 +13,7 @@ namespace Lucinda\WebSecurity\Token;
  * @see Encryption
  * @see SynchronizerToken
  */
-class SaltGenerator
+final class SaltGenerator
 {
     private string $salt;
 

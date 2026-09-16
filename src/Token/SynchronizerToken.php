@@ -19,7 +19,7 @@ namespace Lucinda\WebSecurity\Token;
  * @see \Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken\PersistenceDriver
  * @see \Lucinda\WebSecurity\PersistenceDrivers\RememberMe\PersistenceDriver
  */
-class SynchronizerToken
+final class SynchronizerToken
 {
     private string $ip;
     private string $salt;
