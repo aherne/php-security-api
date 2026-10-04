@@ -50,9 +50,7 @@ final class SynchronizerToken
      * @param int|string|null $userID Identity or serialized authentication payload to store in the uid field
      * @param int $expirationTime Token lifetime in seconds from issuance, not an absolute timestamp
      * @return string Versioned encrypted token containing the JSON payload
-     * @throws Exception If the payload or metadata cannot be encoded as JSON
-     * @throws EncryptionException If encryption fails
-     * @throws \Exception If secure random bytes for encryption cannot be generated
+     * @throws EncodingException If JSON conversion or authenticated encryption fails
      */
     public function encode(int|string|null $userID, int $expirationTime=3600): string
     {
@@ -62,7 +60,7 @@ final class SynchronizerToken
         try {
             $json = json_encode($payload, JSON_THROW_ON_ERROR);
         } catch(\JsonException $exception) {
-            throw new Exception("Token payload could not be encoded!", 0, $exception);
+            throw new EncodingException("Token payload could not be encoded!", 0, $exception);
         }
         return $encryption->encrypt($json);
     }
@@ -81,8 +79,8 @@ final class SynchronizerToken
      * @param string $token Versioned encrypted token produced by encode()
      * @param int $maximumLifetime Renewal age in seconds; zero disables age-based renewal signaling
      * @return int|string|null Restored uid payload, or null when the stored value is empty
-     * @throws EncryptionException If the encrypted envelope is malformed or cryptographic verification fails
-     * @throws Exception If JSON decoding, payload structure, or IP validation fails
+     * @throws EncodingException If envelope, cryptographic, or JSON decoding fails
+     * @throws ValidationException If decoded payload structure, types, or IP binding are invalid
      * @throws ExpiredException If the current time exceeds the embedded expiration timestamp
      * @throws RegenerationException If an unexpired token exceeds the non-zero renewal age; carries its original uid
      */
@@ -93,7 +91,7 @@ final class SynchronizerToken
         try {
             $parts = json_decode($decryptedValue, true, 512, JSON_THROW_ON_ERROR);
         } catch(\JsonException $exception) {
-            throw new Exception("Token payload could not be decoded!", 0, $exception);
+            throw new EncodingException("Token payload could not be decoded!", 0, $exception);
         }
 
         // validate decoded json structure
@@ -110,12 +108,12 @@ final class SynchronizerToken
             || !is_int($parts["time"])
             || !is_int($parts["expiration"])
         ) {
-            throw new Exception("Invalid token payload!");
+            throw new ValidationException("Invalid token payload!");
         }
 
         // validate token
         if ($this->ip!==$parts["ip"]) {
-            throw new Exception("Token was issued from a different ip!");
+            throw new ValidationException("Token was issued from a different ip!");
         }
         $currentTime = time();
         if ($currentTime > $parts["expiration"]) {

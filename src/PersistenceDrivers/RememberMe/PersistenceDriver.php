@@ -6,7 +6,8 @@ use Lucinda\WebSecurity\PersistenceDrivers\CookieSecurityOptions;
 use Lucinda\WebSecurity\Token\SynchronizerToken;
 use Lucinda\WebSecurity\Token\ExpiredException;
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
-use Lucinda\WebSecurity\Token\EncryptionException;
+use Lucinda\WebSecurity\Token\EncodingException;
+use Lucinda\WebSecurity\Token\ValidationException;
 use Lucinda\WebSecurity\PersistenceDrivers\Exception as PersistenceException;
 
 /**
@@ -52,8 +53,7 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
      * Response headers must still be writable.
      *
      * @param LoggedInUserInfo $authentication Authentication state to persist
-     * @throws \Lucinda\WebSecurity\Token\Exception If the token payload cannot be encoded
-     * @throws EncryptionException If token encryption fails
+     * @throws EncodingException If token encoding fails
      * @throws PersistenceException If the cookie header cannot be queued
      */
     public function save(LoggedInUserInfo $authentication): void
@@ -70,8 +70,8 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
      * A cleanup failure may replace the original exception.
      *
      * @return LoggedInUserInfo|null Stored authentication state, or null when absent or expired
-     * @throws EncryptionException If decryption fails or the restored payload is not authentication state
-     * @throws \Lucinda\WebSecurity\Token\Exception If token validation fails for a reason other than expiry
+     * @throws EncodingException If token decoding fails
+     * @throws ValidationException If decoded token data is invalid or cannot restore authentication state
      * @throws PersistenceException If an invalid or expired cookie cannot be cleared
      */
     public function load(): ?LoggedInUserInfo
@@ -84,7 +84,7 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
             $userInfo = $this->token->decode($_COOKIE[$this->parameterName]);
             $user = unserialize($userInfo, ["allowed_classes" => [LoggedInUserInfo::class]]);
             if (!$user instanceof LoggedInUserInfo) {
-                throw new EncryptionException("Invalid authentication payload!");
+                throw new ValidationException("Invalid authentication payload!");
             }
             return $user;
         } catch (\Exception $e) {

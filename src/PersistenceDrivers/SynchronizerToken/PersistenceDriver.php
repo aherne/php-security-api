@@ -3,8 +3,8 @@
 namespace Lucinda\WebSecurity\PersistenceDrivers\SynchronizerToken;
 
 use Lucinda\WebSecurity\PersistenceDrivers\LoggedInUserInfo;
-use Lucinda\WebSecurity\Token\EncryptionException;
-use Lucinda\WebSecurity\Token\Exception;
+use Lucinda\WebSecurity\Token\EncodingException;
+use Lucinda\WebSecurity\Token\ValidationException;
 use Lucinda\WebSecurity\Token\SynchronizerToken;
 use Lucinda\WebSecurity\Token\RegenerationException;
 use Lucinda\WebSecurity\Token\ExpiredException;
@@ -76,8 +76,7 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
      * The new value is available through getAccessToken().
      *
      * @param LoggedInUserInfo $authentication Authentication state to persist
-     * @throws Exception If the token payload cannot be encoded
-     * @throws EncryptionException If token encryption fails
+     * @throws EncodingException If token encoding fails
      */
     public function save(LoggedInUserInfo $authentication): void
     {
@@ -92,8 +91,8 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
      * threshold is replaced; retrieve that value through getAccessToken().
      *
      * @return LoggedInUserInfo|null Stored authentication state, or null when no token is supplied or it has expired
-     * @throws Exception If token validation or renewal encoding fails
-     * @throws EncryptionException If cryptographic processing fails or the restored payload is not authentication state
+     * @throws EncodingException If token decoding or renewal encoding fails
+     * @throws ValidationException If decoded token data cannot restore authentication state
      */
     public function load(): ?LoggedInUserInfo
     {
@@ -114,7 +113,7 @@ final class PersistenceDriver implements \Lucinda\WebSecurity\PersistenceDrivers
         
         $user = unserialize($userInfo, ["allowed_classes" => [LoggedInUserInfo::class]]);
         if (!$user instanceof LoggedInUserInfo) {
-            throw new EncryptionException("Invalid authentication payload!");
+            throw new ValidationException("Invalid authentication payload!");
         }
 
         return $user;

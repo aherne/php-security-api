@@ -120,4 +120,6 @@ Expected credential, permission, MFA, and throttling decisions are packets. Miss
 
 Both construction and public outcome building can fail. Handle exceptions at the application boundary; do not reinterpret unexpected failures as successful guest access.
 
-See [configuration exceptions](../src/Configuration/Exception.php), [persistence exceptions](../src/PersistenceDrivers/Exception.php), [security exceptions](../src/Security/Exception.php), and [token exceptions](../src/Token/Exception.php).
+Token failures distinguish an inability to [encode or decode](../src/Token/EncodingException.php) from [invalid decoded data](../src/Token/ValidationException.php). Expiration and renewal remain separate signals because persistence handles them differently.
+
+See also [configuration exceptions](../src/Configuration/Exception.php), [persistence exceptions](../src/PersistenceDrivers/Exception.php), and [security exceptions](../src/Security/Exception.php).

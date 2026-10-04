@@ -113,8 +113,6 @@ final class Authentication
                 $this->loginWithMFA($outcome, $multiFactorConfiguration->getPendingExpiration());
                 return null; // let next MFA stage handle it
             }
-        } elseif ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::LOGIN_OK) {
-            $this->login($outcome);
         } elseif ($outcome instanceof SecurityPacket && $outcome->getStatus() == AuthenticationStatus::LOGOUT_OK) {
             $this->userInfo = null;
             $this->logout();

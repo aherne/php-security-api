@@ -3,7 +3,7 @@
 namespace Lucinda\WebSecurity\Detectors;
 
 use Lucinda\WebSecurity\Token\SynchronizerToken;
-use Lucinda\WebSecurity\Token\EncryptionException;
+use Lucinda\WebSecurity\Token\EncodingException;
 use Lucinda\WebSecurity\Configuration\Csrf as Configuration;
 
 /**
@@ -39,7 +39,7 @@ final class CsrfToken
      *
      * @param  int|string|null $userID Unique user identifier (usually an int)
      * @return string Value of synchronizer token.
-     * @throws EncryptionException If encryption of token fails.
+     * @throws EncodingException If token encoding fails.
      */
     public function generate(int|string|null $userID): string
     {

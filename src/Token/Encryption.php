@@ -14,7 +14,7 @@ namespace Lucinda\WebSecurity\Token;
  * or enforce token expiration and IP binding.
  *
  * @see SynchronizerToken
- * @see EncryptionException
+ * @see EncodingException
  */
 final class Encryption
 {
@@ -57,12 +57,15 @@ final class Encryption
      *
      * @param string $data Plaintext bytes to encrypt; JSON encoding is the caller's responsibility
      * @return string Version, Base64 IV, Base64 tag, and Base64 ciphertext separated by periods
-     * @throws EncryptionException If OpenSSL cannot encrypt the plaintext
-     * @throws \Exception If secure random bytes for the IV cannot be generated
+     * @throws EncodingException If the IV cannot be generated or OpenSSL cannot encrypt the plaintext
      */
     public function encrypt(string $data): string
     {
-        $iv = random_bytes(openssl_cipher_iv_length(self::CYPHER_METHOD));
+        try {
+            $iv = random_bytes(openssl_cipher_iv_length(self::CYPHER_METHOD));
+        } catch (\Throwable $exception) {
+            throw new EncodingException("Encryption initialization failed!", 0, $exception);
+        }
 
         $ciphertext = openssl_encrypt(
             $data,
@@ -76,7 +79,7 @@ final class Encryption
         );
 
         if ($ciphertext === false) {
-            throw new EncryptionException("Encryption failed!");
+            throw new EncodingException("Encryption failed!");
         }
 
         return implode(".", [
@@ -95,14 +98,14 @@ final class Encryption
      *
      * @param string $data Versioned encrypted envelope produced by encrypt()
      * @return string Authenticated plaintext bytes
-     * @throws EncryptionException If envelope validation or authenticated decryption fails
+     * @throws EncodingException If envelope decoding or authenticated decryption fails
      */
     public function decrypt(string $data): string
     {
         $parts = explode(".", $data);
 
         if (count($parts) !== 4 || $parts[0] !== self::VERSION) {
-            throw new EncryptionException("Invalid encrypted value!");
+            throw new EncodingException("Invalid encrypted value!");
         }
 
         $iv = base64_decode($parts[1], true);
@@ -116,7 +119,7 @@ final class Encryption
             || strlen($iv) !== openssl_cipher_iv_length(self::CYPHER_METHOD)
             || strlen($tag) !== self::TAG_LENGTH
         ) {
-            throw new EncryptionException("Invalid encrypted value!");
+            throw new EncodingException("Invalid encrypted value!");
         }
 
         $plaintext = openssl_decrypt(
@@ -130,7 +133,7 @@ final class Encryption
         );
 
         if ($plaintext === false) {
-            throw new EncryptionException("Decryption failed!");
+            throw new EncodingException("Decryption failed!");
         }
 
         return $plaintext;
