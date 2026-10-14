@@ -1,152 +1,206 @@
-# Lucinda Security
+# Lucinda Web Security
 
-Configuration-driven security for PHP applications: authentication, authorization, MFA, CSRF protection, identity persistence, and throttling.
+Lucinda Web Security is a **web security state machine** for PHP applications. It restores the current identity, evaluates authentication, optional multi-factor authentication, and authorization, persists state transitions, and returns a typed outcome for the host application to handle.
 
-**The library evaluates security and returns structured outcomes. Your application decides how to respond.**
+Its goals are to:
 
-## How it works
+- keep security decisions independent from controllers, templates, and HTTP response code;
+- give form login, OAuth2, MFA, authorization, CSRF protection, persistence, and throttling one coherent workflow;
+- expose expected outcomes as typed packets instead of exceptions;
+- let the application own redirects, rendering, HTTP statuses, and bearer-token delivery;
+- select application-specific DAOs and policies through XML while keeping the state machine itself opaque.
 
-![The host application supplies configuration and request data to Wrapper, then handles its returned outcome.](docs/diagrams/overview.svg)
-
-The numbered references describe the API contract, not execution order:
-
-1. **Configuration:** an application XML document containing `<security>`. It selects security mechanisms and application implementation classes.
-2. **Request:** normalized route, context path, client IP, HTTP method, parameters, and an optional authentication bearer token.
-3. **Optional integrations:** OAuth2 provider services and a state store; a pre-parsed role detector for route-based authorization.
-4. **Processing:** `Wrapper` restores identity and coordinates authentication, optional MFA, and authorization.
-5. **Outcome:** `getOutcome()` returns `Packet | null`. The application owns rendering, redirects, HTTP statuses, and token delivery.
-
-Expected rejections are outcomes, not exceptions. Unexpected configuration, persistence, or integration failures can throw. Session and cookie persistence can update headers; the library does not send your application's redirect or response body.
-
-## Capabilities
-
-- Form authentication through an application-supplied credentials DAO.
-- OAuth2 authentication with existing-account, automatic-creation, or approval-based provisioning.
-- Optional TOTP enrollment and verification, with bounded pending completion and approval freshness.
-- Authorization through page/user DAOs or XML route roles, including guest access.
-- CSRF tokens for login and authenticated-user contexts.
-- Session, session plus remember-me, or authentication bearer-token persistence.
-- Separate application-supplied throttling policies for form login and MFA.
-
-## Installation
+Install it with Composer:
 
 ```bash
 composer require lucinda/security
 ```
 
-Requires PHP `^8.1`, `ext-SimpleXML`, and `ext-openssl`.
+It requires PHP 8.1 or newer, SimpleXML, and OpenSSL.
 
-## Quick start
+## Basic input and output
 
-Start with session-based form authentication and DAO authorization. Copy the [example XML](docs/examples/security.xml) into your application's `security.xml`, replace its secret, and implement the five application classes it names. The [quick-start guide](docs/quick-start.md) lists their exact contracts.
+![The application supplies XML, a normalized request, and optional integrations to Wrapper; Wrapper returns a packet, null, or throws.](docs/diagrams_new/io.svg)
 
-Run this integration before rendering a response. This example opens the configured login form:
+The application supplies:
+
+- a complete XML document containing a `<security>` element;
+- a normalized `Request`;
+- OAuth2 services and an OAuth2 state store when OAuth2 is configured;
+- a `RolesDetector` when XML route authorization is configured.
+
+`Wrapper` runs the state machine during construction. Call `getOutcome()` once to obtain `Packets\Packet|null`:
 
 ```php
 <?php
 
-require __DIR__ . "/vendor/autoload.php";
+require __DIR__."/vendor/autoload.php";
 
-use Lucinda\WebSecurity\Packets\GuestUser;
-use Lucinda\WebSecurity\Packets\LoggedInUser;
 use Lucinda\WebSecurity\Request;
 use Lucinda\WebSecurity\Wrapper;
 
-$xml = simplexml_load_file(__DIR__ . "/security.xml");
-if ($xml === false) {
-    throw new RuntimeException("Unable to load security configuration.");
+$xml = simplexml_load_file(__DIR__."/security.xml");
+if (!$xml instanceof SimpleXMLElement) {
+    throw new RuntimeException("Unable to load security configuration");
 }
 
 $request = new Request();
-$request->setUri("login"); // Replace with your router's application-relative route.
-$request->setContextPath("");
-$request->setIpAddress($_SERVER["REMOTE_ADDR"] ?? "");
+$request->setUri($applicationRoute);
+$request->setContextPath($applicationContextPath);
+$request->setIpAddress($clientIpAddress);
 $request->setMethod($_SERVER["REQUEST_METHOD"] ?? "GET");
-$request->setParameters($request->getMethod() === "POST" ? $_POST : $_GET);
+$request->setParameters($requestParameters);
+$request->setAccessToken($bearerToken ?? "");
 
 $wrapper = new Wrapper($xml, $request);
 $outcome = $wrapper->getOutcome();
-
-if ($outcome === null) {
-    // Continue as a guest on a resource allowed by the workflow.
-} elseif ($outcome instanceof GuestUser) {
-    $csrfToken = $outcome->getCsrfToken();
-    // Render the login form with this token in its "csrf" field.
-} elseif ($outcome instanceof LoggedInUser) {
-    $userID = $outcome->getUserID();
-    $csrfToken = $outcome->getCsrfToken();
-    // Handle any success callback, or continue with this identity.
-} else {
-    // Handle the packet's type, status, callback, and any failure detail.
-    // Do not continue to protected application logic without handling it.
-}
 ```
 
-The branches above illustrate the contract; connect them to your application's response layer. For proxy deployments, resolve the client IP through your trusted-proxy policy rather than blindly accepting forwarded headers.
+The library does not read routing information or credentials directly from application globals. The host application must normalize those values, resolve the client IP according to its trusted-proxy policy, and pass only the bearer-token value—not the `Bearer` scheme.
 
-## Understanding outcomes
+When optional integrations are needed, inject them explicitly:
 
-A packet carries a decision or useful identity data. Its presence does not automatically mean failure, and its user ID alone does not prove completed authentication.
+```php
+$wrapper = new Wrapper(
+    xml: $xml,
+    request: $request,
+    oauth2Drivers: [
+        "github" => $githubOAuth2Service,
+    ],
+    oauth2State: $oauth2State,
+    rolesDetector: $rolesDetector
+);
+```
 
-| Returned value | Meaning |
+`null` means the state machine permits execution to continue as a guest. A packet must be handled according to its concrete type. Wrapper never sends a redirect or response itself.
+
+See [basic I/O and Wrapper integration](docs/io.md) for request normalization, optional integrations, and a complete dispatch example.
+
+## XML configuration
+
+![The security XML hierarchy and the application interfaces selected by it.](docs/xml.svg)
+
+Pass the complete application document to `Wrapper`; it locates the required `<security>` child. Four sections are mandatory and MFA is optional:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<application>
+    <security>
+        <persistence>
+            <session
+                parameter_name="lucinda_session"
+                expiration="1800"
+                is_http_only="1"
+                is_https_only="1"
+                same_site="Lax"
+            />
+        </persistence>
+
+        <csrf secret="REPLACE_WITH_A_PRIVATE_SECRET" expiration="600" />
+
+        <authentication>
+            <form
+                dao="App\Security\FormLoginDAO"
+                throttler="App\Security\FormLoginThrottler"
+                page="login"
+                target_success="home"
+                target_failure="login"
+                target_throttled="login-throttled"
+            />
+            <logout
+                dao="App\Security\LogoutDAO"
+                page="logout"
+                target_success="login"
+                target_failure="logout-failed"
+            />
+        </authentication>
+
+        <authorization>
+            <by_dao
+                page_dao="App\Security\PageAuthorizationDAO"
+                user_dao="App\Security\UserAuthorizationDAO"
+                logged_in_callback="forbidden"
+                logged_out_callback="login"
+            />
+        </authorization>
+    </security>
+</application>
+```
+
+The principal structural rules are:
+
+- Persistence is either `session`, `session` plus `remember_me`, or `synchronizer_token`.
+- Authentication requires `form`, `oauth2`, or both, plus one `logout` definition.
+- Authorization uses exactly one of `by_dao` and `by_route`.
+- `multi_factor_authentication`, when present, requires a `totp` child.
+- Class-name attributes select autoloadable implementations of the documented interfaces. Configuration detects them; deeper state-machine code constructs them without arguments.
+- All durations are expressed in seconds. Cookie boolean values are `0` or `1`.
+
+Never commit production secrets. XML values are used literally; the library does not expand environment-variable placeholders.
+
+See the [complete XML configuration reference](docs/configuration.md) for every tag, attribute, default, allowed combination, and required interface.
+
+## Packets
+
+![Packets, their status families, caller-visible statuses, and internally consumed statuses.](docs/diagrams_new/packets-simplified.svg)
+
+All returned objects inherit from `Packets\Packet`, which can expose a user ID, callback URI, library bearer token, and detailed failure reason. These values are optional, and a user ID by itself does not prove that authentication completed.
+
+| Return value | Meaning |
 | --- | --- |
-| `null` | No public packet is needed; execution can continue as a guest. |
-| `GuestUser` | Login-form state, including the guest CSRF token. |
-| `LoggedInUser` | Completed authentication, including the user ID and CSRF token; a callback may be attached. |
-| `Security` | Authentication or authorization decision, such as deferral, rejected login, logout, or denied access. |
-| `MultiFactor` | MFA challenge, enrollment, failure, or expired pending state. |
-| `Throttling` | The configured form or MFA throttler blocks the attempt. |
+| `null` | Continue the requested operation as a guest. |
+| `Packets\GuestUser` | Render the form-login page using its guest CSRF token. |
+| `Packets\LoggedInUser` | Authentication is complete; exposes the local user ID and an authenticated-user CSRF token. |
+| `Packets\Security` | Authentication or authorization produced a caller-visible decision. |
+| `Packets\MultiFactor` | MFA requires setup or a challenge, failed, or the pending stage expired. |
+| `Packets\Throttling` | Form login or MFA is currently blocked by the configured throttler. |
 
-A `LoggedInUser` packet is not a blanket permission for every resource: login/MFA completion can end that request before authorization. Ordinary requests that continue through the workflow receive the configured authorization check.
+Solid statuses in the diagram may be returned to the application. Dashed statuses are internal transitions: for example, `IDENTITY_VERIFIED` becomes either `LOGIN_OK` when MFA is absent or persisted `PENDING_MFA` state when MFA must run. Terminal internal success is represented publicly as `LoggedInUser`.
 
-Read [outcomes and response handling](docs/outcomes.md) for enum statuses, callbacks, bearer-token delivery, and exceptions.
+`Security` packets may also contain a `FailureReason`. In words, those reasons distinguish:
 
-## Configuration at a glance
+- malformed form input, rejected guest CSRF, and rejected credentials;
+- malformed logout input, rejected authenticated-user CSRF, and a logout DAO rejection;
+- invalid OAuth2 state, a provider error or rejected callback, an unlisted account, failed automatic registration, or rejected approval provisioning.
 
-![XML tag containment, grouped by the five security configuration sections.](docs/diagrams/configuration-tree.svg)
+Failure reasons are suitable for diagnostics and response selection, but applications should avoid exposing account-sensitive detail or logging credentials and tokens.
 
-Four sections are required: `persistence`, `csrf`, `authentication`, and `authorization`. `multi_factor_authentication` is optional.
+See the [packet and status reference](docs/packets.md) for every numbered position in the diagram, the exact enum cases, type-specific fields, and failure reasons.
 
-The tree shows containment; its numbered references identify branch rules explained in the [configuration guide](docs/configuration.md). Interface bindings and attribute reference tables live in the component guides.
+## Exceptions
 
-## Explore the components
+![Exceptions used by the state machine; green exceptions can escape to the caller.](docs/diagrams_new/exceptions.svg)
 
-| Component | Read about |
+Expected login rejection, authorization denial, MFA challenge, and throttling are packets—not exceptions. The green exception types represent invalid configuration, damaged or unsafe state, missing runtime dependencies, or failed framework operations that can escape to the caller:
+
+| Exception | Meaning |
 | --- | --- |
-| [Authentication](docs/authentication.md) | Form login, logout, OAuth2 adapters, state validation, and account provisioning. |
-| [Multi-factor authentication](docs/multi-factor-authentication.md) | TOTP setup, replay protection, pending deadlines, and approval freshness. |
-| [Authorization](docs/authorization.md) | Public resources, page permissions, route roles, and guest access. |
-| [Persistence](docs/persistence.md) | Restoring identity, remember-me selection, bearer-token promotion and renewal. |
-| [CSRF](docs/csrf.md) | Login-form tokens, authenticated-user tokens, and application-side validation. |
-| [Throttling](docs/throttling.md) | XML-selected policies, penalty checks, and caller-visible outcomes. |
-| [Outcomes](docs/outcomes.md) | Public packets, callback handling, token delivery, and exceptions. |
+| `Configuration\Exception` | The security XML is missing required data, contains an invalid value or combination, or names a class with the wrong interface. |
+| `PersistenceDrivers\Exception` | Authentication state could not be loaded, saved, cleared, or safely rolled back. |
+| `PersistenceDrivers\Session\HijackException` | The current client IP differs from the IP recorded with the session. |
+| `Token\EncodingException` | A token could not be encoded, decoded, encrypted, or authenticated cryptographically. |
+| `Token\ValidationException` | A decoded token has invalid structure, types, IP binding, or authentication payload. |
+| `Security\Exception` | A required OAuth2 or route-authorization dependency is missing, or authentication state is invalid. |
+| `Packets\Exception` | A throttling packet was given a status that does not represent throttling. |
 
-See the [documentation map](docs/index.md) for all guides and diagram conventions.
+Exceptions can arise while constructing `Wrapper` and while building the public outcome through `getOutcome()`. Do not convert an unexpected exception into successful guest access.
 
-## Internal workflow
-
-Security processing is a conditional request workflow, not an unconditional pipeline. A stage returning a packet skips the remaining security stages; `null` continues. Public outcome building follows either path.
-
-![A request restores identity, evaluates security stages until one returns a packet, then builds the public outcome.](docs/diagrams/request-flow.svg)
-
-Read [the workflow guide](docs/workflow.md) for the numbered paths and construction/getter responsibilities. The separate [authentication lifecycle](docs/multi-factor-authentication.md#authentication-lifecycle) describes persisted identity state and MFA reevaluation.
+See [exception handling](docs/exceptions.md) for the throw conditions and recommended boundary behavior for the green exceptions.
 
 ## Development
 
-Install development dependencies and run the unit tests:
+Install dependencies and run the test suite:
 
 ```bash
 composer install
 php test.php
 ```
 
-From Windows, run PHP through WSL, from this repository:
+From Windows, run PHP through WSL:
 
 ```powershell
 wsl -d Ubuntu --cd /home/aherne/framework/security php test.php
 ```
-
-Implement the public application interfaces rather than subclassing internal orchestration classes.
 
 ## License
 
