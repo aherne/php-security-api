@@ -81,10 +81,19 @@ final class MultiFactorAuthenticationTest
         return (new Strings($actual))->assertEquals("mfa/throttled");
     }
 
+
     public function getMethod()
     {
         $actual = $this->configuration()->getMethod();
 
         return (new Objects($actual))->assertInstanceOf(Totp::class);
     }
+    public function getExpiredRoute()
+    {
+        $actual = $this->configuration()->getExpiredRoute();
+
+        return (new Strings($actual))->assertEquals("mfa/expired");
+    }
+        
+
 }

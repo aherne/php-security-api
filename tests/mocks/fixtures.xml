@@ -73,6 +73,7 @@
         success_route="mfa/success"
         failure_route="mfa/failure"
         throttled_route="mfa/throttled"
+        expired_route="mfa/expired"
       >
         <totp issuer="Lucinda" code_param="otp" period="30" digits="6" window="1" />
       </multi_factor_authentication>
@@ -182,6 +183,7 @@
       success_route="mfa/success"
       failure_route="mfa/failure"
       throttled_route="mfa/throttled"
+      expired_route="mfa/expired"
     >
       <totp issuer="Lucinda" code_param="otp" period="30" digits="6" window="1" />
     </multi_factor_authentication>

@@ -55,6 +55,7 @@ final class MultiFactorAuthentication
                 $outcome = new MultiFactorPacket();
                 $outcome->setUserID($userInfo->getUserID());
                 $outcome->setStatus(MultifactorResultStatus::EXPIRED);
+                $outcome->setCallback($configuration->getExpiredRoute());
                 $this->outcome = $outcome; // PENDING_MFA and deadline expired
                 return;
             }

@@ -20,6 +20,7 @@ final class MultiFactorAuthentication
     private string $successRoute;
     private string $failureRoute;
     private string $throttledRoute;
+    private string $expiredRoute;
     private Totp $method;
 
     /**
@@ -44,6 +45,7 @@ final class MultiFactorAuthentication
         $this->setSuccessRoute($subXML);
         $this->setFailureRoute($subXML);
         $this->setThrottledRoute($subXML);
+        $this->setExpiredRoute($subXML);
         $this->setMethod($subXML);
     }
 
@@ -263,6 +265,30 @@ final class MultiFactorAuthentication
             throw new Exception("Attribute 'throttled_route' must be set for tag 'multi_factor_authentication'");
         }
         $this->throttledRoute = (string) $xml["throttled_route"];
+    }
+
+    /**
+     * Detects MFA expired route based on 'expired_route' tag attribute
+     *
+     * @param \SimpleXMLElement $xml The multi_factor_authentication XML tag
+     * @throws Exception If the attribute is missing or empty
+     */
+    private function setExpiredRoute(\SimpleXMLElement $xml): void
+    {
+        if (empty($xml["expired_route"])) {
+            throw new Exception("Attribute 'expired_route' must be set for tag 'multi_factor_authentication'");
+        }
+        $this->expiredRoute = (string) $xml["expired_route"];
+    }
+
+    /**
+     * Gets MFA expired route
+     *
+     * @return string
+     */
+    public function getExpiredRoute(): string
+    {
+        return $this->expiredRoute;
     }
 
     /**
